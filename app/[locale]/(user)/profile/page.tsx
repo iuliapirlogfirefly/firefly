@@ -1,22 +1,41 @@
 import { setRequestLocale } from "next-intl/server";
+import { ProfilePageClient } from "@/components/profile/profile-page";
+import { getNearbyPreferences } from "@/lib/actions/profile";
 import { getSession } from "@/lib/auth/session";
+import { getEvents, getSavedEvents } from "@/lib/queries/events";
+import { generatePageMetadata } from "@/lib/seo/metadata";
 
 type Props = {
   params: Promise<{ locale: "en" | "ro" }>;
 };
 
+export async function generateMetadata({ params }: Props) {
+  const { locale } = await params;
+  return generatePageMetadata(
+    "Account",
+    "Your profile and saved nights.",
+    locale,
+    "/profile"
+  );
+}
+
 export default async function ProfilePage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const session = await getSession();
-  void session;
+  const [session, events, serverSaved, nearbyPreferences] = await Promise.all([
+    getSession(),
+    getEvents(locale),
+    getSavedEvents(locale),
+    getNearbyPreferences(),
+  ]);
 
   return (
-    <main data-route="profile">
-      {/* UI: implement profile page here */}
-      {/* Server data: getSession() */}
-      {/* Actions: updateProfile, signOut(locale) */}
-    </main>
+    <ProfilePageClient
+      events={events}
+      serverSavedIds={serverSaved.map((event) => event.id)}
+      session={session}
+      nearbyPreferences={nearbyPreferences}
+    />
   );
 }

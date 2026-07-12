@@ -242,12 +242,25 @@
     letter-spacing: 0.12em;
   }
 
+  .tracking-tight-logo {
+    letter-spacing: -0.05em;
+  }
+
   .scrollbar-none {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
 
   .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .feed-snap-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .feed-snap-scroll::-webkit-scrollbar {
     display: none;
   }
 }

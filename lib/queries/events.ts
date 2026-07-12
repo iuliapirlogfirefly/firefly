@@ -1,11 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isSupabaseConfigured, shouldUseMockData } from "@/lib/supabase/config";
 import { getLocalizedField } from "@/lib/i18n/content";
 import { getDateRange } from "@/lib/filters/event-filters";
 import { eventsToGeoJSON } from "@/lib/maps/geojson";
 import type { Locale } from "@/types";
 import type {
   CalendarDayEvents,
+  CreateEventInput,
   EventDetail,
   EventFilters,
   EventListItem,
@@ -14,10 +15,13 @@ import type {
 import type { Tables } from "@/types/database.types";
 import { getSession } from "@/lib/auth/session";
 import {
+  getMockBusinessEvents,
   getMockCalendarEvents,
   getMockEventBySlug,
   getMockEvents,
   getMockEventsGeoJSON,
+  getMockPendingEvents,
+  getMockSavedEvents,
 } from "@/lib/mocks/data";
 
 type EventRow = Tables<"events">;
@@ -82,7 +86,7 @@ export async function getEvents(
   locale: Locale,
   filters: EventFilters = {}
 ): Promise<EventListItem[]> {
-  if (!isSupabaseConfigured()) return getMockEvents(locale, filters);
+  if (shouldUseMockData()) return getMockEvents(locale, filters);
 
   const { data, error } = await buildEventsQuery(filters);
   if (error) throw error;
@@ -109,7 +113,7 @@ export async function getEventsGeoJSON(
   locale: Locale,
   filters: EventFilters = {}
 ): Promise<EventsGeoJSON> {
-  if (!isSupabaseConfigured()) return getMockEventsGeoJSON(locale, filters);
+  if (shouldUseMockData()) return getMockEventsGeoJSON(locale, filters);
 
   const supabase = await createClient();
   const { data, error } = await buildEventsQuery(filters);
@@ -121,7 +125,12 @@ export async function getEventBySlug(
   slug: string,
   locale: Locale
 ): Promise<EventDetail | null> {
-  if (!isSupabaseConfigured()) return getMockEventBySlug(slug, locale);
+  if (shouldUseMockData()) {
+    const event = getMockEventBySlug(slug, locale);
+    if (!event) return null;
+    const savedIds = new Set(["mock-1", "mock-4", "mock-7"]);
+    return { ...event, isSaved: savedIds.has(event.id) };
+  }
 
   const supabase = await createClient();
   const session = await getSession();
@@ -136,6 +145,7 @@ export async function getEventBySlug(
   if (error || !event) return null;
 
   let isSaved = false;
+  let isReminded = false;
   if (session.userId) {
     const { data: save } = await supabase
       .from("event_saves")
@@ -144,6 +154,15 @@ export async function getEventBySlug(
       .eq("event_id", event.id)
       .maybeSingle();
     isSaved = !!save;
+
+    const { data: reminder } = await supabase
+      .from("event_reminders")
+      .select("id")
+      .eq("user_id", session.userId)
+      .eq("event_id", event.id)
+      .is("sent_at", null)
+      .maybeSingle();
+    isReminded = !!reminder;
   }
 
   const listItem = mapEventToListItem(event, locale);
@@ -160,6 +179,7 @@ export async function getEventBySlug(
     images: event.images ?? [],
     organizerName: null,
     isSaved,
+    isReminded,
   };
 }
 
@@ -169,7 +189,7 @@ export async function getCalendarEvents(
   year: number,
   filters: EventFilters = {}
 ): Promise<CalendarDayEvents[]> {
-  if (!isSupabaseConfigured()) {
+  if (shouldUseMockData()) {
     return getMockCalendarEvents(locale, month, year, filters);
   }
 
@@ -187,6 +207,13 @@ export async function getCalendarEvents(
 
   if (filters.genre) query = query.eq("genre", filters.genre);
   if (filters.eventType) query = query.eq("event_type", filters.eventType);
+
+  if (filters.search) {
+    query = query.textSearch("search_vector", filters.search, {
+      type: "websearch",
+      config: "simple",
+    });
+  }
 
   const { data, error } = await query;
   if (error) throw error;
@@ -208,6 +235,8 @@ export async function getCalendarEvents(
 export async function getSavedEvents(
   locale: Locale
 ): Promise<EventListItem[]> {
+  if (shouldUseMockData()) return getMockSavedEvents(locale);
+
   if (!isSupabaseConfigured()) return [];
 
   const session = await getSession();
@@ -232,6 +261,8 @@ export async function getBusinessEvents(
   businessAccountId: string,
   locale: Locale
 ): Promise<(EventListItem & { status: string })[]> {
+  if (shouldUseMockData()) return getMockBusinessEvents(locale);
+
   if (!isSupabaseConfigured()) return [];
 
   const supabase = await createClient();
@@ -249,9 +280,71 @@ export async function getBusinessEvents(
   }));
 }
 
+export async function getBusinessEventForEdit(
+  id: string,
+  businessAccountId: string,
+  locale: Locale
+): Promise<(CreateEventInput & { id: string; status: string }) | null> {
+  if (shouldUseMockData()) {
+    const events = getMockBusinessEvents(locale);
+    const event = events.find((e) => e.id === id);
+    if (!event) return null;
+
+    return {
+      id: event.id,
+      status: event.status,
+      translations: { en: { title: event.title, description: "" } },
+      startsAt: event.startsAt,
+      endsAt: event.endsAt ?? undefined,
+      genre: event.genre,
+      eventType: event.eventType,
+      price: event.price ?? undefined,
+      coverImageUrl: event.coverImageUrl ?? undefined,
+      images: [],
+      venueName: event.venueName,
+      lat: event.lat,
+      lng: event.lng,
+    };
+  }
+
+  if (!isSupabaseConfigured()) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", id)
+    .eq("business_account_id", businessAccountId)
+    .single();
+
+  if (error || !data) return null;
+
+  const translations = data.translations as CreateEventInput["translations"];
+
+  return {
+    id: data.id,
+    status: data.status,
+    translations,
+    startsAt: data.starts_at,
+    endsAt: data.ends_at ?? undefined,
+    genre: data.genre as CreateEventInput["genre"],
+    eventType: data.event_type as CreateEventInput["eventType"],
+    price: data.price ?? undefined,
+    ticketUrl: data.ticket_url ?? undefined,
+    coverImageUrl: data.cover_image_url ?? undefined,
+    images: data.images ?? [],
+    venueName: data.venue_name ?? undefined,
+    address: data.address ?? undefined,
+    lat: data.lat ?? undefined,
+    lng: data.lng ?? undefined,
+  };
+}
+
 export async function getPendingEvents(locale: Locale): Promise<
   (EventListItem & { status: string; rejectionReason: string | null })[]
 > {
+  if (shouldUseMockData()) return getMockPendingEvents(locale);
+
   if (!isSupabaseConfigured()) return [];
 
   const supabase = await createClient();
@@ -268,4 +361,101 @@ export async function getPendingEvents(locale: Locale): Promise<
     status: e.status,
     rejectionReason: e.rejection_reason,
   }));
+}
+
+export async function getAllAdminEvents(locale: Locale): Promise<
+  (EventListItem & { status: string; source: string })[]
+> {
+  if (shouldUseMockData()) {
+    const pending = getMockPendingEvents(locale);
+    const published = getMockEvents(locale, {});
+    const seen = new Set<string>();
+    const merged = [...pending, ...published].filter((e) => {
+      if (seen.has(e.id)) return false;
+      seen.add(e.id);
+      return true;
+    });
+    return merged.map((e) => ({
+      ...e,
+      status: ("status" in e && typeof e.status === "string"
+        ? e.status
+        : "published") as string,
+      source: "business",
+    }));
+  }
+
+  if (!isSupabaseConfigured()) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((e) => ({
+    ...mapEventToListItem(e, locale),
+    status: e.status,
+    source: e.source,
+  }));
+}
+
+export async function getAdminEventForEdit(
+  id: string,
+  locale: Locale
+): Promise<CreateEventInput & { id: string; status: string } | null> {
+  if (shouldUseMockData()) {
+    const all = await getAllAdminEvents(locale);
+    const event = all.find((e) => e.id === id);
+    if (!event) return null;
+    return {
+      id: event.id,
+      status: event.status,
+      translations: {
+        en: { title: event.title, description: "" },
+      },
+      startsAt: event.startsAt,
+      endsAt: event.endsAt ?? undefined,
+      genre: event.genre,
+      eventType: event.eventType,
+      price: event.price ?? undefined,
+      coverImageUrl: event.coverImageUrl ?? undefined,
+      images: [],
+      venueName: event.venueName,
+      lat: event.lat ?? undefined,
+      lng: event.lng ?? undefined,
+    };
+  }
+
+  if (!isSupabaseConfigured()) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) return null;
+
+  const translations = data.translations as CreateEventInput["translations"];
+
+  return {
+    id: data.id,
+    status: data.status,
+    translations,
+    startsAt: data.starts_at,
+    endsAt: data.ends_at ?? undefined,
+    genre: data.genre as CreateEventInput["genre"],
+    eventType: data.event_type as CreateEventInput["eventType"],
+    price: data.price ?? undefined,
+    ticketUrl: data.ticket_url ?? undefined,
+    coverImageUrl: data.cover_image_url ?? undefined,
+    images: data.images ?? [],
+    venueName: data.venue_name ?? undefined,
+    address: data.address ?? undefined,
+    lat: data.lat ?? undefined,
+    lng: data.lng ?? undefined,
+  };
 }

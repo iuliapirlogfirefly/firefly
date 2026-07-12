@@ -1,3 +1,8 @@
+import { AdminPromotionsTable } from "@/components/admin/admin-promotions-table";
+import {
+  getAdminPromotions,
+  getAdminSubscriptions,
+} from "@/lib/queries/promotions";
 import { setRequestLocale } from "next-intl/server";
 
 type Props = {
@@ -8,9 +13,15 @@ export default async function AdminPromotionsPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
+  const [promotions, subscriptions] = await Promise.all([
+    getAdminPromotions(),
+    getAdminSubscriptions(),
+  ]);
+
   return (
-    <main data-route="admin-promotions">
-      {/* UI: implement active promotions management here */}
-    </main>
+    <AdminPromotionsTable
+      promotions={promotions}
+      subscriptions={subscriptions}
+    />
   );
 }

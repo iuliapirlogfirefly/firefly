@@ -5,6 +5,9 @@ const PUBLIC_PATHS = [
   "/",
   "/login",
   "/register",
+  "/auth",
+  "/auth/forgot-password",
+  "/auth/reset-password",
   "/map",
   "/calendar",
   "/feed",
@@ -47,9 +50,17 @@ export function isAdminPath(pathname: string): boolean {
 
 export function canAccessPath(
   pathname: string,
-  role: UserRole | "guest"
+  role: UserRole | "guest",
+  isSuspended = false
 ): { allowed: boolean; redirect?: string } {
   const path = stripLocale(pathname);
+
+  if (isSuspended) {
+    if (path === "/auth" || path.startsWith("/auth/")) {
+      return { allowed: true };
+    }
+    return { allowed: false, redirect: "/auth?reason=suspended" };
+  }
 
   if (isPublicPath(pathname)) {
     return { allowed: true };

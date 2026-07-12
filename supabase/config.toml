@@ -13,7 +13,11 @@ sql_paths = ["./seed.sql"]
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+additional_redirect_urls = [
+  "http://localhost:3000/auth/callback",
+  "http://localhost:3000/en/auth/reset-password",
+  "http://localhost:3000/ro/auth/reset-password",
+]
 
 [auth.email]
 # Disable confirmation emails during local/dev testing to avoid Supabase's

@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit",
     "db:push": "supabase db push",
     "db:seed": "supabase db seed",
+    "db:create-admin": "node scripts/create-admin-user.mjs",
+    "db:seed-demo": "node scripts/seed-demo-data.mjs",
     "db:types": "supabase gen types typescript --linked > types/database.types.ts"
   },
   "dependencies": {

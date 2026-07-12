@@ -11,6 +11,7 @@ export async function POST(request: Request) {
   const { getStripe } = await import("@/lib/stripe/client");
   const {
     handleCheckoutCompleted,
+    handleInvoicePaid,
     handleSubscriptionUpdated,
     isWebhookProcessed,
     markWebhookProcessed,
@@ -44,6 +45,9 @@ export async function POST(request: Request) {
       await handleCheckoutCompleted(
         event.data.object as Stripe.Checkout.Session
       );
+      break;
+    case "invoice.payment_succeeded":
+      await handleInvoicePaid(event.data.object as Stripe.Invoice);
       break;
     case "customer.subscription.updated":
     case "customer.subscription.created":

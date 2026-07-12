@@ -1,0 +1,3 @@
+ALTER TABLE profiles
+  ADD COLUMN is_suspended BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN suspended_at TIMESTAMPTZ;

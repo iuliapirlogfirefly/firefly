@@ -1,0 +1,107 @@
+"use client";
+
+import { Link, usePathname } from "@/i18n/navigation";
+import {
+  CalendarDays,
+  LayoutDashboard,
+  Megaphone,
+  Menu,
+  Newspaper,
+  X,
+} from "lucide-react";
+import { useState } from "react";
+
+const navItems = [
+  { href: "/business", label: "Overview", icon: LayoutDashboard },
+  { href: "/business/events", label: "Events", icon: CalendarDays },
+  { href: "/business/posts", label: "Feed posts", icon: Newspaper },
+  { href: "/business/promotions", label: "Promotions", icon: Megaphone },
+] as const;
+
+type Props = {
+  venueName: string;
+};
+
+export function BusinessSidebar({ venueName }: Props) {
+  const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const isActive = (href: string) => {
+    if (href === "/business") return pathname === "/business";
+    return pathname.startsWith(href);
+  };
+
+  const sidebarContent = (
+    <>
+      <div className="border-b border-border px-5 py-5">
+        <Link
+          href="/business"
+          className="font-heading text-lg font-semibold text-foreground"
+        >
+          Firefly
+        </Link>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+          {venueName}
+        </p>
+      </div>
+      <nav className="flex-1 space-y-1 p-3">
+        {navItems.map(({ href, label, icon: Icon }) => {
+          const active = isActive(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setMobileOpen(false)}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                active
+                  ? "bg-surface-2 font-medium text-foreground"
+                  : "text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+              }`}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+    </>
+  );
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setMobileOpen(true)}
+        className="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface-1 lg:hidden"
+        aria-label="Open menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      {mobileOpen ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+          aria-label="Close menu"
+        />
+      ) : null}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col border-r border-border bg-background transition-transform lg:static lg:translate-x-0 ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => setMobileOpen(false)}
+          className="absolute right-3 top-4 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-surface-2 lg:hidden"
+          aria-label="Close menu"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        {sidebarContent}
+      </aside>
+    </>
+  );
+}

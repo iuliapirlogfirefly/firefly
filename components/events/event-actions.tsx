@@ -1,8 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { Bell, Share2, Ticket } from "lucide-react";
-import { saveEvent, unsaveEvent } from "@/lib/actions/saves";
+import { useRouter } from "@/i18n/navigation";
+import {
+  removeReminder,
+  saveEvent,
+  setReminder,
+  unsaveEvent,
+} from "@/lib/actions/saves";
 import { trackShare } from "@/lib/actions/analytics";
 import { SUPABASE_DISABLED_MESSAGE } from "@/lib/supabase/config";
 
@@ -23,25 +29,57 @@ function writeSavedIds(ids: Set<string>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
 }
 
+function computeRemindAt(startsAt: string): string | null {
+  const start = new Date(startsAt);
+  const now = new Date();
+
+  if (start <= now) return null;
+
+  const twentyFourHoursBefore = new Date(start.getTime() - 24 * 60 * 60 * 1000);
+  const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+  const oneHourBefore = new Date(start.getTime() - 60 * 60 * 1000);
+
+  let remindAt =
+    twentyFourHoursBefore > now ? twentyFourHoursBefore : oneHourBefore;
+
+  if (remindAt <= now) remindAt = oneHourFromNow;
+  if (remindAt >= start) return null;
+
+  return remindAt.toISOString();
+}
+
 type Props = {
   eventId: string;
   eventTitle: string;
+  startsAt: string;
   initialSaved: boolean;
+  initialReminded: boolean;
   ticketUrl: string | null;
 };
 
 export function EventActions({
   eventId,
   eventTitle,
+  startsAt,
   initialSaved,
+  initialReminded,
   ticketUrl,
 }: Props) {
+  const router = useRouter();
   const [saved, setSaved] = useState(initialSaved);
+  const [reminded, setReminded] = useState(initialReminded);
   const [pending, startTransition] = useTransition();
+  const [reminderPending, startReminderTransition] = useTransition();
+
+  const remindAt = useMemo(() => computeRemindAt(startsAt), [startsAt]);
 
   useEffect(() => {
     setSaved(initialSaved || readSavedIds().has(eventId));
   }, [eventId, initialSaved]);
+
+  useEffect(() => {
+    setReminded(initialReminded);
+  }, [eventId, initialReminded]);
 
   const toggleSaved = useCallback(() => {
     startTransition(async () => {
@@ -68,6 +106,29 @@ export function EventActions({
       }
     });
   }, [eventId, saved]);
+
+  const toggleReminder = useCallback(() => {
+    startReminderTransition(async () => {
+      if (reminded) {
+        const result = await removeReminder(eventId);
+        if (result.success || result.error === SUPABASE_DISABLED_MESSAGE) {
+          setReminded(false);
+        } else if (result.error === "Authentication required") {
+          router.push("/auth");
+        }
+        return;
+      }
+
+      if (!remindAt) return;
+
+      const result = await setReminder(eventId, remindAt);
+      if (result.success || result.error === SUPABASE_DISABLED_MESSAGE) {
+        setReminded(true);
+      } else if (result.error === "Authentication required") {
+        router.push("/auth");
+      }
+    });
+  }, [eventId, reminded, remindAt, router]);
 
   const share = useCallback(async () => {
     const url = window.location.href;
@@ -120,10 +181,16 @@ export function EventActions({
       <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
-          className="flex items-center justify-center gap-2 rounded-full border border-firefly/20 px-4 py-3 text-sm transition-colors hover:border-firefly/50"
+          onClick={toggleReminder}
+          disabled={reminderPending || (!reminded && !remindAt)}
+          className={`flex items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm transition-colors ${
+            reminded
+              ? "border-firefly bg-firefly/10 text-firefly"
+              : "border-firefly/20 hover:border-firefly/50"
+          } disabled:cursor-not-allowed disabled:opacity-50`}
         >
           <Bell className="h-4 w-4" />
-          Remind
+          {reminded ? "Reminder set" : "Remind"}
         </button>
         <button
           type="button"

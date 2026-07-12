@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isSupabaseAdminConfigured, isSupabaseConfigured } from "@/lib/supabase/config";
+import { isSupabaseAdminConfigured, isSupabaseConfigured, shouldUseMockData } from "@/lib/supabase/config";
+import { getMockAdminAnalytics, getMockBusinessAnalytics } from "@/lib/mocks/data";
 
 export type AnalyticsCounts = {
   views: number;
@@ -27,6 +28,8 @@ export type AdminAnalytics = {
   analytics: AnalyticsCounts;
   activePromotions: number;
   activeSubscriptions: number;
+  totalRevenueCents: number;
+  currency: string;
 };
 
 async function countAnalytics(
@@ -87,6 +90,8 @@ const emptyAnalytics: AnalyticsCounts = {
 export async function getBusinessAnalytics(
   businessAccountId: string
 ): Promise<BusinessAnalytics> {
+  if (shouldUseMockData()) return getMockBusinessAnalytics();
+
   if (!isSupabaseConfigured()) {
     return { ...emptyAnalytics, totalEvents: 0, promotedEvents: 0, activePromotions: 0 };
   }
@@ -117,6 +122,8 @@ export async function getBusinessAnalytics(
 }
 
 export async function getAdminAnalytics(): Promise<AdminAnalytics> {
+  if (shouldUseMockData()) return getMockAdminAnalytics();
+
   if (!isSupabaseAdminConfigured()) {
     return {
       totalUsers: 0,
@@ -129,6 +136,8 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
       analytics: emptyAnalytics,
       activePromotions: 0,
       activeSubscriptions: 0,
+      totalRevenueCents: 0,
+      currency: "eur",
     };
   }
 
@@ -143,6 +152,7 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
     { count: activePromotions },
     { count: activeSubscriptions },
     { data: businesses },
+    { data: payments },
     analytics,
   ] = await Promise.all([
     admin.from("profiles").select("*", { count: "exact", head: true }),
@@ -165,8 +175,15 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
       .select("*", { count: "exact", head: true })
       .eq("status", "active"),
     admin.from("business_accounts").select("type"),
+    admin.from("payments").select("amount_cents, currency").eq("status", "paid"),
     countAnalytics("event"),
   ]);
+
+  const totalRevenueCents = (payments ?? []).reduce(
+    (sum, row) => sum + (row.amount_cents ?? 0),
+    0
+  );
+  const currency = payments?.[0]?.currency ?? "eur";
 
   return {
     totalUsers: totalUsers ?? 0,
@@ -181,5 +198,7 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
     analytics,
     activePromotions: activePromotions ?? 0,
     activeSubscriptions: activeSubscriptions ?? 0,
+    totalRevenueCents,
+    currency,
   };
 }

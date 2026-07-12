@@ -120,7 +120,9 @@ export function EventDetailPage({ event, related }: Props) {
         <EventActions
           eventId={event.id}
           eventTitle={event.title}
+          startsAt={event.startsAt}
           initialSaved={event.isSaved}
+          initialReminded={event.isReminded}
           ticketUrl={event.ticketUrl}
         />
       </section>

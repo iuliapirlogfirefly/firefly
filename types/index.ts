@@ -8,6 +8,8 @@ export type UserRole =
   | "business_organizer"
   | "admin";
 
+export type AccountType = "person" | "business";
+
 export type BusinessType = "venue" | "organizer";
 
 export type BusinessStatus =

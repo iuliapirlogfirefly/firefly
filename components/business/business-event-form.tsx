@@ -1,0 +1,419 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "@/i18n/navigation";
+import {
+  createEvent,
+  updateEvent,
+  submitEventForApproval,
+} from "@/lib/actions/events";
+import { GENRES, formatGenreLabel } from "@/lib/constants/genres";
+import { EVENT_TYPES, formatEventTypeLabel } from "@/lib/constants/event-types";
+import { ImageUploader } from "@/components/events/image-uploader";
+import type { CreateEventInput } from "@/types/events";
+import type { EventType, Genre } from "@/types";
+
+type BusinessVenue = {
+  name: string;
+  address: string;
+} | null;
+
+type Props = {
+  mode: "create" | "edit";
+  eventId?: string;
+  businessType: "venue" | "organizer";
+  venue: BusinessVenue;
+  initial?: Partial<CreateEventInput> & { status?: string };
+};
+
+const inputClass =
+  "w-full rounded-xl border border-firefly/20 bg-surface-1/50 px-3.5 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-firefly/50";
+
+const labelClass = "mb-1.5 block text-xs font-medium text-foreground/50";
+
+function StatusNote({ status }: { status?: string }) {
+  if (!status || status === "draft") {
+    return (
+      <p className="text-xs text-foreground/50">
+        This event is a draft. Save it, then submit it for admin approval
+        when it&apos;s ready — nothing goes live until it&apos;s approved.
+      </p>
+    );
+  }
+  if (status === "pending") {
+    return (
+      <p className="text-xs text-amber-warm">
+        This event is awaiting admin approval. You can still edit it, but
+        it&apos;ll need to be resubmitted after changes.
+      </p>
+    );
+  }
+  if (status === "rejected") {
+    return (
+      <p className="text-xs text-destructive">
+        This event was rejected. Update it and submit it again.
+      </p>
+    );
+  }
+  if (status === "published") {
+    return (
+      <p className="text-xs text-firefly">
+        This event is live. Editing a published event isn&apos;t supported
+        yet — contact an admin for changes.
+      </p>
+    );
+  }
+  return null;
+}
+
+export function BusinessEventForm({
+  mode,
+  eventId,
+  businessType,
+  venue,
+  initial,
+}: Props) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  const editable =
+    mode === "create" || !initial?.status || ["draft", "rejected"].includes(initial.status);
+
+  const [titleEn, setTitleEn] = useState(initial?.translations?.en?.title ?? "");
+  const [descEn, setDescEn] = useState(initial?.translations?.en?.description ?? "");
+  const [titleRo, setTitleRo] = useState(initial?.translations?.ro?.title ?? "");
+  const [descRo, setDescRo] = useState(initial?.translations?.ro?.description ?? "");
+  const [startsAt, setStartsAt] = useState(initial?.startsAt?.slice(0, 16) ?? "");
+  const [endsAt, setEndsAt] = useState(initial?.endsAt?.slice(0, 16) ?? "");
+  const [genre, setGenre] = useState<Genre>(initial?.genre ?? "techno");
+  const [eventType, setEventType] = useState<EventType>(
+    initial?.eventType ?? "party"
+  );
+  const [price, setPrice] = useState(
+    initial?.price != null ? String(initial.price) : ""
+  );
+  const [ticketUrl, setTicketUrl] = useState(initial?.ticketUrl ?? "");
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(
+    initial?.coverImageUrl ?? null
+  );
+  const [images, setImages] = useState<string[]>(initial?.images ?? []);
+
+  // Organizer-only manual location fields
+  const [venueName, setVenueName] = useState(initial?.venueName ?? "");
+  const [address, setAddress] = useState(initial?.address ?? "");
+  const [lat, setLat] = useState(
+    initial?.lat != null ? String(initial.lat) : "44.4268"
+  );
+  const [lng, setLng] = useState(
+    initial?.lng != null ? String(initial.lng) : "26.1025"
+  );
+
+  const buildPayload = (): CreateEventInput => ({
+    translations: {
+      en: { title: titleEn, description: descEn },
+      ro:
+        titleRo || descRo
+          ? { title: titleRo || undefined, description: descRo || undefined }
+          : undefined,
+    },
+    startsAt: new Date(startsAt).toISOString(),
+    endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
+    genre,
+    eventType,
+    price: price ? Number(price) : undefined,
+    ticketUrl: ticketUrl || undefined,
+    coverImageUrl: coverImageUrl ?? undefined,
+    images,
+    ...(businessType === "organizer"
+      ? {
+          venueName: venueName || undefined,
+          address: address || undefined,
+          lat: Number(lat),
+          lng: Number(lng),
+        }
+      : {}),
+  });
+
+  const save = (thenSubmit: boolean) => {
+    setError(null);
+
+    if (businessType === "organizer" && (!venueName || !address)) {
+      setError("Venue name and address are required for organizer events.");
+      return;
+    }
+
+    startTransition(async () => {
+      const payload = buildPayload();
+
+      let id: string;
+
+      if (mode === "create") {
+        const result = await createEvent(payload);
+        if (!result.success) {
+          setError(result.error);
+          return;
+        }
+        id = result.data.id;
+      } else {
+        const result = await updateEvent(eventId!, payload);
+        if (!result.success) {
+          setError(result.error);
+          return;
+        }
+        id = eventId!;
+      }
+
+      if (thenSubmit) {
+        const submitResult = await submitEventForApproval(id);
+        if (!submitResult.success) {
+          setError(submitResult.error);
+          return;
+        }
+      }
+
+      router.push("/business/events");
+      router.refresh();
+    });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    save(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="glass space-y-6 rounded-3xl p-6">
+        <StatusNote status={initial?.status} />
+
+        <fieldset disabled={!editable} className="space-y-6 disabled:opacity-60">
+          <div>
+            <label className={labelClass}>Cover image</label>
+            <ImageUploader value={coverImageUrl} onChange={setCoverImageUrl} />
+          </div>
+
+          <div>
+            <label className={labelClass}>Gallery images</label>
+            <ImageUploader value={images} onChange={setImages} multiple />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className={labelClass}>Title (EN)</label>
+              <input
+                className={inputClass}
+                value={titleEn}
+                onChange={(e) => setTitleEn(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Title (RO)</label>
+              <input
+                className={inputClass}
+                value={titleRo}
+                onChange={(e) => setTitleRo(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className={labelClass}>Description (EN)</label>
+              <textarea
+                className={`${inputClass} min-h-[100px] resize-y`}
+                value={descEn}
+                onChange={(e) => setDescEn(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Description (RO)</label>
+              <textarea
+                className={`${inputClass} min-h-[100px] resize-y`}
+                value={descRo}
+                onChange={(e) => setDescRo(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>Starts at</label>
+              <input
+                type="datetime-local"
+                className={inputClass}
+                value={startsAt}
+                onChange={(e) => setStartsAt(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Ends at</label>
+              <input
+                type="datetime-local"
+                className={inputClass}
+                value={endsAt}
+                onChange={(e) => setEndsAt(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>Genre</label>
+              <select
+                className={inputClass}
+                value={genre}
+                onChange={(e) => setGenre(e.target.value as Genre)}
+              >
+                {GENRES.map((g) => (
+                  <option key={g} value={g}>
+                    {formatGenreLabel(g)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Event type</label>
+              <select
+                className={inputClass}
+                value={eventType}
+                onChange={(e) => setEventType(e.target.value as EventType)}
+              >
+                {EVENT_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {formatEventTypeLabel(t)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>Price (RON)</label>
+              <input
+                type="number"
+                className={inputClass}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                min={0}
+                placeholder="Leave empty if free"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Ticket URL</label>
+              <input
+                type="url"
+                className={inputClass}
+                value={ticketUrl}
+                onChange={(e) => setTicketUrl(e.target.value)}
+                placeholder="https://"
+              />
+            </div>
+          </div>
+
+          {businessType === "venue" ? (
+            <div>
+              <label className={labelClass}>Venue (fixed)</label>
+              <div className="rounded-xl border border-firefly/10 bg-surface-1/30 px-3.5 py-2.5 text-sm text-foreground/70">
+                {venue?.name ?? "Your venue"}
+                {venue?.address ? ` — ${venue.address}` : ""}
+              </div>
+              <p className="mt-1.5 text-xs text-foreground/40">
+                Every event you create uses your venue&apos;s location.
+                Update it from your profile if it changes.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={labelClass}>Venue name</label>
+                  <input
+                    className={inputClass}
+                    value={venueName}
+                    onChange={(e) => setVenueName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Address</label>
+                  <input
+                    className={inputClass}
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={labelClass}>Latitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    className={inputClass}
+                    value={lat}
+                    onChange={(e) => setLat(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Longitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    className={inputClass}
+                    value={lng}
+                    onChange={(e) => setLng(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </fieldset>
+
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+        {editable ? (
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-full border border-firefly/30 px-5 py-2.5 text-sm font-medium text-firefly transition-all hover:bg-firefly/10 disabled:opacity-50"
+            >
+              {pending ? "Saving…" : "Save draft"}
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => save(true)}
+              className="rounded-full bg-firefly px-5 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:firefly-glow disabled:opacity-50"
+            >
+              {pending ? "Submitting…" : "Save & submit for approval"}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/business/events")}
+              className="rounded-full px-5 py-2.5 text-sm text-foreground/60 hover:text-foreground"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => router.push("/business/events")}
+            className="rounded-full border border-firefly/30 px-5 py-2.5 text-sm text-firefly transition-all hover:bg-firefly/10"
+          >
+            Back to events
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}

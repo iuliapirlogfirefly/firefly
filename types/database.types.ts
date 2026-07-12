@@ -17,6 +17,12 @@ export type Database = {
           avatar_url: string | null;
           preferred_locale: string;
           newsletter_opt_in: boolean;
+          is_suspended: boolean;
+          suspended_at: string | null;
+          nearby_events_opt_in: boolean;
+          nearby_lat: number | null;
+          nearby_lng: number | null;
+          nearby_radius_km: number;
           created_at: string;
           updated_at: string;
         };
@@ -27,6 +33,12 @@ export type Database = {
           avatar_url?: string | null;
           preferred_locale?: string;
           newsletter_opt_in?: boolean;
+          is_suspended?: boolean;
+          suspended_at?: string | null;
+          nearby_events_opt_in?: boolean;
+          nearby_lat?: number | null;
+          nearby_lng?: number | null;
+          nearby_radius_km?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -37,6 +49,12 @@ export type Database = {
           avatar_url?: string | null;
           preferred_locale?: string;
           newsletter_opt_in?: boolean;
+          is_suspended?: boolean;
+          suspended_at?: string | null;
+          nearby_events_opt_in?: boolean;
+          nearby_lat?: number | null;
+          nearby_lng?: number | null;
+          nearby_radius_km?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -244,6 +262,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      nearby_event_notifications: {
+        Row: {
+          user_id: string;
+          event_id: string;
+          sent_at: string;
+        };
+        Insert: {
+          user_id: string;
+          event_id: string;
+          sent_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          event_id?: string;
+          sent_at?: string;
+        };
+        Relationships: [];
+      };
       feed_posts: {
         Row: {
           id: string;
@@ -421,6 +457,78 @@ export type Database = {
           id?: string;
           stripe_event_id?: string;
           processed_at?: string;
+        };
+        Relationships: [];
+      };
+      event_duplicate_dismissals: {
+        Row: {
+          id: string;
+          event_id_a: string;
+          event_id_b: string;
+          dismissed_by: string | null;
+          dismissed_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id_a: string;
+          event_id_b: string;
+          dismissed_by?: string | null;
+          dismissed_at?: string;
+        };
+        Update: {
+          id?: string;
+          event_id_a?: string;
+          event_id_b?: string;
+          dismissed_by?: string | null;
+          dismissed_at?: string;
+        };
+        Relationships: [];
+      };
+      payments: {
+        Row: {
+          id: string;
+          business_account_id: string;
+          stripe_checkout_session_id: string | null;
+          stripe_payment_intent_id: string | null;
+          stripe_invoice_id: string | null;
+          type: string;
+          product_type: string;
+          amount_cents: number;
+          currency: string;
+          status: string;
+          paid_at: string;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_account_id: string;
+          stripe_checkout_session_id?: string | null;
+          stripe_payment_intent_id?: string | null;
+          stripe_invoice_id?: string | null;
+          type: string;
+          product_type: string;
+          amount_cents: number;
+          currency?: string;
+          status?: string;
+          paid_at?: string;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_account_id?: string;
+          stripe_checkout_session_id?: string | null;
+          stripe_payment_intent_id?: string | null;
+          stripe_invoice_id?: string | null;
+          type?: string;
+          product_type?: string;
+          amount_cents?: number;
+          currency?: string;
+          status?: string;
+          paid_at?: string;
+          metadata?: Json;
+          created_at?: string;
         };
         Relationships: [];
       };

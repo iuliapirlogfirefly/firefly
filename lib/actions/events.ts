@@ -3,7 +3,13 @@
 import { updateTag } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession, requireRole } from "@/lib/auth/session";
+import { getLocalizedField } from "@/lib/i18n/content";
+import {
+  sendEventApprovedEmail,
+  sendEventRejectedEmail,
+} from "@/lib/notifications/email";
 import { generateEventSlug } from "@/lib/utils/slug";
 import { success, failure } from "@/lib/utils/action-result";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
@@ -209,13 +215,47 @@ export async function approveEvent(id: string): Promise<ActionResult> {
     requireRole(session, ["admin"]);
 
     const supabase = await createClient();
-    const { error } = await supabase
+    const { data: event, error } = await supabase
       .from("events")
       .update({ status: "published", rejection_reason: null })
       .eq("id", id)
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .select("translations, business_account_id")
+      .single();
 
     if (error) return failure(error.message);
+
+    if (event?.business_account_id) {
+      const { data: business } = await supabase
+        .from("business_accounts")
+        .select("profile_id")
+        .eq("id", event.business_account_id)
+        .single();
+
+      if (business?.profile_id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("preferred_locale")
+          .eq("id", business.profile_id)
+          .single();
+
+        const admin = createAdminClient();
+        const { data: authUser } = await admin.auth.admin.getUserById(
+          business.profile_id
+        );
+
+        if (authUser?.user?.email) {
+          const locale = (profile?.preferred_locale as "en" | "ro") ?? "en";
+          const title = getLocalizedField(
+            event.translations as Parameters<typeof getLocalizedField>[0],
+            locale,
+            "title"
+          );
+          await sendEventApprovedEmail(authUser.user.email, title, locale);
+        }
+      }
+    }
+
     updateTag("events");
     return success(undefined);
   } catch (e) {
@@ -235,13 +275,52 @@ export async function rejectEvent(
     requireRole(session, ["admin"]);
 
     const supabase = await createClient();
-    const { error } = await supabase
+    const { data: event, error } = await supabase
       .from("events")
       .update({ status: "rejected", rejection_reason: reason })
       .eq("id", id)
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .select("translations, business_account_id")
+      .single();
 
     if (error) return failure(error.message);
+
+    if (event?.business_account_id) {
+      const { data: business } = await supabase
+        .from("business_accounts")
+        .select("profile_id")
+        .eq("id", event.business_account_id)
+        .single();
+
+      if (business?.profile_id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("preferred_locale")
+          .eq("id", business.profile_id)
+          .single();
+
+        const admin = createAdminClient();
+        const { data: authUser } = await admin.auth.admin.getUserById(
+          business.profile_id
+        );
+
+        if (authUser?.user?.email) {
+          const locale = (profile?.preferred_locale as "en" | "ro") ?? "en";
+          const title = getLocalizedField(
+            event.translations as Parameters<typeof getLocalizedField>[0],
+            locale,
+            "title"
+          );
+          await sendEventRejectedEmail(
+            authUser.user.email,
+            title,
+            reason,
+            locale
+          );
+        }
+      }
+    }
+
     return success(undefined);
   } catch (e) {
     return failure(e instanceof Error ? e.message : "Failed to reject event");
@@ -263,6 +342,56 @@ export async function deleteEvent(id: string): Promise<ActionResult> {
     return success(undefined);
   } catch (e) {
     return failure(e instanceof Error ? e.message : "Failed to delete event");
+  }
+}
+
+export async function archiveEvent(id: string): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("events")
+      .update({
+        status: "archived",
+        is_promoted: false,
+        promotion_intensity: 1,
+      })
+      .eq("id", id)
+      .eq("status", "published");
+
+    if (error) return failure(error.message);
+    updateTag("events");
+    return success(undefined);
+  } catch (e) {
+    return failure(e instanceof Error ? e.message : "Failed to archive event");
+  }
+}
+
+export async function restoreEvent(id: string): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("events")
+      .update({ status: "published", rejection_reason: null })
+      .eq("id", id)
+      .eq("status", "archived");
+
+    if (error) return failure(error.message);
+    updateTag("events");
+    return success(undefined);
+  } catch (e) {
+    return failure(e instanceof Error ? e.message : "Failed to restore event");
   }
 }
 
@@ -314,5 +443,56 @@ export async function createAdminEvent(
     return success({ id: event.id });
   } catch (e) {
     return failure(e instanceof Error ? e.message : "Failed to create event");
+  }
+}
+
+export async function updateAdminEvent(
+  id: string,
+  data: UpdateEventInput
+): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const supabase = await createClient();
+    const { data: existing, error: fetchError } = await supabase
+      .from("events")
+      .select("id")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !existing) return failure("Event not found");
+
+    const { error } = await supabase
+      .from("events")
+      .update({
+        ...(data.translations && { translations: data.translations }),
+        ...(data.startsAt && { starts_at: data.startsAt }),
+        ...(data.endsAt !== undefined && { ends_at: data.endsAt }),
+        ...(data.genre && { genre: data.genre }),
+        ...(data.eventType && { event_type: data.eventType }),
+        ...(data.price !== undefined && { price: data.price }),
+        ...(data.ticketUrl !== undefined && {
+          ticket_url: data.ticketUrl || null,
+        }),
+        ...(data.coverImageUrl !== undefined && {
+          cover_image_url: data.coverImageUrl,
+        }),
+        ...(data.images && { images: data.images }),
+        ...(data.lat !== undefined && { lat: data.lat }),
+        ...(data.lng !== undefined && { lng: data.lng }),
+        ...(data.address !== undefined && { address: data.address }),
+        ...(data.venueName !== undefined && { venue_name: data.venueName }),
+      })
+      .eq("id", id);
+
+    if (error) return failure(error.message);
+    updateTag("events");
+    return success(undefined);
+  } catch (e) {
+    return failure(e instanceof Error ? e.message : "Failed to update event");
   }
 }

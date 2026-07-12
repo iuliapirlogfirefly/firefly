@@ -1,5 +1,6 @@
-import { setRequestLocale } from "next-intl/server";
+import { AdminPostsQueue } from "@/components/admin/admin-posts-queue";
 import { getPendingFeedPosts } from "@/lib/queries/feed";
+import { setRequestLocale } from "next-intl/server";
 
 type Props = {
   params: Promise<{ locale: "en" | "ro" }>;
@@ -10,12 +11,6 @@ export default async function AdminPostsPage({ params }: Props) {
   setRequestLocale(locale);
 
   const pendingPosts = await getPendingFeedPosts(locale);
-  void pendingPosts;
 
-  return (
-    <main data-route="admin-posts">
-      {/* UI: implement feed post moderation here */}
-      {/* Actions: publishFeedPost, rejectFeedPost */}
-    </main>
-  );
+  return <AdminPostsQueue posts={pendingPosts} locale={locale} />;
 }

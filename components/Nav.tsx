@@ -1,24 +1,43 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { Heart, LayoutDashboard, User } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useSession } from "@/components/session-provider";
 import { signOut } from "@/lib/actions/auth";
 
-const publicLinks = [
+const navLinks = [
+  { href: "/", label: "Home" },
   { href: "/map", label: "Map" },
   { href: "/feed", label: "Feed" },
+  { href: "/missed", label: "Missed" },
   { href: "/calendar", label: "Calendar" },
 ] as const;
-
-const savedLink = { href: "/saved", label: "Saved" } as const;
 
 export function Nav() {
   const session = useSession();
   const params = useParams();
   const locale = (params?.locale as string) ?? "en";
   const isLoggedIn = Boolean(session.userId);
-  const links = isLoggedIn ? [...publicLinks, savedLink] : publicLinks;
+  const isAdmin = session.role === "admin";
+  const isBusiness =
+    session.role === "business_venue" || session.role === "business_organizer";
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
@@ -27,11 +46,11 @@ export function Nav() {
           <span className="relative inline-flex h-2 w-2">
             <span className="absolute inset-0 rounded-full bg-firefly animate-firefly-pulse" />
           </span>
-          <span className="font-display text-xl tracking-wide">Firefly</span>
+          <span className="font-display text-xl tracking-tight-logo">firefly</span>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
-          {links.map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -42,23 +61,84 @@ export function Nav() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {isLoggedIn ? (
             <>
               <Link
-                href="/profile"
-                className="hidden rounded-full border border-firefly/30 px-4 py-2 font-mono text-[11px] uppercase tracking-wider-2 text-firefly transition-colors hover:bg-firefly/10 sm:inline-flex"
+                href="/profile#saved"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-firefly/30 text-firefly transition-colors hover:bg-firefly/10"
+                aria-label="Saved events"
               >
-                {session.displayName ?? "Profile"}
+                <Heart className="h-4 w-4" />
               </Link>
-              <form action={signOut.bind(null, locale)}>
-                <button
-                  type="submit"
-                  className="hidden rounded-full border border-foreground/20 px-4 py-2 font-mono text-[11px] uppercase tracking-wider-2 text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground/90 sm:inline-flex"
+
+              {isAdmin ? (
+                <Link
+                  href="/admin"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-firefly/30 text-firefly transition-colors hover:bg-firefly/10"
+                  aria-label="Admin dashboard"
                 >
-                  Sign out
+                  <LayoutDashboard className="h-4 w-4" />
+                </Link>
+              ) : null}
+
+              {isBusiness ? (
+                <Link
+                  href="/business"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-firefly/30 text-firefly transition-colors hover:bg-firefly/10"
+                  aria-label="Business dashboard"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                </Link>
+              ) : null}
+
+              <div ref={menuRef} className="relative hidden sm:block">
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen((open) => !open)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-foreground/20 text-foreground/70 transition-colors hover:border-foreground/40 hover:text-foreground/90"
+                  aria-expanded={menuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Account menu"
+                >
+                  <User className="h-4 w-4" />
                 </button>
-              </form>
+
+                {menuOpen ? (
+                  <div
+                    role="menu"
+                    className="glass absolute right-0 top-full z-50 mt-2 min-w-[10rem] overflow-hidden rounded-2xl border border-firefly/10 py-1 shadow-2xl"
+                  >
+                    <Link
+                      href="/profile"
+                      role="menuitem"
+                      onClick={() => setMenuOpen(false)}
+                      className="block px-4 py-2.5 font-mono text-[11px] uppercase tracking-wider-2 text-foreground/70 transition-colors hover:bg-firefly/10 hover:text-firefly"
+                    >
+                      Account
+                    </Link>
+                    {isBusiness ? (
+                      <Link
+                        href="/business"
+                        role="menuitem"
+                        onClick={() => setMenuOpen(false)}
+                        className="block px-4 py-2.5 font-mono text-[11px] uppercase tracking-wider-2 text-foreground/70 transition-colors hover:bg-firefly/10 hover:text-firefly"
+                      >
+                        Business dashboard
+                      </Link>
+                    ) : null}
+                    <form action={signOut.bind(null, locale)}>
+                      <button
+                        type="submit"
+                        role="menuitem"
+                        className="w-full px-4 py-2.5 text-left font-mono text-[11px] uppercase tracking-wider-2 text-foreground/70 transition-colors hover:bg-firefly/10 hover:text-firefly"
+                      >
+                        Sign out
+                      </button>
+                    </form>
+                  </div>
+                ) : null}
+              </div>
             </>
           ) : (
             <Link

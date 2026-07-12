@@ -40,3 +40,55 @@ export function buildEventsByDate<T extends { startsAt: string }>(
 
   return map;
 }
+
+export function parseCalendarMonthYear(
+  searchParams: Record<string, string | string[] | undefined>,
+  now = new Date()
+): { month: number; year: number } {
+  const rawMonth = searchParams.month;
+  const rawYear = searchParams.year;
+  const monthValue =
+    typeof rawMonth === "string"
+      ? rawMonth
+      : Array.isArray(rawMonth)
+        ? rawMonth[0]
+        : undefined;
+  const yearValue =
+    typeof rawYear === "string"
+      ? rawYear
+      : Array.isArray(rawYear)
+        ? rawYear[0]
+        : undefined;
+
+  const month = Number(monthValue);
+  const year = Number(yearValue);
+
+  return {
+    month: month >= 1 && month <= 12 ? month : now.getMonth() + 1,
+    year: year >= 2000 && year <= 2100 ? year : now.getFullYear(),
+  };
+}
+
+export function updateCalendarSearchParams(
+  current: URLSearchParams,
+  patch: { month?: number; year?: number; search?: string | undefined }
+): URLSearchParams {
+  const next = new URLSearchParams(current);
+
+  if ("month" in patch) {
+    if (patch.month == null) next.delete("month");
+    else next.set("month", String(patch.month));
+  }
+
+  if ("year" in patch) {
+    if (patch.year == null) next.delete("year");
+    else next.set("year", String(patch.year));
+  }
+
+  if ("search" in patch) {
+    if (!patch.search) next.delete("search");
+    else next.set("search", patch.search);
+  }
+
+  return next;
+}

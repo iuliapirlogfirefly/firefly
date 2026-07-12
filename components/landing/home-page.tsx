@@ -86,7 +86,7 @@ export function HomePage({ featured }: Props) {
     <main data-route="landing" className="relative overflow-x-clip pb-24 md:pb-0">
       <Nav />
 
-      <section className="relative min-h-[100vh] pt-28 pb-20">
+      <section className="relative min-h-[100vh] pt-24 pb-14 sm:pt-28 sm:pb-20">
         <FireflyField count={45} />
         <div
           className="pointer-events-none absolute -left-40 top-32 h-[520px] w-[520px] rounded-full opacity-70"
@@ -96,7 +96,7 @@ export function HomePage({ featured }: Props) {
           }}
         />
 
-        <div className="relative mx-auto grid max-w-[1400px] items-center gap-8 px-6 lg:grid-cols-12">
+        <div className="relative mx-auto grid max-w-[1400px] items-center gap-6 px-4 sm:gap-8 sm:px-6 lg:grid-cols-12">
           <div className="relative z-10 lg:col-span-7">
             <div className="glass mb-8 inline-flex animate-fade-up items-center gap-2 rounded-full px-3 py-1.5">
               <span className="relative inline-flex h-1.5 w-1.5">
@@ -108,7 +108,7 @@ export function HomePage({ featured }: Props) {
             </div>
 
             <h1
-              className="font-display animate-fade-up text-balance leading-[0.88]"
+              className="font-display tracking-tight-logo animate-fade-up text-balance leading-[0.88]"
               style={{ animationDelay: "0.1s" }}
             >
               <span className="block text-[14vw] sm:text-8xl md:text-[8.5rem]">
@@ -123,25 +123,25 @@ export function HomePage({ featured }: Props) {
             </h1>
 
             <div
-              className="mt-10 grid animate-fade-up grid-cols-12 items-start gap-6"
+              className="mt-6 grid animate-fade-up grid-cols-12 items-start gap-4 sm:mt-10 sm:gap-6"
               style={{ animationDelay: "0.3s" }}
             >
-              <p className="col-span-12 text-pretty text-lg leading-relaxed text-foreground/70 sm:col-span-7">
+              <p className="col-span-12 text-pretty text-base leading-relaxed text-foreground/70 sm:text-lg sm:col-span-7">
                 The city&apos;s nightlife, mapped in real time. Every glowing dot
                 is a party waiting to happen — open Firefly and let the night
                 find you.
               </p>
               <div className="col-span-12 flex sm:col-span-5 sm:justify-end">
-                <span className="font-hand -rotate-3 text-3xl leading-tight text-firefly/90">
+                <span className="font-hand -rotate-3 text-2xl leading-tight text-firefly/90 sm:text-3xl">
                   no group chats.
                   <br />
-                  <span className="pl-6">just go.</span>
+                  <span className="pl-4 sm:pl-6">just go.</span>
                 </span>
               </div>
             </div>
 
             <div
-              className="mt-10 flex flex-wrap animate-fade-up items-center gap-4"
+              className="mt-6 flex flex-wrap animate-fade-up items-center gap-3 sm:mt-10 sm:gap-4"
               style={{ animationDelay: "0.5s" }}
             >
               <Link
@@ -161,7 +161,7 @@ export function HomePage({ featured }: Props) {
           </div>
 
           <div
-            className="relative h-[460px] animate-fade-up sm:h-[560px] lg:col-span-5"
+            className="relative h-[340px] animate-fade-up sm:h-[460px] md:h-[560px] lg:col-span-5"
             style={{ animationDelay: "0.4s" }}
           >
             <div
@@ -196,7 +196,7 @@ export function HomePage({ featured }: Props) {
                 />
               </div>
               <div className="tape absolute -top-3 left-1/2 h-5 w-20 -translate-x-1/2 rounded-sm" />
-              <div className="mt-3 text-center font-hand text-2xl leading-none text-primary-foreground">
+              <div className="mt-2 text-center font-hand text-lg leading-none text-primary-foreground sm:mt-3 sm:text-2xl">
                 saturday · 02:14am
               </div>
             </div>
@@ -213,7 +213,7 @@ export function HomePage({ featured }: Props) {
           </div>
         </div>
 
-        <div className="relative mx-auto mt-20 max-w-[1400px] px-6">
+        <div className="relative mx-auto mt-12 max-w-[1400px] px-4 sm:mt-20 sm:px-6">
           <div className="deco-line mb-6" />
           <div className="flex flex-wrap items-baseline gap-x-12 gap-y-4">
             {stats.map((s, i) => (
@@ -270,7 +270,7 @@ export function HomePage({ featured }: Props) {
               ◦ Chapter 01 — The Living Map
             </div>
             <h2 className="text-balance font-heading text-5xl font-bold leading-[1.02] md:text-6xl">
-              The city <span className="underline-squiggle">breathes</span>.
+              The city breathes.
               <br />
               You just{" "}
               <em className="font-display not-italic text-gradient-firefly">
@@ -651,7 +651,7 @@ export function HomePage({ featured }: Props) {
             <span className="relative inline-flex h-2 w-2">
               <span className="absolute inset-0 rounded-full bg-firefly animate-firefly-pulse" />
             </span>
-            <span className="font-display text-lg">Firefly</span>
+            <span className="font-display text-lg tracking-tight-logo">firefly</span>
             <span className="ml-3 font-mono text-[11px] uppercase tracking-wider-2 text-foreground/40">
               Bucharest · est. 2026
             </span>

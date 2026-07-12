@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, useTransition, type FormEvent } from "react";
 import {
   ArrowRight,
+  Building2,
   Eye,
   EyeOff,
   Lock,
@@ -11,88 +12,137 @@ import {
   User,
 } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
+import {
+  AccountTypeSwitch,
+  BusinessTypeSwitch,
+} from "@/components/auth/account-type-switch";
 import { AuthField } from "@/components/auth/auth-field";
 import { FireflyField } from "@/components/FireflyField";
 import {
   signInWithEmail,
-  // signInWithOAuth,
+  signInWithOAuth,
   signUpWithEmail,
 } from "@/lib/actions/auth";
 import { landingImages } from "@/lib/landing/images";
-import type { Locale } from "@/types";
+import type { AccountType, BusinessType, Locale } from "@/types";
 
 type Mode = "signin" | "signup";
 
 type Props = {
   locale: Locale;
   initialMode?: Mode;
+  initialAccountType?: AccountType;
 };
 
-// function SocialBtn({
-//   label,
-//   onClick,
-//   disabled,
-// }: {
-//   label: string;
-//   onClick: () => void;
-//   disabled?: boolean;
-// }) {
-//   return (
-//     <button
-//       type="button"
-//       onClick={onClick}
-//       disabled={disabled}
-//       className="flex items-center justify-center gap-2 rounded-xl border border-border bg-surface-1/40 px-4 py-3 text-sm text-foreground/80 transition-all hover:border-firefly/40 hover:bg-surface-1 hover:text-firefly disabled:opacity-50"
-//     >
-//       <span className="font-medium">{label}</span>
-//     </button>
-//   );
-// }
+function SocialBtn({
+  label,
+  onClick,
+  disabled,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="flex items-center justify-center gap-2 rounded-xl border border-border bg-surface-1/40 px-4 py-3 text-sm text-foreground/80 transition-all hover:border-firefly/40 hover:bg-surface-1 hover:text-firefly disabled:opacity-50"
+    >
+      <span className="font-medium">{label}</span>
+    </button>
+  );
+}
 
-export function AuthPage({ locale, initialMode = "signin" }: Props) {
+export function AuthPage({
+  locale,
+  initialMode = "signin",
+  initialAccountType = "person",
+}: Props) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>(initialMode);
+  const [accountType, setAccountType] = useState<AccountType>(initialAccountType);
+  const [businessType, setBusinessType] = useState<BusinessType>("venue");
   const [showPass, setShowPass] = useState(false);
   const [name, setName] = useState("");
+  const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
+
+  const isBusiness = accountType === "business";
+
+  const clearTypeSpecificFields = () => {
+    setName("");
+    setBusinessName("");
+    setError("");
+  };
+
+  const handleAccountTypeChange = (next: AccountType) => {
+    setAccountType(next);
+    clearTypeSpecificFields();
+  };
+
+  const handleModeChange = (next: Mode) => {
+    setMode(next);
+    clearTypeSpecificFields();
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
 
+    if (mode === "signup" && isBusiness && businessName.trim().length < 2) {
+      setError("Business name must be at least 2 characters");
+      return;
+    }
+
     startTransition(async () => {
       const result =
         mode === "signin"
-          ? await signInWithEmail(email, password)
-          : await signUpWithEmail(email, password, name.trim() || undefined);
+          ? await signInWithEmail(email, password, accountType, rememberMe)
+          : await signUpWithEmail(email, password, accountType, {
+              displayName: name.trim() || undefined,
+              businessName: isBusiness ? businessName.trim() : undefined,
+              businessType: isBusiness ? businessType : undefined,
+            });
 
       if (!result.success) {
         setError(result.error);
         return;
       }
 
-      router.push("/map");
+      router.push(result.data.redirectTo);
       router.refresh();
     });
   };
 
-  // const handleOAuth = (provider: "google" | "apple") => {
-  //   setError("");
-  //
-  //   startTransition(async () => {
-  //     const result = await signInWithOAuth(provider, locale);
-  //
-  //     if (!result.success) {
-  //       setError(result.error);
-  //       return;
-  //     }
-  //
-  //     window.location.href = result.data.url;
-  //   });
-  // };
+  const handleOAuth = (provider: "google" | "apple") => {
+    setError("");
+
+    startTransition(async () => {
+      const result = await signInWithOAuth(provider, locale);
+
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+
+      window.location.href = result.data.url;
+    });
+  };
+
+  const subtitle =
+    mode === "signin"
+      ? isBusiness
+        ? "Manage your venue or events. Pick up where you left off."
+        : "Your saved fireflies are waiting. Pick up where the night left off."
+      : isBusiness
+        ? "Register your venue or organizer account and start reaching the night crowd."
+        : "Save events, collect nights, and follow the light wherever it goes.";
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-background">
@@ -104,7 +154,7 @@ export function AuthPage({ locale, initialMode = "signin" }: Props) {
         className="absolute left-6 top-6 z-30 inline-flex items-center gap-2 text-sm text-foreground/60 transition-colors hover:text-firefly"
       >
         <span className="inline-flex h-2 w-2 animate-firefly-pulse rounded-full bg-firefly" />
-        <span className="font-display tracking-wide">Firefly</span>
+        <span className="font-display tracking-tight-logo">firefly</span>
       </Link>
 
       <div className="relative z-10 mx-auto grid min-h-screen max-w-7xl grid-cols-1 gap-0 lg:grid-cols-[1.1fr_1fr]">
@@ -181,36 +231,41 @@ export function AuthPage({ locale, initialMode = "signin" }: Props) {
                   </>
                 )}
               </h1>
-              <p className="mt-4 text-pretty text-foreground/60">
-                {mode === "signin"
-                  ? "Your saved fireflies are waiting. Pick up where the night left off."
-                  : "Save events, collect nights, and follow the light wherever it goes."}
-              </p>
+              <p className="mt-4 text-pretty text-foreground/60">{subtitle}</p>
             </div>
 
-            {/* <div className="mb-6 grid grid-cols-2 gap-3">
-              <SocialBtn
-                label="Google"
-                disabled={pending}
-                onClick={() => handleOAuth("google")}
-              />
-              <SocialBtn
-                label="Apple"
-                disabled={pending}
-                onClick={() => handleOAuth("apple")}
-              />
-            </div>
+            {!isBusiness ? (
+              <>
+                <div className="mb-6 grid grid-cols-2 gap-3">
+                  <SocialBtn
+                    label="Google"
+                    disabled={pending}
+                    onClick={() => handleOAuth("google")}
+                  />
+                  <SocialBtn
+                    label="Apple"
+                    disabled={pending}
+                    onClick={() => handleOAuth("apple")}
+                  />
+                </div>
 
-            <div className="relative my-6 flex items-center">
-              <div className="deco-line flex-1" />
-              <span className="px-3 font-mono text-[10px] tracking-wider-2 text-foreground/40">
-                OR WITH EMAIL
-              </span>
-              <div className="deco-line flex-1" />
-            </div> */}
+                <div className="relative my-6 flex items-center">
+                  <div className="deco-line flex-1" />
+                  <span className="px-3 font-mono text-[10px] tracking-wider-2 text-foreground/40">
+                    OR WITH EMAIL
+                  </span>
+                  <div className="deco-line flex-1" />
+                </div>
+              </>
+            ) : null}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {mode === "signup" ? (
+              <AccountTypeSwitch
+                value={accountType}
+                onChange={handleAccountTypeChange}
+              />
+
+              {mode === "signup" && !isBusiness ? (
                 <AuthField icon={<User className="h-4 w-4" />} label="Your name">
                   <input
                     type="text"
@@ -220,6 +275,37 @@ export function AuthPage({ locale, initialMode = "signin" }: Props) {
                     className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
                   />
                 </AuthField>
+              ) : null}
+
+              {mode === "signup" && isBusiness ? (
+                <>
+                  <AuthField
+                    icon={<Building2 className="h-4 w-4" />}
+                    label="Business name"
+                  >
+                    <input
+                      type="text"
+                      value={businessName}
+                      onChange={(event) => setBusinessName(event.target.value)}
+                      placeholder="Your venue or brand name"
+                      required
+                      minLength={2}
+                      className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
+                    />
+                  </AuthField>
+
+                  <div>
+                    <span className="font-mono text-[10px] tracking-wider-2 text-foreground/40">
+                      BUSINESS TYPE
+                    </span>
+                    <div className="mt-1.5">
+                      <BusinessTypeSwitch
+                        value={businessType}
+                        onChange={setBusinessType}
+                      />
+                    </div>
+                  </div>
+                </>
               ) : null}
 
               <AuthField icon={<Mail className="h-4 w-4" />} label="Email">
@@ -260,15 +346,20 @@ export function AuthPage({ locale, initialMode = "signin" }: Props) {
               {mode === "signin" ? (
                 <div className="flex items-center justify-between text-xs">
                   <label className="flex cursor-pointer items-center gap-2 text-foreground/60">
-                    <input type="checkbox" className="accent-firefly" />
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(event) => setRememberMe(event.target.checked)}
+                      className="accent-firefly"
+                    />
                     Stay glowing
                   </label>
-                  <button
-                    type="button"
+                  <Link
+                    href="/auth/forgot-password"
                     className="text-firefly/80 transition-colors hover:text-firefly"
                   >
                     Forgot password?
-                  </button>
+                  </Link>
                 </div>
               ) : null}
 
@@ -281,7 +372,13 @@ export function AuthPage({ locale, initialMode = "signin" }: Props) {
                 disabled={pending}
                 className="group mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-firefly px-6 py-3.5 text-sm font-medium text-primary-foreground transition-all hover:scale-[1.01] hover:firefly-glow disabled:opacity-50"
               >
-                {mode === "signin" ? "Find my fireflies" : "Light the jar"}
+                {mode === "signin"
+                  ? isBusiness
+                    ? "Enter business dashboard"
+                    : "Find my fireflies"
+                  : isBusiness
+                    ? "Register business"
+                    : "Light the jar"}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </button>
             </form>
@@ -290,10 +387,9 @@ export function AuthPage({ locale, initialMode = "signin" }: Props) {
               {mode === "signin" ? "First night out?" : "Already a regular?"}{" "}
               <button
                 type="button"
-                onClick={() => {
-                  setMode(mode === "signin" ? "signup" : "signin");
-                  setError("");
-                }}
+                onClick={() =>
+                  handleModeChange(mode === "signin" ? "signup" : "signin")
+                }
                 className="font-medium text-firefly underline-offset-4 hover:underline"
               >
                 {mode === "signin" ? "Create an account" : "Sign in"}

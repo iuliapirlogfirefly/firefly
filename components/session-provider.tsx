@@ -19,6 +19,7 @@ const guestSession: SessionInfo = {
   displayName: null,
   preferredLocale: "en",
   businessAccountId: null,
+  isSuspended: false,
 };
 
 const SessionContext = createContext<SessionInfo>(guestSession);

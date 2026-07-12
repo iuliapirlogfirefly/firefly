@@ -6,7 +6,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession, requireRole } from "@/lib/auth/session";
 import { success, failure } from "@/lib/utils/action-result";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
-import { sendEmail } from "@/lib/notifications/email";
+import {
+  sendBusinessApprovedEmail,
+  sendBusinessRejectedEmail,
+  sendEmail,
+} from "@/lib/notifications/email";
 import type { ActionResult } from "@/types";
 
 export async function approveBusinessAccount(
@@ -45,12 +49,11 @@ export async function approveBusinessAccount(
     );
 
     if (authUser?.user?.email) {
-      await sendEmail({
-        to: authUser.user.email,
-        subject: "Your Firefly business account has been approved",
-        html: `<p>Your business account <strong>${business.name}</strong> has been approved. You can now submit events.</p>`,
-        locale: (profile?.preferred_locale as "en" | "ro") ?? "en",
-      });
+      await sendBusinessApprovedEmail(
+        authUser.user.email,
+        business.name,
+        (profile?.preferred_locale as "en" | "ro") ?? "en"
+      );
     }
 
     return success(undefined);
@@ -73,12 +76,35 @@ export async function rejectBusinessAccount(
     requireRole(session, ["admin"]);
 
     const supabase = await createClient();
-    const { error } = await supabase
+    const { data: business, error } = await supabase
       .from("business_accounts")
       .update({ status: "rejected", rejection_reason: reason })
-      .eq("id", businessAccountId);
+      .eq("id", businessAccountId)
+      .select("profile_id, name")
+      .single();
 
     if (error) return failure(error.message);
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("preferred_locale")
+      .eq("id", business.profile_id)
+      .single();
+
+    const admin = createAdminClient();
+    const { data: authUser } = await admin.auth.admin.getUserById(
+      business.profile_id
+    );
+
+    if (authUser?.user?.email) {
+      await sendBusinessRejectedEmail(
+        authUser.user.email,
+        business.name,
+        reason,
+        (profile?.preferred_locale as "en" | "ro") ?? "en"
+      );
+    }
+
     return success(undefined);
   } catch (e) {
     return failure(
@@ -96,15 +122,108 @@ export async function suspendUser(userId: string): Promise<ActionResult> {
     requireRole(session, ["admin"]);
 
     const supabase = await createClient();
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .single();
+
+    if (profileError || !profile) return failure("User not found");
+    if (profile.role === "admin") return failure("Cannot suspend admin accounts");
+
+    const isBusiness =
+      profile.role === "business_venue" ||
+      profile.role === "business_organizer";
+
+    if (isBusiness) {
+      const { error } = await supabase
+        .from("business_accounts")
+        .update({ status: "suspended" })
+        .eq("profile_id", userId);
+      if (error) return failure(error.message);
+    } else {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          is_suspended: true,
+          suspended_at: new Date().toISOString(),
+        })
+        .eq("id", userId);
+      if (error) return failure(error.message);
+    }
+
+    return success(undefined);
+  } catch (e) {
+    return failure(e instanceof Error ? e.message : "Failed to suspend user");
+  }
+}
+
+export async function unsuspendUser(userId: string): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const supabase = await createClient();
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .single();
+
+    if (profileError || !profile) return failure("User not found");
+
+    const isBusiness =
+      profile.role === "business_venue" ||
+      profile.role === "business_organizer";
+
+    if (isBusiness) {
+      return failure("Use reactivate for suspended business accounts");
+    }
+
     const { error } = await supabase
-      .from("business_accounts")
-      .update({ status: "suspended" })
-      .eq("profile_id", userId);
+      .from("profiles")
+      .update({ is_suspended: false, suspended_at: null })
+      .eq("id", userId);
 
     if (error) return failure(error.message);
     return success(undefined);
   } catch (e) {
-    return failure(e instanceof Error ? e.message : "Failed to suspend user");
+    return failure(e instanceof Error ? e.message : "Failed to unsuspend user");
+  }
+}
+
+export async function reactivateBusinessAccount(
+  businessAccountId: string
+): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("business_accounts")
+      .update({
+        status: "approved",
+        rejection_reason: null,
+        approved_at: new Date().toISOString(),
+      })
+      .eq("id", businessAccountId)
+      .eq("status", "suspended");
+
+    if (error) return failure(error.message);
+    return success(undefined);
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to reactivate business account"
+    );
   }
 }
 

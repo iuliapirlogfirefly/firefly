@@ -1,21 +1,27 @@
+import { AdminEventsPage } from "@/components/admin/admin-events-page";
+import { getDuplicateEventGroups } from "@/lib/queries/duplicates";
+import { getAllAdminEvents, getPendingEvents } from "@/lib/queries/events";
 import { setRequestLocale } from "next-intl/server";
-import { getPendingEvents } from "@/lib/queries/events";
 
 type Props = {
   params: Promise<{ locale: "en" | "ro" }>;
 };
 
-export default async function AdminEventsPage({ params }: Props) {
+export default async function AdminEventsRoutePage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const pendingEvents = await getPendingEvents(locale);
-  void pendingEvents;
+  const [pendingEvents, allEvents, duplicateGroups] = await Promise.all([
+    getPendingEvents(locale),
+    getAllAdminEvents(locale),
+    getDuplicateEventGroups(locale),
+  ]);
 
   return (
-    <main data-route="admin-events">
-      {/* UI: implement event moderation queue here */}
-      {/* Actions: approveEvent, rejectEvent, deleteEvent, createAdminEvent */}
-    </main>
+    <AdminEventsPage
+      pendingEvents={pendingEvents}
+      allEvents={allEvents}
+      duplicateGroups={duplicateGroups}
+    />
   );
 }

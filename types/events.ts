@@ -41,6 +41,7 @@ export type EventDetail = EventListItem & {
   images: string[];
   organizerName: string | null;
   isSaved: boolean;
+  isReminded: boolean;
 };
 
 export type EventMapPoint = {
@@ -108,4 +109,5 @@ export type SessionInfo = {
   displayName: string | null;
   preferredLocale: Locale;
   businessAccountId: string | null;
+  isSuspended: boolean;
 };

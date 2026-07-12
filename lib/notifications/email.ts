@@ -88,3 +88,71 @@ export async function sendEventReminderEmail(
 
   await sendEmail({ to, subject, html, locale });
 }
+
+export async function sendBusinessApprovedEmail(
+  to: string,
+  businessName: string,
+  locale: Locale = "en"
+): Promise<void> {
+  const subject =
+    locale === "ro"
+      ? "Contul tău de business Firefly a fost aprobat"
+      : "Your Firefly business account has been approved";
+
+  const html =
+    locale === "ro"
+      ? `<p>Contul tău de business <strong>${businessName}</strong> a fost aprobat. Poți acum să trimiți evenimente.</p>`
+      : `<p>Your business account <strong>${businessName}</strong> has been approved. You can now submit events.</p>`;
+
+  await sendEmail({ to, subject, html, locale });
+}
+
+export async function sendBusinessRejectedEmail(
+  to: string,
+  businessName: string,
+  reason: string,
+  locale: Locale = "en"
+): Promise<void> {
+  const subject =
+    locale === "ro"
+      ? "Contul tău de business Firefly a fost respins"
+      : "Your Firefly business account was rejected";
+
+  const html =
+    locale === "ro"
+      ? `<p>Contul tău de business <strong>${businessName}</strong> a fost respins.</p><p>Motiv: ${reason}</p>`
+      : `<p>Your business account <strong>${businessName}</strong> was rejected.</p><p>Reason: ${reason}</p>`;
+
+  await sendEmail({ to, subject, html, locale });
+}
+
+export type NearbyDigestEvent = {
+  title: string;
+  startsAt: string;
+  venueName: string | null;
+};
+
+export async function sendNearbyEventsDigestEmail(
+  to: string,
+  events: NearbyDigestEvent[],
+  locale: Locale = "en"
+): Promise<void> {
+  const subject =
+    locale === "ro"
+      ? `${events.length} evenimente noi în apropiere`
+      : `${events.length} new events near you`;
+
+  const listItems = events
+    .map(
+      (event) =>
+        `<li><strong>${event.title}</strong>${event.venueName ? ` · ${event.venueName}` : ""} · ${event.startsAt}</li>`
+    )
+    .join("");
+
+  const html =
+    locale === "ro"
+      ? `<p>Iată evenimentele noi din zona ta:</p><ul>${listItems}</ul>`
+      : `<p>Here are new events in your area:</p><ul>${listItems}</ul>`;
+
+  await sendEmail({ to, subject, html, locale });
+}

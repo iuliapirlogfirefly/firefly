@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { getSession, requireAuth } from "@/lib/auth/session";
 import { success, failure } from "@/lib/utils/action-result";
@@ -21,6 +22,57 @@ const registerBusinessSchema = z.object({
     .optional(),
 });
 
+export async function createBusinessAccountForProfile(
+  supabase: SupabaseClient,
+  userId: string,
+  type: BusinessType,
+  name: string,
+  venue?: { name: string; address: string; lat: number; lng: number }
+): Promise<ActionResult<{ id: string }>> {
+  const { data: existing } = await supabase
+    .from("business_accounts")
+    .select("id")
+    .eq("profile_id", userId)
+    .maybeSingle();
+
+  if (existing) return failure("Business account already exists");
+
+  const role = type === "venue" ? "business_venue" : "business_organizer";
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ role })
+    .eq("id", userId);
+
+  if (profileError) return failure(profileError.message);
+
+  const { data: business, error } = await supabase
+    .from("business_accounts")
+    .insert({
+      profile_id: userId,
+      type,
+      name,
+      status: "pending",
+    })
+    .select("id")
+    .single();
+
+  if (error) return failure(error.message);
+
+  if (type === "venue" && venue) {
+    const { error: venueError } = await supabase.from("venues").insert({
+      business_account_id: business.id,
+      name: venue.name,
+      address: venue.address,
+      lat: venue.lat,
+      lng: venue.lng,
+    });
+    if (venueError) return failure(venueError.message);
+  }
+
+  return success({ id: business.id });
+}
+
 export async function registerBusinessAccount(
   type: BusinessType,
   name: string,
@@ -33,57 +85,12 @@ export async function registerBusinessAccount(
     const parsed = registerBusinessSchema.safeParse({ type, name, venue });
     if (!parsed.success) return failure(parsed.error.message);
 
-    if (type === "venue" && !venue) {
-      return failure("Venue details required for venue accounts");
-    }
-
     const session = await getSession();
     const userId = requireAuth(session);
 
     const supabase = await createClient();
 
-    const { data: existing } = await supabase
-      .from("business_accounts")
-      .select("id")
-      .eq("profile_id", userId)
-      .maybeSingle();
-
-    if (existing) return failure("Business account already exists");
-
-    const role = type === "venue" ? "business_venue" : "business_organizer";
-
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({ role })
-      .eq("id", userId);
-
-    if (profileError) return failure(profileError.message);
-
-    const { data: business, error } = await supabase
-      .from("business_accounts")
-      .insert({
-        profile_id: userId,
-        type,
-        name,
-        status: "pending",
-      })
-      .select("id")
-      .single();
-
-    if (error) return failure(error.message);
-
-    if (type === "venue" && venue) {
-      const { error: venueError } = await supabase.from("venues").insert({
-        business_account_id: business.id,
-        name: venue.name,
-        address: venue.address,
-        lat: venue.lat,
-        lng: venue.lng,
-      });
-      if (venueError) return failure(venueError.message);
-    }
-
-    return success({ id: business.id });
+    return createBusinessAccountForProfile(supabase, userId, type, name, venue);
   } catch (e) {
     return failure(
       e instanceof Error ? e.message : "Failed to register business account"
@@ -126,8 +133,12 @@ export async function submitFeedPost(
 export async function getUploadUrl(
   bucket: "event-images" | "feed-media",
   fileName: string
-): Promise<ActionResult<{ signedUrl: string; path: string }>> {
-  const disabled = supabaseDisabled<{ signedUrl: string; path: string }>();
+): Promise<ActionResult<{ signedUrl: string; token: string; path: string }>> {
+  const disabled = supabaseDisabled<{
+    signedUrl: string;
+    token: string;
+    path: string;
+  }>();
   if (disabled) return disabled;
 
   try {
@@ -137,14 +148,15 @@ export async function getUploadUrl(
     }
 
     const supabase = await createClient();
-    const path = `${session.businessAccountId ?? "admin"}/${Date.now()}-${fileName}`;
+    const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${session.businessAccountId ?? "admin"}/${Date.now()}-${safeName}`;
 
     const { data, error } = await supabase.storage
       .from(bucket)
       .createSignedUploadUrl(path);
 
     if (error) return failure(error.message);
-    return success({ signedUrl: data.signedUrl, path });
+    return success({ signedUrl: data.signedUrl, token: data.token, path });
   } catch (e) {
     return failure(e instanceof Error ? e.message : "Failed to get upload URL");
   }

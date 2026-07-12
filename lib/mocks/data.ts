@@ -6,13 +6,19 @@ import type {
   EventListItem,
   EventsGeoJSON,
 } from "@/types/events";
-import { eventImages } from "@/lib/landing/images";
+import { eventImages, landingImages } from "@/lib/landing/images";
 import type { FeedPostItem } from "@/lib/queries/feed";
 import { getDateRange } from "@/lib/filters/event-filters";
 import { eventsToGeoJSON } from "@/lib/maps/geojson";
 import type { Tables } from "@/types/database.types";
 
 type EventRow = Tables<"events">;
+
+const tonight = new Date();
+tonight.setHours(23, 0, 0, 0);
+
+const todayEvening = new Date();
+todayEvening.setHours(21, 30, 0, 0);
 
 const tomorrow = new Date();
 tomorrow.setDate(tomorrow.getDate() + 1);
@@ -173,6 +179,153 @@ const MOCK_EVENT_ROWS: EventRow[] = [
       },
     },
   }),
+  row({
+    id: "mock-6",
+    slug: "disco-edits-tonight",
+    genre: "house",
+    event_type: "club_night",
+    lat: 44.4321,
+    lng: 26.0945,
+    address: "Strada Smârdan 30, Bucharest",
+    venue_name: "Expirat",
+    price: 30,
+    cover_image_url: eventImages.event1,
+    starts_at: tonight.toISOString(),
+    translations: {
+      en: {
+        title: "Disco Edits · Tonight",
+        description: "Boogie, edits, and sweat until late.",
+      },
+      ro: {
+        title: "Disco Edits · Diseară",
+        description: "Boogie, edits și transpirație până târziu.",
+      },
+    },
+  }),
+  row({
+    id: "mock-7",
+    slug: "warehouse-rave-friday",
+    genre: "techno",
+    event_type: "club_night",
+    is_promoted: true,
+    promotion_intensity: 2,
+    lat: 44.4488,
+    lng: 26.1122,
+    address: "Splaiul Unirii 160, Bucharest",
+    venue_name: "Kristal Glam Club",
+    price: 55,
+    cover_image_url: eventImages.event2,
+    starts_at: todayEvening.toISOString(),
+    translations: {
+      en: {
+        title: "Warehouse Rave",
+        description: "Raw techno in an industrial pocket of the city.",
+      },
+      ro: {
+        title: "Warehouse Rave",
+        description: "Techno brut într-un colț industrial al orașului.",
+      },
+    },
+  }),
+  row({
+    id: "mock-8",
+    slug: "sunset-sessions-rooftop",
+    genre: "house",
+    event_type: "rooftop",
+    lat: 44.4412,
+    lng: 26.0898,
+    address: "Calea Victoriei 155, Bucharest",
+    venue_name: "Sky Lounge",
+    price: 0,
+    cover_image_url: eventImages.event4,
+    starts_at: new Date(weekend.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+    translations: {
+      en: {
+        title: "Sunset Sessions",
+        description: "Free entry before 20:00. House and cold drinks.",
+      },
+      ro: {
+        title: "Sunset Sessions",
+        description: "Intrare liberă înainte de 20:00. House și băuturi reci.",
+      },
+    },
+  }),
+];
+
+export const MOCK_BUSINESS_ACCOUNT_ID = "mock-business-1";
+export const MOCK_USER_ID = "mock-user-1";
+
+const MOCK_PENDING_EVENT_ROWS: EventRow[] = [
+  row({
+    id: "mock-pending-1",
+    slug: "pending-minimal-monday",
+    status: "pending",
+    genre: "minimal",
+    event_type: "club_night",
+    venue_name: "Guest House",
+    price: 40,
+    cover_image_url: eventImages.event3,
+    starts_at: new Date(weekend.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+    translations: {
+      en: {
+        title: "Minimal Monday",
+        description: "Deep minimal for the patient dancers.",
+      },
+      ro: {
+        title: "Minimal Monday",
+        description: "Minimal adânc pentru dansatorii răbdători.",
+      },
+    },
+  }),
+  row({
+    id: "mock-pending-2",
+    slug: "pending-breakfast-club",
+    status: "pending",
+    genre: "house",
+    event_type: "party",
+    venue_name: "Kulturhaus",
+    price: 35,
+    cover_image_url: eventImages.event4,
+    starts_at: new Date(weekend.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+    translations: {
+      en: {
+        title: "Breakfast Club",
+        description: "Morning house party for the brave.",
+      },
+      ro: {
+        title: "Breakfast Club",
+        description: "Petrecere house de dimineață pentru curajoși.",
+      },
+    },
+  }),
+];
+
+const MOCK_BUSINESS_EVENT_ROWS: EventRow[] = [
+  ...MOCK_EVENT_ROWS.filter((e) =>
+    ["mock-1", "mock-4", "mock-6"].includes(e.id)
+  ).map((e) => ({ ...e, business_account_id: MOCK_BUSINESS_ACCOUNT_ID })),
+  row({
+    id: "mock-biz-draft",
+    slug: "draft-summer-series",
+    business_account_id: MOCK_BUSINESS_ACCOUNT_ID,
+    status: "draft",
+    genre: "house",
+    event_type: "party",
+    venue_name: "Control Club",
+    price: 45,
+    cover_image_url: eventImages.event4,
+    starts_at: new Date(weekend.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+    translations: {
+      en: {
+        title: "Summer Series (draft)",
+        description: "Not published yet.",
+      },
+      ro: {
+        title: "Seria de vară (draft)",
+        description: "Încă nepublicat.",
+      },
+    },
+  }),
 ];
 
 function mapRowToListItem(event: EventRow, locale: Locale): EventListItem {
@@ -271,6 +424,7 @@ export function getMockEventBySlug(
     images: event.images ?? [],
     organizerName: null,
     isSaved: false,
+    isReminded: false,
   };
 }
 
@@ -300,30 +454,320 @@ export function getMockCalendarEvents(
 }
 
 export function getMockFeedPosts(locale: Locale): FeedPostItem[] {
+  const ro = locale === "ro";
+
   return [
     {
       id: "mock-post-1",
       category: "party_updates",
-      title: locale === "ro" ? "Sold out: Techno Night" : "Sold out: Techno Night",
-      description:
-        locale === "ro"
-          ? "Ultimele bilete epuizate la Control Club."
-          : "Last tickets sold out at Control Club.",
-      mediaUrl: null,
-      publishedAt: new Date().toISOString(),
-      isPromoted: false,
+      title: ro ? "SOLD OUT — Techno Night" : "SOLD OUT — Techno Night",
+      description: ro
+        ? "Ultimele bilete au dispărut în 40 de minute. Urmărește feed-ul pentru surprize la ușă."
+        : "Last tickets gone in 40 minutes. Watch the feed for door surprises.",
+      mediaUrl: eventImages.event1,
+      publishedAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+      isPromoted: true,
     },
     {
       id: "mock-post-2",
-      category: "nightlife_news",
-      title: locale === "ro" ? "Deschidere rooftop nou" : "New rooftop opening",
-      description:
-        locale === "ro"
-          ? "Sky Lounge deschide sezonul de vară."
-          : "Sky Lounge kicks off the summer season.",
-      mediaUrl: null,
-      publishedAt: new Date(Date.now() - 86400000).toISOString(),
+      category: "nightlife_chaos",
+      title: ro ? "Deja aglomerat la Doors" : "Crowded already at Doors",
+      description: ro
+        ? "Coada întoarce colțul pe Academiei. Dacă nu ești în listă, ia-ți timp."
+        : "The queue wraps around the corner on Academiei. If you're not on the list, budget time.",
+      mediaUrl: landingImages.editorialCrowd,
+      publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
       isPromoted: false,
+    },
+    {
+      id: "mock-post-3",
+      category: "party_updates",
+      title: ro ? "Guest surprise: ANNA" : "Guest surprise: ANNA",
+      description: ro
+        ? "Lineup-ul de la Subterra tocmai a primit un upgrade neanunțat. Set de închidere."
+        : "Subterra's lineup just got an unannounced upgrade. Closing set incoming.",
+      mediaUrl: eventImages.event2,
+      publishedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+      isPromoted: false,
+    },
+    {
+      id: "mock-post-4",
+      category: "nightlife_news",
+      title: ro ? "Deschidere rooftop nou" : "New rooftop opening",
+      description: ro
+        ? "Sky Lounge deschide sezonul de vară vineri. Prima seară: sunset afro house."
+        : "Sky Lounge kicks off summer season Friday. Opening night: sunset afro house.",
+      mediaUrl: eventImages.event4,
+      publishedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+      isPromoted: false,
+    },
+    {
+      id: "mock-post-5",
+      category: "nightlife_chaos",
+      title: ro ? "Sondaj: cel mai bun after?" : "Poll: best afterparty?",
+      description: ro
+        ? "Votează în story — câștigătorul primește listă la următoarea petrecere."
+        : "Vote in stories — winner gets on the list for the next party.",
+      mediaUrl: null,
+      publishedAt: new Date(Date.now() - 14 * 60 * 60 * 1000).toISOString(),
+      isPromoted: false,
+    },
+    {
+      id: "mock-post-6",
+      category: "party_updates",
+      title: ro ? "Ultimele mese libere" : "Last tables available",
+      description: ro
+        ? "Mai sunt 3 mese la petrecerea de diseară. Rezervă înainte de 22:00."
+        : "3 tables left for tonight's party. Reserve before 10pm.",
+      mediaUrl: eventImages.event3,
+      publishedAt: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
+      isPromoted: false,
+    },
+    {
+      id: "mock-post-7",
+      category: "nightlife_news",
+      title: ro ? "Collab: Kulturhaus × local collective" : "Collab: Kulturhaus × local collective",
+      description: ro
+        ? "O serie de 4 seri în grădină începe luna viitoare. Lineup complet joi."
+        : "A 4-night garden series starts next month. Full lineup drops Thursday.",
+      mediaUrl: landingImages.editorialDj,
+      publishedAt: new Date(Date.now() - 28 * 60 * 60 * 1000).toISOString(),
+      isPromoted: false,
+    },
+    {
+      id: "mock-post-8",
+      category: "nightlife_chaos",
+      title: ro ? "Hot take: techno înainte de 1" : "Hot take: techno before 1am",
+      description: ro
+        ? "Dezbaterie aprinsă în comentarii. Echipa Firefly rămâne neutră — dar dansează."
+        : "Heated debate in the comments. Team Firefly stays neutral — but dancing.",
+      mediaUrl: landingImages.editorialStreet,
+      publishedAt: new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString(),
+      isPromoted: false,
+    },
+  ];
+}
+
+export function getMockSavedEvents(locale: Locale): EventListItem[] {
+  return ["mock-1", "mock-4", "mock-7"].map((id) => {
+    const event = MOCK_EVENT_ROWS.find((e) => e.id === id)!;
+    return mapRowToListItem(event, locale);
+  });
+}
+
+export function getMockPendingEvents(locale: Locale) {
+  return MOCK_PENDING_EVENT_ROWS.map((e) => ({
+    ...mapRowToListItem(e, locale),
+    status: e.status,
+    rejectionReason: e.rejection_reason,
+  }));
+}
+
+export function getMockBusinessEvents(locale: Locale) {
+  return MOCK_BUSINESS_EVENT_ROWS.map((e) => ({
+    ...mapRowToListItem(e, locale),
+    status: e.status,
+  }));
+}
+
+export function getMockPendingFeedPosts(locale: Locale) {
+  const ro = locale === "ro";
+  return [
+    {
+      id: "mock-pending-post-1",
+      category: "nightlife_news" as const,
+      title: ro ? "Anunț DJ resident" : "Resident DJ announcement",
+      description: ro
+        ? "Un nou resident se alătură lineup-ului de vineri."
+        : "A new resident joins the Friday lineup.",
+      mediaUrl: landingImages.editorialDj,
+      publishedAt: new Date().toISOString(),
+      isPromoted: false,
+      status: "pending",
+      rejectionReason: null,
+    },
+    {
+      id: "mock-pending-post-2",
+      category: "party_updates" as const,
+      title: ro ? "Schimbare oră deschidere" : "Doors time change",
+      description: ro
+        ? "Petrecerea începe la 23:30 în loc de 23:00."
+        : "Party now starts at 11:30pm instead of 11pm.",
+      mediaUrl: null,
+      publishedAt: new Date().toISOString(),
+      isPromoted: false,
+      status: "pending",
+      rejectionReason: null,
+    },
+  ];
+}
+
+export function getMockAdminAnalytics() {
+  return {
+    totalUsers: 1247,
+    totalEvents: 84,
+    totalBusinesses: 23,
+    totalVenues: 14,
+    totalOrganizers: 9,
+    publishedEvents: 76,
+    pendingEvents: 2,
+    analytics: {
+      views: 18420,
+      saves: 3210,
+      clicks: 8920,
+      ticketClicks: 1540,
+      shares: 680,
+    },
+    activePromotions: 5,
+    activeSubscriptions: 12,
+    totalRevenueCents: 284500,
+    currency: "eur",
+  };
+}
+
+export function getMockBusinessAnalytics() {
+  return {
+    views: 2840,
+    saves: 412,
+    clicks: 920,
+    ticketClicks: 186,
+    shares: 54,
+    totalEvents: 4,
+    promotedEvents: 2,
+    activePromotions: 1,
+  };
+}
+
+export type MockAdminUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  joinedAt: string;
+  businessAccountId?: string;
+  businessType?: "venue" | "organizer";
+};
+
+export function getMockAdminUsers(): MockAdminUser[] {
+  return [
+    {
+      id: "user-1",
+      name: "Alex M.",
+      email: "alex@example.com",
+      role: "user",
+      status: "active",
+      joinedAt: "2026-01-12",
+    },
+    {
+      id: "biz-1",
+      name: "Control Club",
+      email: "events@controlclub.ro",
+      role: "business_venue",
+      status: "approved",
+      joinedAt: "2025-11-03",
+      businessAccountId: "mock-business-account-1",
+      businessType: "venue",
+    },
+    {
+      id: "biz-2",
+      name: "Night Collective",
+      email: "hello@nightcollective.ro",
+      role: "business_organizer",
+      status: "pending",
+      joinedAt: "2026-02-28",
+      businessAccountId: "mock-business-account-2",
+      businessType: "organizer",
+    },
+    {
+      id: "user-2",
+      name: "Maria D.",
+      email: "maria@example.com",
+      role: "user",
+      status: "suspended",
+      joinedAt: "2026-02-14",
+    },
+    {
+      id: "biz-3",
+      name: "Closed Venue",
+      email: "closed@venue.ro",
+      role: "business_venue",
+      status: "suspended",
+      joinedAt: "2025-09-01",
+      businessAccountId: "mock-business-account-3",
+      businessType: "venue",
+    },
+  ];
+}
+
+export function getMockSession() {
+  return {
+    userId: MOCK_USER_ID,
+    role: "user" as const,
+    email: "alex@example.com",
+    displayName: "Alex",
+    preferredLocale: "en" as const,
+    businessAccountId: null,
+    isSuspended: false,
+  };
+}
+
+export function getMockBusinessSession() {
+  return {
+    userId: "mock-business-user",
+    role: "business_venue" as const,
+    email: "events@controlclub.ro",
+    displayName: "Control Club",
+    preferredLocale: "en" as const,
+    businessAccountId: MOCK_BUSINESS_ACCOUNT_ID,
+    isSuspended: false,
+  };
+}
+
+export function getMockPromotions() {
+  return [
+    {
+      id: "promo-1",
+      name: "Event boost · Techno Night",
+      venue: "Control Club",
+      type: "event_boost",
+      expiresAt: "2026-04-15",
+      status: "active",
+    },
+    {
+      id: "promo-2",
+      name: "Feed post highlight",
+      venue: "Subterra",
+      type: "feed_post",
+      expiresAt: "2026-04-08",
+      status: "active",
+    },
+    {
+      id: "promo-3",
+      name: "Newsletter feature",
+      venue: "Kulturhaus",
+      type: "newsletter",
+      expiresAt: "2026-04-20",
+      status: "scheduled",
+    },
+  ];
+}
+
+export function getMockNewsletters() {
+  return [
+    {
+      id: "nl-1",
+      subject: "This weekend in Bucharest",
+      sentAt: "2026-03-28",
+      recipients: 8420,
+      opens: 3120,
+    },
+    {
+      id: "nl-2",
+      subject: "New venues lighting up",
+      sentAt: "2026-03-21",
+      recipients: 8100,
+      opens: 2890,
     },
   ];
 }

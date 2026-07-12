@@ -1,5 +1,7 @@
-import { setRequestLocale } from "next-intl/server";
+import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { getAdminAnalytics } from "@/lib/queries/analytics";
+import { getAdminPendingCounts } from "@/lib/queries/admin";
+import { setRequestLocale } from "next-intl/server";
 
 type Props = {
   params: Promise<{ locale: "en" | "ro" }>;
@@ -9,13 +11,10 @@ export default async function AdminDashboardPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const analytics = await getAdminAnalytics();
-  void analytics;
+  const [analytics, counts] = await Promise.all([
+    getAdminAnalytics(),
+    getAdminPendingCounts(),
+  ]);
 
-  return (
-    <main data-route="admin-dashboard">
-      {/* UI: implement admin analytics dashboard here */}
-      {/* Server data: getAdminAnalytics() */}
-    </main>
-  );
+  return <AdminDashboard analytics={analytics} counts={counts} />;
 }

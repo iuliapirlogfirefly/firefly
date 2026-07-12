@@ -5,7 +5,7 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import type { Database } from "@/types/database.types";
 import {
-  getSupabasePublishableKey,
+  getSupabaseAnonKey,
   isSupabaseConfigured,
   SUPABASE_DISABLED_MESSAGE,
 } from "./config";
@@ -19,7 +19,7 @@ export async function updateSession(request: NextRequest) {
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    getSupabasePublishableKey()!,
+    getSupabaseAnonKey()!,
     {
       cookies: {
         getAll() {
