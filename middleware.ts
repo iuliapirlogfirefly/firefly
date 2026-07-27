@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { routing } from "./i18n/routing";
 import {
   getSupabaseAnonKey,
+  getSupabaseUrl,
   isSupabaseConfigured,
 } from "@/lib/supabase/config";
 import { clearSupabaseAuthCookies } from "@/lib/supabase/cookies";
@@ -32,7 +33,7 @@ export async function middleware(request: NextRequest) {
     const { createServerClient } = await import("@supabase/ssr");
     const supabaseResponse = await updateSession(request);
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      getSupabaseUrl()!,
       getSupabaseAnonKey()!,
       { cookies: { getAll: () => request.cookies.getAll(), setAll: () => {} } }
     );

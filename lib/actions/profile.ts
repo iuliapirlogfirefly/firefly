@@ -38,6 +38,23 @@ export async function getNearbyPreferences(): Promise<NearbyPreferences | null> 
   };
 }
 
+export async function getNewsletterOptIn(): Promise<boolean | null> {
+  if (supabaseDisabled()) return null;
+
+  const session = await getSession();
+  if (!session.userId) return null;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("newsletter_opt_in")
+    .eq("id", session.userId)
+    .single();
+
+  if (!data) return null;
+  return data.newsletter_opt_in;
+}
+
 export async function updateNearbyPreferences(
   prefs: NearbyPreferences
 ): Promise<ActionResult> {

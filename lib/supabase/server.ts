@@ -7,6 +7,7 @@ import { cookies } from "next/headers";
 import type { Database } from "@/types/database.types";
 import {
   getSupabaseAnonKey,
+  getSupabaseUrl,
   isSupabaseConfigured,
   SUPABASE_DISABLED_MESSAGE,
 } from "./config";
@@ -27,7 +28,7 @@ export async function createAuthClient(options: AuthClientOptions = {}) {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    getSupabaseUrl()!,
     getSupabaseAnonKey()!,
     {
       cookies: {
@@ -61,7 +62,7 @@ export async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    getSupabaseUrl()!,
     getSupabaseAnonKey()!,
     {
       cookies: {

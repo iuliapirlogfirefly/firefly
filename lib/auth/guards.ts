@@ -13,6 +13,7 @@ const PUBLIC_PATHS = [
   "/feed",
   "/missed",
   "/events",
+  "/unsubscribe/newsletter",
 ];
 
 const USER_PATHS = ["/saved", "/profile"];
@@ -30,6 +31,7 @@ export function isPublicPath(pathname: string): boolean {
   const path = stripLocale(pathname);
   if (PUBLIC_PATHS.includes(path)) return true;
   if (path.startsWith("/events/")) return true;
+  if (path.startsWith("/unsubscribe/")) return true;
   return false;
 }
 

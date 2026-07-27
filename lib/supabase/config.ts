@@ -4,11 +4,20 @@
  */
 export const SUPABASE_ENABLED = true;
 
+function trimEnv(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+}
+
+export function getSupabaseUrl(): string | undefined {
+  return trimEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
+}
+
 export function getSupabaseAnonKey(): string | undefined {
-  // SSR clients expect the JWT anon key; fall back to publishable key if needed.
-  return (
+  // Prefer legacy JWT anon key; publishable keys (sb_publishable_...) also work.
+  return trimEnv(
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
   );
 }
 
@@ -17,10 +26,16 @@ export function getSupabasePublishableKey(): string | undefined {
   return getSupabaseAnonKey();
 }
 
+export function getSupabaseServiceRoleKey(): string | undefined {
+  return trimEnv(
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY
+  );
+}
+
 export function isSupabaseConfigured(): boolean {
   if (!SUPABASE_ENABLED) return false;
 
-  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && getSupabaseAnonKey());
+  return !!(getSupabaseUrl() && getSupabaseAnonKey());
 }
 
 /** Use mock data for reads when Supabase is off or NEXT_PUBLIC_USE_MOCK_DATA=true */
@@ -31,7 +46,7 @@ export function shouldUseMockData(): boolean {
 }
 
 export function isSupabaseAdminConfigured(): boolean {
-  return isSupabaseConfigured() && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return isSupabaseConfigured() && !!getSupabaseServiceRoleKey();
 }
 
 export const SUPABASE_DISABLED_MESSAGE =

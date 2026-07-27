@@ -1,0 +1,78 @@
+import { AdminMessageActions } from "@/components/admin/admin-message-actions";
+import { AdminEmptyState } from "@/components/admin/ui/admin-empty-state";
+import { AdminCard } from "@/components/admin/ui/admin-card";
+import type { AdminContactMessage } from "@/lib/queries/contact";
+
+type Props = {
+  messages: AdminContactMessage[];
+};
+
+export function AdminMessagesQueue({ messages }: Props) {
+  const unreadCount = messages.filter((m) => m.status === "unread").length;
+
+  return (
+    <div data-route="admin-messages">
+      <h1 className="font-heading text-2xl font-semibold md:text-3xl">
+        Messages
+      </h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {unreadCount > 0
+          ? `${unreadCount} unread message${unreadCount === 1 ? "" : "s"} from businesses.`
+          : "Support messages from business venues and organizers."}
+      </p>
+
+      <div className="mt-6 space-y-4">
+        {messages.length === 0 ? (
+          <AdminEmptyState
+            title="All caught up"
+            description="No support messages waiting for you."
+          />
+        ) : (
+          messages.map((message) => (
+            <AdminCard
+              key={message.id}
+              className={`p-5 ${
+                message.status === "unread" ? "border-amber-500/30" : ""
+              }`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="font-medium">{message.businessName}</h2>
+                    {message.status === "unread" ? (
+                      <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-400">
+                        Unread
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted-foreground">
+                        Read
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-sm font-medium text-foreground/90">
+                    {message.subject}
+                  </p>
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
+                    {message.body}
+                  </p>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    {new Date(message.createdAt).toLocaleString()}
+                    {message.replyEmail ? ` · ${message.replyEmail}` : ""}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4">
+                <AdminMessageActions
+                  messageId={message.id}
+                  status={message.status}
+                  replyEmail={message.replyEmail}
+                  subject={message.subject}
+                />
+              </div>
+            </AdminCard>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

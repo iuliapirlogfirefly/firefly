@@ -2,5 +2,20 @@
   "common": {
     "appName": "Firefly",
     "loading": "Loading..."
+  },
+  "newsletter": {
+    "sectionLabel": "Newsletter",
+    "title": "Weekly Firefly newsletter",
+    "description": "Stories, picks, and nights worth knowing about — sent to your inbox.",
+    "optInLabel": "Email me the Firefly newsletter",
+    "subscribedMessage": "You're subscribed to the newsletter.",
+    "unsubscribedMessage": "You've been unsubscribed from the newsletter.",
+    "unsubscribedTitle": "You're unsubscribed",
+    "unsubscribedBody": "You won't receive Firefly newsletters anymore. You can turn them back on anytime from your account.",
+    "unsubscribeInvalidTitle": "Link invalid",
+    "unsubscribeInvalidBody": "This unsubscribe link is invalid or has expired. You can manage newsletter preferences from your account.",
+    "unsubscribeErrorTitle": "Something went wrong",
+    "unsubscribeErrorBody": "We couldn't update your preference. Please try again from your account settings.",
+    "manageInAccount": "Manage in account"
   }
 }

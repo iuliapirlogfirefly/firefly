@@ -2,5 +2,20 @@
   "common": {
     "appName": "Firefly",
     "loading": "Se încarcă..."
+  },
+  "newsletter": {
+    "sectionLabel": "Newsletter",
+    "title": "Newsletter-ul săptămânal Firefly",
+    "description": "Povești, recomandări și nopți pe care merită să le știi — direct în inbox.",
+    "optInLabel": "Trimite-mi newsletter-ul Firefly",
+    "subscribedMessage": "Te-ai abonat la newsletter.",
+    "unsubscribedMessage": "Te-ai dezabonat de la newsletter.",
+    "unsubscribedTitle": "Te-ai dezabonat",
+    "unsubscribedBody": "Nu vei mai primi newsletter-ele Firefly. Le poți reactiva oricând din contul tău.",
+    "unsubscribeInvalidTitle": "Link invalid",
+    "unsubscribeInvalidBody": "Acest link de dezabonare este invalid sau a expirat. Poți gestiona preferințele din contul tău.",
+    "unsubscribeErrorTitle": "A apărut o eroare",
+    "unsubscribeErrorBody": "Nu am putut actualiza preferința. Încearcă din setările contului.",
+    "manageInAccount": "Gestionează din cont"
   }
 }

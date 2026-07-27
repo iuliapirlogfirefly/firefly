@@ -24,7 +24,7 @@ Nightlife discovery platform for Bucharest — backend-first Next.js + Supabase 
 - Supabase (Auth, Postgres, Storage, RLS)
 - Stripe (B2B promotions)
 - Resend (email notifications)
-- Mapbox (client-side — use `getEventsGeoJSON()` data)
+- MapLibre (client-side discovery map — OpenFreeMap dark tiles; `getEventsGeoJSON()` available for future layers)
 
 ## Routes
 

@@ -10,12 +10,16 @@ import {
 import { GENRES, formatGenreLabel } from "@/lib/constants/genres";
 import { EVENT_TYPES, formatEventTypeLabel } from "@/lib/constants/event-types";
 import { ImageUploader } from "@/components/events/image-uploader";
+import { LocationMapPicker } from "@/components/business/location-map-picker";
+import { BUCHAREST_CENTER } from "@/lib/utils/map-coords";
 import type { CreateEventInput } from "@/types/events";
 import type { EventType, Genre } from "@/types";
 
 type BusinessVenue = {
   name: string;
   address: string;
+  lat: number;
+  lng: number;
 } | null;
 
 type Props = {
@@ -99,14 +103,26 @@ export function BusinessEventForm({
   );
   const [images, setImages] = useState<string[]>(initial?.images ?? []);
 
-  // Organizer-only manual location fields
-  const [venueName, setVenueName] = useState(initial?.venueName ?? "");
-  const [address, setAddress] = useState(initial?.address ?? "");
+  // Location via map pin (admin/organizer/venue); lat/lng not shown in UI
+  const [venueName, setVenueName] = useState(
+    initial?.venueName ?? venue?.name ?? ""
+  );
+  const [address, setAddress] = useState(
+    initial?.address ?? venue?.address ?? ""
+  );
   const [lat, setLat] = useState(
-    initial?.lat != null ? String(initial.lat) : "44.4268"
+    initial?.lat != null && Number.isFinite(initial.lat)
+      ? initial.lat
+      : venue?.lat != null && Number.isFinite(venue.lat)
+        ? venue.lat
+        : BUCHAREST_CENTER.lat
   );
   const [lng, setLng] = useState(
-    initial?.lng != null ? String(initial.lng) : "26.1025"
+    initial?.lng != null && Number.isFinite(initial.lng)
+      ? initial.lng
+      : venue?.lng != null && Number.isFinite(venue.lng)
+        ? venue.lng
+        : BUCHAREST_CENTER.lng
   );
 
   const buildPayload = (): CreateEventInput => ({
@@ -125,21 +141,21 @@ export function BusinessEventForm({
     ticketUrl: ticketUrl || undefined,
     coverImageUrl: coverImageUrl ?? undefined,
     images,
-    ...(businessType === "organizer"
-      ? {
-          venueName: venueName || undefined,
-          address: address || undefined,
-          lat: Number(lat),
-          lng: Number(lng),
-        }
-      : {}),
+    venueName: venueName || undefined,
+    address: address || undefined,
+    lat,
+    lng,
   });
 
   const save = (thenSubmit: boolean) => {
     setError(null);
 
-    if (businessType === "organizer" && (!venueName || !address)) {
-      setError("Venue name and address are required for organizer events.");
+    if (!venueName || !address) {
+      setError("Venue name and address are required.");
+      return;
+    }
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setError("Pin a location on the map before saving.");
       return;
     }
 
@@ -315,66 +331,37 @@ export function BusinessEventForm({
             </div>
           </div>
 
-          {businessType === "venue" ? (
+          <div className="space-y-4">
             <div>
-              <label className={labelClass}>Venue (fixed)</label>
-              <div className="rounded-xl border border-firefly/10 bg-surface-1/30 px-3.5 py-2.5 text-sm text-foreground/70">
-                {venue?.name ?? "Your venue"}
-                {venue?.address ? ` — ${venue.address}` : ""}
-              </div>
-              <p className="mt-1.5 text-xs text-foreground/40">
-                Every event you create uses your venue&apos;s location.
-                Update it from your profile if it changes.
-              </p>
+              <label className={labelClass}>Venue name</label>
+              <input
+                className={inputClass}
+                value={venueName}
+                onChange={(e) => setVenueName(e.target.value)}
+                required
+                readOnly={businessType === "venue"}
+              />
+              {businessType === "venue" ? (
+                <p className="mt-1.5 text-xs text-foreground/40">
+                  Defaults to your venue. You can still adjust the pin for this
+                  event.
+                </p>
+              ) : null}
             </div>
-          ) : (
-            <>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className={labelClass}>Venue name</label>
-                  <input
-                    className={inputClass}
-                    value={venueName}
-                    onChange={(e) => setVenueName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Address</label>
-                  <input
-                    className={inputClass}
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className={labelClass}>Latitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    className={inputClass}
-                    value={lat}
-                    onChange={(e) => setLat(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Longitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    className={inputClass}
-                    value={lng}
-                    onChange={(e) => setLng(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-            </>
-          )}
+            <LocationMapPicker
+              address={address}
+              onAddressChange={setAddress}
+              lat={lat}
+              lng={lng}
+              onCoordsChange={(nextLat, nextLng) => {
+                setLat(nextLat);
+                setLng(nextLng);
+              }}
+              disabled={!editable}
+              inputClassName={inputClass}
+              labelClassName={labelClass}
+            />
+          </div>
         </fieldset>
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}

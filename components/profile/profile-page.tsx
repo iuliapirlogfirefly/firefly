@@ -12,6 +12,7 @@ import { useSavedEvents } from "@/hooks/use-saved-events";
 import { signOut } from "@/lib/actions/auth";
 import type { NearbyPreferences } from "@/lib/actions/profile";
 import { NearbyEventsSettings } from "@/components/profile/nearby-events-settings";
+import { NewsletterSettings } from "@/components/profile/newsletter-settings";
 import type { EventListItem, SessionInfo } from "@/types/events";
 
 type Props = {
@@ -19,6 +20,7 @@ type Props = {
   serverSavedIds: string[];
   session: SessionInfo;
   nearbyPreferences: NearbyPreferences | null;
+  newsletterOptIn: boolean;
 };
 
 export function ProfilePageClient({
@@ -26,6 +28,7 @@ export function ProfilePageClient({
   serverSavedIds,
   session,
   nearbyPreferences,
+  newsletterOptIn,
 }: Props) {
   const clientSession = useSession();
   const params = useParams();
@@ -110,7 +113,10 @@ export function ProfilePageClient({
         </div>
 
         {isLoggedIn ? (
-          <NearbyEventsSettings initial={nearbyPreferences} />
+          <>
+            <NewsletterSettings initialOptIn={newsletterOptIn} />
+            <NearbyEventsSettings initial={nearbyPreferences} />
+          </>
         ) : null}
 
         <div id="saved" className="mt-14 scroll-mt-32">

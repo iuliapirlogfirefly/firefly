@@ -69,14 +69,22 @@ export function BusinessPostsList({ posts, locale }: Props) {
                   </p>
                 ) : null}
               </div>
-              {post.status === "published" ? (
+              <div className="flex shrink-0 flex-col gap-2 self-start">
+                {post.status === "published" ? (
+                  <Link
+                    href={`/business/promotions?boost=feed_post&target=${post.id}`}
+                    className="rounded-full border border-firefly/30 px-3 py-1.5 text-xs text-firefly transition-colors hover:bg-firefly/10"
+                  >
+                    Boost
+                  </Link>
+                ) : null}
                 <Link
-                  href={`/business/promotions?boost=feed_post&target=${post.id}`}
-                  className="self-start rounded-full border border-firefly/30 px-3 py-1.5 text-xs text-firefly transition-colors hover:bg-firefly/10"
+                  href={`/business/posts/${post.id}/edit`}
+                  className="rounded-full border border-firefly/30 px-3 py-1.5 text-xs text-firefly transition-colors hover:bg-firefly/10"
                 >
-                  Boost
+                  Edit
                 </Link>
-              ) : null}
+              </div>
             </div>
           </li>
         );

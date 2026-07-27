@@ -11,6 +11,10 @@ import {
   sendBusinessRejectedEmail,
   sendEmail,
 } from "@/lib/notifications/email";
+import {
+  buildNewsletterUnsubscribeUrl,
+  wrapNewsletterHtml,
+} from "@/lib/newsletter/unsubscribe-token";
 import type { ActionResult } from "@/types";
 
 export async function approveBusinessAccount(
@@ -302,19 +306,90 @@ export async function sendNewsletter(
       const { data: authUser } = await admin.auth.admin.getUserById(
         subscriber.id
       );
-      if (authUser?.user?.email) {
-        await sendEmail({
-          to: authUser.user.email,
-          subject,
-          html: htmlContent,
-          locale: (subscriber.preferred_locale as "en" | "ro") ?? "en",
-        });
-        sent++;
-      }
+      const email = authUser?.user?.email;
+      if (!email) continue;
+
+      const locale =
+        (subscriber.preferred_locale as "en" | "ro") ?? "en";
+      const unsubscribeUrl = buildNewsletterUnsubscribeUrl(
+        subscriber.id,
+        locale
+      );
+
+      await sendEmail({
+        to: email,
+        subject,
+        html: wrapNewsletterHtml(htmlContent, unsubscribeUrl, locale),
+        locale,
+        headers: {
+          "List-Unsubscribe": `<${unsubscribeUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
+      });
+      sent++;
     }
 
     return success({ sent });
   } catch (e) {
     return failure(e instanceof Error ? e.message : "Failed to send newsletter");
+  }
+}
+
+export async function markContactMessageRead(
+  messageId: string
+): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("contact_messages")
+      .update({
+        status: "read",
+        read_at: new Date().toISOString(),
+        read_by: session.userId,
+      })
+      .eq("id", messageId)
+      .eq("status", "unread");
+
+    if (error) return failure(error.message);
+    return success(undefined);
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to mark message as read"
+    );
+  }
+}
+
+export async function archiveContactMessage(
+  messageId: string
+): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("contact_messages")
+      .update({
+        status: "archived",
+        read_at: new Date().toISOString(),
+        read_by: session.userId,
+      })
+      .eq("id", messageId);
+
+    if (error) return failure(error.message);
+    return success(undefined);
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to archive message"
+    );
   }
 }

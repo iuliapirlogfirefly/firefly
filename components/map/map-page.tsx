@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { Clock, MapPin, Menu, Search, X } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { BottomNav } from "@/components/BottomNav";
@@ -9,7 +11,11 @@ import { Nav } from "@/components/Nav";
 import { useSavedEvents } from "@/hooks/use-saved-events";
 import { formatGenreLabel, GENRES } from "@/lib/constants/genres";
 import { landingImages } from "@/lib/landing/images";
-import { latLngToMapPercent } from "@/lib/utils/map-coords";
+import {
+  BUCHAREST_BOUNDS_LNG_LAT,
+  BUCHAREST_CENTER,
+  MAP_STYLE_URL,
+} from "@/lib/utils/map-coords";
 import {
   filterMapEvents,
   type DateFilter,
@@ -21,8 +27,6 @@ import type { EventListItem } from "@/types/events";
 type Props = {
   events: EventListItem[];
 };
-
-type PositionedEvent = EventListItem & { x: number; y: number };
 
 const DATE_FILTERS = [
   ["any", "Any time"],
@@ -145,6 +149,24 @@ function MapFilters({
   );
 }
 
+function styleFireflyPin(
+  span: HTMLElement,
+  event: EventListItem,
+  index: number,
+  isActive: boolean
+) {
+  const size = event.isPromoted ? 22 : 14;
+  span.style.width = `${size}px`;
+  span.style.height = `${size}px`;
+  span.style.animationDelay = `${index * 0.2}s`;
+  span.style.background = event.isPromoted
+    ? "radial-gradient(circle, #FEF7A3 0%, #E89A5F 100%)"
+    : "#FEF7A3";
+  span.style.boxShadow = `0 0 ${size * 1.6}px #FEF7A3, 0 0 ${size * 4}px rgba(254,247,163,${event.isPromoted ? 0.7 : 0.5})`;
+  span.style.outline = isActive ? "2px solid rgba(254,247,163,0.9)" : "none";
+  span.style.outlineOffset = "4px";
+}
+
 function MapCanvas({
   filtered,
   activeId,
@@ -153,84 +175,138 @@ function MapCanvas({
   has,
   toggle,
   className,
-  imageSizes,
   activeCardClassName,
 }: {
-  filtered: PositionedEvent[];
+  filtered: EventListItem[];
   activeId: string | null;
   setActiveId: (id: string | null) => void;
-  active: PositionedEvent | null;
+  active: EventListItem | null;
   has: (id: string) => boolean;
   toggle: (id: string) => void;
   className?: string;
-  imageSizes: string;
   activeCardClassName: string;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
+  const activeIdRef = useRef(activeId);
+  const setActiveIdRef = useRef(setActiveId);
+
+  activeIdRef.current = activeId;
+  setActiveIdRef.current = setActiveId;
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || mapRef.current) return;
+
+    const map = new maplibregl.Map({
+      container,
+      style: MAP_STYLE_URL,
+      center: [BUCHAREST_CENTER.lng, BUCHAREST_CENTER.lat],
+      zoom: 12.5,
+      attributionControl: { compact: true },
+    });
+
+    map.fitBounds(BUCHAREST_BOUNDS_LNG_LAT, { padding: 48, duration: 0 });
+    mapRef.current = map;
+
+    const resizeObserver = new ResizeObserver(() => {
+      map.resize();
+    });
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+      for (const marker of markersRef.current.values()) {
+        marker.remove();
+      }
+      markersRef.current.clear();
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const syncMarkers = () => {
+      const nextIds = new Set(filtered.map((event) => event.id));
+
+      for (const [id, marker] of markersRef.current) {
+        if (!nextIds.has(id)) {
+          marker.remove();
+          markersRef.current.delete(id);
+        }
+      }
+
+      filtered.forEach((event, index) => {
+        const isActive = activeIdRef.current === event.id;
+        let marker = markersRef.current.get(event.id);
+
+        if (!marker) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.setAttribute("aria-label", event.title);
+          // Do not apply CSS transforms on the marker root — MapLibre
+          // positions markers via transform, and hover:scale would replace it
+          // and teleport the pin (looks like a duplicate point).
+          button.style.background = "transparent";
+          button.style.border = "none";
+          button.style.padding = "0";
+          button.style.cursor = "pointer";
+
+          const hit = document.createElement("span");
+          hit.className = "block transition-transform hover:scale-125";
+
+          const span = document.createElement("span");
+          span.className = "firefly-pin block animate-firefly-pulse rounded-full";
+          hit.appendChild(span);
+          button.appendChild(hit);
+
+          button.addEventListener("click", (clickEvent) => {
+            clickEvent.stopPropagation();
+            const current = activeIdRef.current;
+            setActiveIdRef.current(current === event.id ? null : event.id);
+          });
+
+          marker = new maplibregl.Marker({ element: button, anchor: "center" })
+            .setLngLat([event.lng, event.lat])
+            .addTo(map);
+          markersRef.current.set(event.id, marker);
+        } else {
+          marker.setLngLat([event.lng, event.lat]);
+        }
+
+        const span = marker.getElement().querySelector(".firefly-pin");
+        if (span instanceof HTMLElement) {
+          styleFireflyPin(span, event, index, isActive);
+        }
+      });
+    };
+
+    if (map.loaded()) {
+      syncMarkers();
+      return;
+    }
+
+    map.once("load", syncMarkers);
+    return () => {
+      map.off("load", syncMarkers);
+    };
+  }, [filtered, activeId]);
+
   return (
     <div
       className={`relative overflow-hidden rounded-3xl border border-firefly/10 ${className ?? ""}`}
       style={{ boxShadow: "0 30px 80px rgba(0,0,0,0.5)" }}
     >
-      <Image
-        src={landingImages.mapPreview}
-        alt=""
-        aria-hidden
-        fill
-        priority
-        sizes={imageSizes}
-        className="object-cover"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-background/40" />
-
-      <div className="absolute" style={{ top: "52%", left: "48%" }}>
-        <div className="relative">
-          <div
-            className="absolute inset-0 -m-3 animate-firefly-pulse rounded-full border-2 border-blue-400/40"
-            style={{ width: 28, height: 28 }}
-          />
-          <div
-            className="h-3 w-3 rounded-full bg-blue-400"
-            style={{ boxShadow: "0 0 12px rgba(96,165,250,0.8)" }}
-          />
-        </div>
-      </div>
-
-      {filtered.map((event, index) => {
-        const isActive = activeId === event.id;
-        const size = event.isPromoted ? 22 : 14;
-
-        return (
-          <button
-            key={event.id}
-            type="button"
-            onClick={() => setActiveId(isActive ? null : event.id)}
-            className="absolute -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-125"
-            style={{ top: `${event.y}%`, left: `${event.x}%` }}
-            aria-label={event.title}
-          >
-            <span
-              className="block animate-firefly-pulse rounded-full"
-              style={{
-                width: size,
-                height: size,
-                animationDelay: `${index * 0.2}s`,
-                background: event.isPromoted
-                  ? "radial-gradient(circle, #FEF7A3 0%, #E89A5F 100%)"
-                  : "#FEF7A3",
-                boxShadow: `0 0 ${size * 1.6}px #FEF7A3, 0 0 ${size * 4}px rgba(254,247,163,${event.isPromoted ? 0.7 : 0.5})`,
-                outline: isActive
-                  ? "2px solid rgba(254,247,163,0.9)"
-                  : "none",
-                outlineOffset: 4,
-              }}
-            />
-          </button>
-        );
-      })}
+      <div ref={containerRef} className="absolute inset-0 h-full w-full" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-background/25" />
 
       {active ? (
         <div
-          className={`glass absolute animate-fade-up overflow-hidden rounded-2xl ${activeCardClassName}`}
+          className={`glass absolute z-10 animate-fade-up overflow-hidden rounded-2xl ${activeCardClassName}`}
           style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}
         >
           <button
@@ -308,18 +384,9 @@ export function MapPageClient({ events }: Props) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const { has, toggle } = useSavedEvents();
 
-  const positionedEvents = useMemo<PositionedEvent[]>(
-    () =>
-      events.map((event) => ({
-        ...event,
-        ...latLngToMapPercent(event.lat, event.lng),
-      })),
-    [events]
-  );
-
   const filtered = useMemo(
-    () => filterMapEvents(positionedEvents, { query, date, genres }),
-    [positionedEvents, query, date, genres]
+    () => filterMapEvents(events, { query, date, genres }),
+    [events, query, date, genres]
   );
 
   const active = activeId
@@ -380,7 +447,6 @@ export function MapPageClient({ events }: Props) {
             <MapCanvas
               {...mapCanvasProps}
               className="aspect-[16/10] lg:aspect-auto lg:h-[calc(100vh-7rem)]"
-              imageSizes="(max-width: 1024px) 100vw, 70vw"
               activeCardClassName="bottom-5 left-5 right-5 md:right-auto md:max-w-sm"
             />
           </div>
@@ -425,7 +491,6 @@ export function MapPageClient({ events }: Props) {
             <MapCanvas
               {...mapCanvasProps}
               className="h-full"
-              imageSizes="100vw"
               activeCardClassName="bottom-4 left-4 right-4"
             />
           </div>

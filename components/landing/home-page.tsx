@@ -60,7 +60,7 @@ const steps = [
     icon: MapPin,
     t: "The map glows",
     d: "Open Firefly and watch the city light up with everywhere worth being.",
-    img: landingImages.editorialSign,
+    img: landingImages.stepMap,
     align: "left" as const,
   },
   {
@@ -76,7 +76,7 @@ const steps = [
     icon: Calendar,
     t: "You save the night",
     d: "Heart it, set a reminder, share with the right friends — the night is on your radar.",
-    img: landingImages.editorialCrowd,
+    img: landingImages.stepSave,
     align: "left" as const,
   },
 ] as const;
@@ -172,8 +172,8 @@ export function HomePage({ featured }: Props) {
               }}
             >
               <Image
-                src={landingImages.editorialCrowd}
-                alt="Crowd dancing in a Bucharest club"
+                src={landingImages.heroCrowd}
+                alt="DJ booth and crowd in a Bucharest club"
                 fill
                 priority
                 sizes="(max-width: 1024px) 80vw, 35vw"
@@ -188,8 +188,8 @@ export function HomePage({ featured }: Props) {
             >
               <div className="relative aspect-[4/5] overflow-hidden">
                 <Image
-                  src={landingImages.editorialFriends}
-                  alt="Friends laughing at a bar"
+                  src={landingImages.heroFrame}
+                  alt="Friends dancing at a night out"
                   fill
                   sizes="240px"
                   className="object-cover"
@@ -383,8 +383,8 @@ export function HomePage({ featured }: Props) {
               }}
             >
               <Image
-                src={landingImages.editorialSign}
-                alt="Venue sign"
+                src={landingImages.mapInset}
+                alt="Martini Club cocktail"
                 width={176}
                 height={235}
                 className="aspect-[3/4] h-full w-full object-cover"
@@ -471,14 +471,14 @@ export function HomePage({ featured }: Props) {
               <div className="max-w-xl">
                 <Quote className="-scale-x-100 mb-4 h-8 w-8 text-firefly/80" />
                 <p className="text-balance font-display text-3xl leading-[1.05] md:text-5xl">
-                  &ldquo;The best nights start with not knowing where you&apos;ll
-                  end up — only that the city is{" "}
-                  <span className="text-gradient-firefly">glowing</span>.&rdquo;
+                  &ldquo;It&apos;s funny how the nights you never planned become
+                  the ones you never{" "}
+                  <span className="text-gradient-firefly">forget</span>.&rdquo;
                 </p>
                 <div className="mt-6 flex items-center gap-3">
                   <div className="h-px w-12 bg-firefly/60" />
                   <span className="font-mono text-[11px] uppercase tracking-wider-2 text-foreground/60">
-                    Maria · co-founder, walking home at 5am
+                    Maria, catching the first morning tram.
                   </span>
                 </div>
               </div>
@@ -576,7 +576,7 @@ export function HomePage({ featured }: Props) {
               }}
             >
               <Image
-                src={landingImages.editorialDj}
+                src={landingImages.manifestoDj}
                 alt="DJ hands on a mixer"
                 width={640}
                 height={800}

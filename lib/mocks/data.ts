@@ -625,16 +625,51 @@ export function getMockAdminAnalytics() {
   };
 }
 
-export function getMockBusinessAnalytics() {
+export function getMockBusinessAnalytics(locale: Locale = "en") {
+  const events = getMockBusinessEvents(locale).map((event, index) => {
+    const counts = [
+      { views: 1420, saves: 210, clicks: 480, ticketClicks: 98, shares: 28 },
+      { views: 890, saves: 124, clicks: 280, ticketClicks: 52, shares: 16 },
+      { views: 410, saves: 58, clicks: 120, ticketClicks: 28, shares: 8 },
+      { views: 120, saves: 20, clicks: 40, ticketClicks: 8, shares: 2 },
+    ][index] ?? {
+      views: 0,
+      saves: 0,
+      clicks: 0,
+      ticketClicks: 0,
+      shares: 0,
+    };
+
+    return {
+      id: event.id,
+      title: event.title,
+      startsAt: event.startsAt,
+      status: event.status,
+      isPromoted: event.isPromoted,
+      ...counts,
+    };
+  });
+
+  const totals = events.reduce(
+    (acc, event) => ({
+      views: acc.views + event.views,
+      saves: acc.saves + event.saves,
+      clicks: acc.clicks + event.clicks,
+      ticketClicks: acc.ticketClicks + event.ticketClicks,
+      shares: acc.shares + event.shares,
+    }),
+    { views: 0, saves: 0, clicks: 0, ticketClicks: 0, shares: 0 }
+  );
+
   return {
-    views: 2840,
-    saves: 412,
-    clicks: 920,
-    ticketClicks: 186,
-    shares: 54,
-    totalEvents: 4,
-    promotedEvents: 2,
+    ...totals,
+    totalEvents: events.length,
+    promotedEvents: events.filter((e) => e.isPromoted).length,
     activePromotions: 1,
+    events: [...events].sort((a, b) => {
+      if (b.views !== a.views) return b.views - a.views;
+      return new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime();
+    }),
   };
 }
 

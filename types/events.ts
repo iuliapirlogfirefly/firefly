@@ -102,6 +102,8 @@ export type CreateFeedPostInput = {
   mediaUrl?: string;
 };
 
+export type UpdateFeedPostInput = CreateFeedPostInput;
+
 export type SessionInfo = {
   userId: string | null;
   role: import("./index").UserRole | "guest";

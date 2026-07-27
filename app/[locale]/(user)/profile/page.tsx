@@ -1,6 +1,9 @@
 import { setRequestLocale } from "next-intl/server";
 import { ProfilePageClient } from "@/components/profile/profile-page";
-import { getNearbyPreferences } from "@/lib/actions/profile";
+import {
+  getNearbyPreferences,
+  getNewsletterOptIn,
+} from "@/lib/actions/profile";
 import { getSession } from "@/lib/auth/session";
 import { getEvents, getSavedEvents } from "@/lib/queries/events";
 import { generatePageMetadata } from "@/lib/seo/metadata";
@@ -23,12 +26,14 @@ export default async function ProfilePage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [session, events, serverSaved, nearbyPreferences] = await Promise.all([
-    getSession(),
-    getEvents(locale),
-    getSavedEvents(locale),
-    getNearbyPreferences(),
-  ]);
+  const [session, events, serverSaved, nearbyPreferences, newsletterOptIn] =
+    await Promise.all([
+      getSession(),
+      getEvents(locale),
+      getSavedEvents(locale),
+      getNearbyPreferences(),
+      getNewsletterOptIn(),
+    ]);
 
   return (
     <ProfilePageClient
@@ -36,6 +41,7 @@ export default async function ProfilePage({ params }: Props) {
       serverSavedIds={serverSaved.map((event) => event.id)}
       session={session}
       nearbyPreferences={nearbyPreferences}
+      newsletterOptIn={newsletterOptIn ?? true}
     />
   );
 }

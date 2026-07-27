@@ -19,8 +19,22 @@ export default async function BusinessDashboardPage({ params }: Props) {
   const session = shouldUseMockData()
     ? getMockBusinessSession()
     : await getSession();
-  const businessId = session.businessAccountId ?? MOCK_BUSINESS_ACCOUNT_ID;
-  const analytics = await getBusinessAnalytics(businessId);
+  const businessId = shouldUseMockData()
+    ? MOCK_BUSINESS_ACCOUNT_ID
+    : session.businessAccountId;
+  const analytics = businessId
+    ? await getBusinessAnalytics(businessId, locale)
+    : {
+        views: 0,
+        saves: 0,
+        clicks: 0,
+        ticketClicks: 0,
+        shares: 0,
+        totalEvents: 0,
+        promotedEvents: 0,
+        activePromotions: 0,
+        events: [],
+      };
 
   return (
     <BusinessDashboard

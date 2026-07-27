@@ -15,12 +15,16 @@ type SendEmailParams = {
   subject: string;
   html: string;
   locale?: Locale;
+  headers?: Record<string, string>;
+  replyTo?: string;
 };
 
 export async function sendEmail({
   to,
   subject,
   html,
+  headers,
+  replyTo,
 }: SendEmailParams): Promise<void> {
   if (!process.env.RESEND_API_KEY) {
     console.warn("[email] RESEND_API_KEY not set, skipping:", subject, to);
@@ -30,7 +34,14 @@ export async function sendEmail({
   const from =
     process.env.RESEND_FROM_EMAIL ?? "Firefly <noreply@firefly.app>";
 
-  await getResend().emails.send({ from, to, subject, html });
+  await getResend().emails.send({
+    from,
+    to,
+    subject,
+    html,
+    ...(replyTo ? { replyTo } : {}),
+    ...(headers ? { headers } : {}),
+  });
 }
 
 export async function sendEventApprovedEmail(
@@ -131,6 +142,30 @@ export type NearbyDigestEvent = {
   startsAt: string;
   venueName: string | null;
 };
+
+export async function sendContactMessageEmail(params: {
+  to: string;
+  businessName: string;
+  subject: string;
+  body: string;
+  replyTo?: string | null;
+}): Promise<void> {
+  const { to, businessName, subject, body, replyTo } = params;
+  const emailSubject = `[Firefly Support] ${businessName}: ${subject}`;
+  const html = `
+    <p><strong>${businessName}</strong> sent a support message via the business dashboard.</p>
+    <p><strong>Subject:</strong> ${subject}</p>
+    <p>${body.replace(/\n/g, "<br />")}</p>
+    ${replyTo ? `<p><strong>Reply to:</strong> ${replyTo}</p>` : ""}
+  `;
+
+  await sendEmail({
+    to,
+    subject: emailSubject,
+    html,
+    ...(replyTo ? { replyTo } : {}),
+  });
+}
 
 export async function sendNearbyEventsDigestEmail(
   to: string,

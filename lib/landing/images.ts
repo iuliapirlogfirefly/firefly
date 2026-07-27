@@ -7,6 +7,18 @@ export const landingImages = {
   editorialFriends: "/images/editorial-friends.png",
   editorialSign: "/images/editorial-sign.png",
   authJar: "/images/auth-jar.png",
+  /** Landing hero — polaroid frame */
+  heroFrame: "/images/hero-frame.jpeg",
+  /** Landing hero — back photo */
+  heroCrowd: "/images/hero-crowd.jpeg",
+  /** Map section inset (top-right) */
+  mapInset: "/images/map-inset.jpeg",
+  /** How it works — step 01 */
+  stepMap: "/images/step-map.jpg",
+  /** How it works — step 03 */
+  stepSave: "/images/step-save.jpeg",
+  /** Manifesto section */
+  manifestoDj: "/images/manifesto-dj.jpeg",
 } as const;
 
 export const eventImages = {

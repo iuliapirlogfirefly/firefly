@@ -1,26 +1,19 @@
-const BUCHAREST_BOUNDS = {
+export const BUCHAREST_BOUNDS = {
   minLat: 44.415,
   maxLat: 44.475,
   minLng: 26.045,
   maxLng: 26.125,
 } as const;
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
+export const BUCHAREST_CENTER = {
+  lat: (BUCHAREST_BOUNDS.minLat + BUCHAREST_BOUNDS.maxLat) / 2,
+  lng: (BUCHAREST_BOUNDS.minLng + BUCHAREST_BOUNDS.maxLng) / 2,
+} as const;
 
-export function latLngToMapPercent(lat: number, lng: number) {
-  const x =
-    ((lng - BUCHAREST_BOUNDS.minLng) /
-      (BUCHAREST_BOUNDS.maxLng - BUCHAREST_BOUNDS.minLng)) *
-    100;
-  const y =
-    ((BUCHAREST_BOUNDS.maxLat - lat) /
-      (BUCHAREST_BOUNDS.maxLat - BUCHAREST_BOUNDS.minLat)) *
-    100;
+/** Free dark basemap — no API token required. */
+export const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
 
-  return {
-    x: clamp(x, 8, 92),
-    y: clamp(y, 8, 92),
-  };
-}
+export const BUCHAREST_BOUNDS_LNG_LAT: [[number, number], [number, number]] = [
+  [BUCHAREST_BOUNDS.minLng, BUCHAREST_BOUNDS.minLat],
+  [BUCHAREST_BOUNDS.maxLng, BUCHAREST_BOUNDS.maxLat],
+];

@@ -5,8 +5,9 @@ import {
   CalendarDays,
   LayoutDashboard,
   Mail,
-  Menu,
   Megaphone,
+  Menu,
+  MessageSquare,
   Newspaper,
   Users,
   X,
@@ -19,6 +20,7 @@ const navItems = [
   { href: "/admin/events", label: "Events", icon: CalendarDays, countKey: "pendingEvents" as const },
   { href: "/admin/posts", label: "Feed Posts", icon: Newspaper, countKey: "pendingPosts" as const },
   { href: "/admin/users", label: "Users", icon: Users, countKey: "pendingBusinesses" as const },
+  { href: "/admin/messages", label: "Messages", icon: MessageSquare, countKey: "unreadMessages" as const },
   { href: "/admin/promotions", label: "Promotions", icon: Megaphone, countKey: null },
   { href: "/admin/newsletters", label: "Newsletters", icon: Mail, countKey: null },
 ] as const;

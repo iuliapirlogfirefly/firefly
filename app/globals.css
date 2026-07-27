@@ -370,3 +370,18 @@
 .animate-marquee-scroll {
   animation: marquee-scroll 30s linear infinite;
 }
+
+/* MapLibre — keep attribution compact inside FireFly chrome */
+.maplibregl-map {
+  font: inherit;
+}
+
+.maplibregl-ctrl-attrib {
+  background: rgba(0, 0, 0, 0.45) !important;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 10px;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: rgba(254, 247, 163, 0.8);
+}

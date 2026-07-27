@@ -4,6 +4,7 @@ import { Link, usePathname } from "@/i18n/navigation";
 import {
   CalendarDays,
   LayoutDashboard,
+  LifeBuoy,
   Megaphone,
   Menu,
   Newspaper,
@@ -16,6 +17,7 @@ const navItems = [
   { href: "/business/events", label: "Events", icon: CalendarDays },
   { href: "/business/posts", label: "Feed posts", icon: Newspaper },
   { href: "/business/promotions", label: "Promotions", icon: Megaphone },
+  { href: "/business/contact", label: "Contact", icon: LifeBuoy },
 ] as const;
 
 type Props = {

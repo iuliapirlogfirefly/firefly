@@ -11,6 +11,8 @@ import {
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { ImageUploader } from "@/components/events/image-uploader";
+import { LocationMapPicker } from "@/components/business/location-map-picker";
+import { BUCHAREST_CENTER } from "@/lib/utils/map-coords";
 import type { CreateEventInput } from "@/types/events";
 import type { EventType, Genre } from "@/types";
 
@@ -61,15 +63,28 @@ export function EventForm({ mode, eventId, initial }: Props) {
   const [venueName, setVenueName] = useState(initial?.venueName ?? "");
   const [address, setAddress] = useState(initial?.address ?? "");
   const [lat, setLat] = useState(
-    initial?.lat != null ? String(initial.lat) : "44.4268"
+    initial?.lat != null && Number.isFinite(initial.lat)
+      ? initial.lat
+      : BUCHAREST_CENTER.lat
   );
   const [lng, setLng] = useState(
-    initial?.lng != null ? String(initial.lng) : "26.1025"
+    initial?.lng != null && Number.isFinite(initial.lng)
+      ? initial.lng
+      : BUCHAREST_CENTER.lng
   );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!venueName || !address) {
+      setError("Venue name and address are required.");
+      return;
+    }
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setError("Pin a location on the map before saving.");
+      return;
+    }
 
     const data: CreateEventInput = {
       translations: {
@@ -89,8 +104,8 @@ export function EventForm({ mode, eventId, initial }: Props) {
       images,
       venueName: venueName || undefined,
       address: address || undefined,
-      lat: Number(lat),
-      lng: Number(lng),
+      lat,
+      lng,
     };
 
     startTransition(async () => {
@@ -237,48 +252,28 @@ export function EventForm({ mode, eventId, initial }: Props) {
           <ImageUploader value={images} onChange={setImages} multiple />
         </div>
 
-        <div>
-          <label className={labelClass}>Venue name</label>
-          <input
-            className={inputClass}
-            value={venueName}
-            onChange={(e) => setVenueName(e.target.value)}
-            required
-          />
-        </div>
-
-        <div>
-          <label className={labelClass}>Address</label>
-          <input
-            className={inputClass}
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-          />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-4">
           <div>
-            <label className={labelClass}>Latitude</label>
+            <label className={labelClass}>Venue name</label>
             <input
-              type="number"
-              step="any"
               className={inputClass}
-              value={lat}
-              onChange={(e) => setLat(e.target.value)}
+              value={venueName}
+              onChange={(e) => setVenueName(e.target.value)}
               required
             />
           </div>
-          <div>
-            <label className={labelClass}>Longitude</label>
-            <input
-              type="number"
-              step="any"
-              className={inputClass}
-              value={lng}
-              onChange={(e) => setLng(e.target.value)}
-              required
-            />
-          </div>
+          <LocationMapPicker
+            address={address}
+            onAddressChange={setAddress}
+            lat={lat}
+            lng={lng}
+            onCoordsChange={(nextLat, nextLng) => {
+              setLat(nextLat);
+              setLng(nextLng);
+            }}
+            inputClassName={inputClass}
+            labelClassName={labelClass}
+          />
         </div>
 
         {error ? (

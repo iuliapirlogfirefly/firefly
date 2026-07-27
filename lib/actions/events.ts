@@ -85,15 +85,16 @@ export async function createEvent(
 
       if (!venue) return failure("Venue profile required for venue accounts");
 
-      lat = venue.lat;
-      lng = venue.lng;
-      address = venue.address;
-      venueName = venue.name;
       venueId = venue.id;
-    } else {
-      if (!lat || !lng || !address || !venueName) {
-        return failure("Location details required for organizer events");
-      }
+      // Prefer form pin/address; fall back to venue profile defaults.
+      lat = lat ?? venue.lat;
+      lng = lng ?? venue.lng;
+      address = address || venue.address;
+      venueName = venueName || venue.name;
+    }
+
+    if (!lat || !lng || !address || !venueName) {
+      return failure("Location details required");
     }
 
     const slug = generateEventSlug(data.translations.en.title);
@@ -170,12 +171,10 @@ export async function updateEvent(
           cover_image_url: data.coverImageUrl,
         }),
         ...(data.images && { images: data.images }),
-        ...(business.type === "organizer" && data.lat && { lat: data.lat }),
-        ...(business.type === "organizer" && data.lng && { lng: data.lng }),
-        ...(business.type === "organizer" &&
-          data.address && { address: data.address }),
-        ...(business.type === "organizer" &&
-          data.venueName && { venue_name: data.venueName }),
+        ...(data.lat !== undefined && { lat: data.lat }),
+        ...(data.lng !== undefined && { lng: data.lng }),
+        ...(data.address !== undefined && { address: data.address }),
+        ...(data.venueName !== undefined && { venue_name: data.venueName }),
       })
       .eq("id", id);
     if (error) return failure(error.message);

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { shouldUseMockData } from "@/lib/supabase/config";
 import { getLocalizedField } from "@/lib/i18n/content";
 import type { Locale, FeedPostCategory } from "@/types";
+import type { CreateFeedPostInput } from "@/types/events";
 import { getMockFeedPosts, getMockPendingFeedPosts } from "@/lib/mocks/data";
 import { filterMissedPosts } from "@/lib/utils/feed-filters";
 
@@ -165,4 +166,52 @@ export async function getBusinessFeedPosts(
     status: post.status,
     rejectionReason: post.rejection_reason,
   }));
+}
+
+export type BusinessFeedPostForEdit = CreateFeedPostInput & {
+  id: string;
+  status: string;
+  rejectionReason: string | null;
+};
+
+export async function getBusinessFeedPostForEdit(
+  postId: string,
+  businessAccountId: string
+): Promise<BusinessFeedPostForEdit | null> {
+  if (shouldUseMockData()) {
+    const mock = getMockFeedPosts("en").find((p) => p.id === postId);
+    if (!mock) return null;
+    return {
+      id: mock.id,
+      status: "published",
+      rejectionReason: null,
+      category: mock.category,
+      translations: {
+        en: { title: mock.title, description: mock.description },
+      },
+      mediaUrl: mock.mediaUrl ?? undefined,
+    };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("feed_posts")
+    .select("*")
+    .eq("id", postId)
+    .eq("business_account_id", businessAccountId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const translations = data.translations as CreateFeedPostInput["translations"];
+
+  return {
+    id: data.id,
+    status: data.status,
+    rejectionReason: data.rejection_reason,
+    category: data.category as FeedPostCategory,
+    translations,
+    mediaUrl: data.media_url ?? undefined,
+  };
 }

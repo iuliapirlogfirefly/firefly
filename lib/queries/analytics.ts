@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getLocalizedField } from "@/lib/i18n/content";
 import { isSupabaseAdminConfigured, isSupabaseConfigured, shouldUseMockData } from "@/lib/supabase/config";
 import { getMockAdminAnalytics, getMockBusinessAnalytics } from "@/lib/mocks/data";
+import type { Locale } from "@/types";
 
 export type AnalyticsCounts = {
   views: number;
@@ -11,10 +13,19 @@ export type AnalyticsCounts = {
   shares: number;
 };
 
+export type EventAnalyticsRow = AnalyticsCounts & {
+  id: string;
+  title: string;
+  startsAt: string;
+  status: string;
+  isPromoted: boolean;
+};
+
 export type BusinessAnalytics = AnalyticsCounts & {
   totalEvents: number;
   promotedEvents: number;
   activePromotions: number;
+  events: EventAnalyticsRow[];
 };
 
 export type AdminAnalytics = {
@@ -32,10 +43,70 @@ export type AdminAnalytics = {
   currency: string;
 };
 
+const emptyAnalytics: AnalyticsCounts = {
+  views: 0,
+  saves: 0,
+  clicks: 0,
+  ticketClicks: 0,
+  shares: 0,
+};
+
+const emptyBusinessAnalytics: BusinessAnalytics = {
+  ...emptyAnalytics,
+  totalEvents: 0,
+  promotedEvents: 0,
+  activePromotions: 0,
+  events: [],
+};
+
+function createEmptyCounts(): AnalyticsCounts {
+  return { ...emptyAnalytics };
+}
+
+function incrementCount(counts: AnalyticsCounts, type: string) {
+  switch (type) {
+    case "view":
+      counts.views++;
+      break;
+    case "save":
+      counts.saves++;
+      break;
+    case "click":
+      counts.clicks++;
+      break;
+    case "ticket_click":
+      counts.ticketClicks++;
+      break;
+    case "share":
+      counts.shares++;
+      break;
+  }
+}
+
+function sumAnalytics(rows: AnalyticsCounts[]): AnalyticsCounts {
+  const totals = createEmptyCounts();
+  for (const row of rows) {
+    totals.views += row.views;
+    totals.saves += row.saves;
+    totals.clicks += row.clicks;
+    totals.ticketClicks += row.ticketClicks;
+    totals.shares += row.shares;
+  }
+  return totals;
+}
+
 async function countAnalytics(
   entityType: "event" | "feed_post",
   entityIds?: string[]
 ): Promise<AnalyticsCounts> {
+  if (entityIds !== undefined && entityIds.length === 0) {
+    return createEmptyCounts();
+  }
+
+  if (!isSupabaseAdminConfigured()) {
+    return createEmptyCounts();
+  }
+
   const admin = createAdminClient();
   let query = admin.from("analytics_events").select("type");
 
@@ -46,79 +117,134 @@ async function countAnalytics(
   }
 
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    console.error("[analytics] countAnalytics failed:", error.message);
+    return createEmptyCounts();
+  }
 
-  const counts: AnalyticsCounts = {
-    views: 0,
-    saves: 0,
-    clicks: 0,
-    ticketClicks: 0,
-    shares: 0,
-  };
-
+  const counts = createEmptyCounts();
   for (const row of data ?? []) {
-    switch (row.type) {
-      case "view":
-        counts.views++;
-        break;
-      case "save":
-        counts.saves++;
-        break;
-      case "click":
-        counts.clicks++;
-        break;
-      case "ticket_click":
-        counts.ticketClicks++;
-        break;
-      case "share":
-        counts.shares++;
-        break;
-    }
+    incrementCount(counts, row.type);
   }
 
   return counts;
 }
 
-const emptyAnalytics: AnalyticsCounts = {
-  views: 0,
-  saves: 0,
-  clicks: 0,
-  ticketClicks: 0,
-  shares: 0,
-};
-
-export async function getBusinessAnalytics(
-  businessAccountId: string
-): Promise<BusinessAnalytics> {
-  if (shouldUseMockData()) return getMockBusinessAnalytics();
-
-  if (!isSupabaseConfigured()) {
-    return { ...emptyAnalytics, totalEvents: 0, promotedEvents: 0, activePromotions: 0 };
+async function groupAnalyticsByEntity(
+  entityType: "event" | "feed_post",
+  entityIds: string[]
+): Promise<Map<string, AnalyticsCounts>> {
+  const byEntity = new Map<string, AnalyticsCounts>();
+  for (const id of entityIds) {
+    byEntity.set(id, createEmptyCounts());
   }
 
-  const supabase = await createClient();
+  if (entityIds.length === 0 || !isSupabaseAdminConfigured()) {
+    return byEntity;
+  }
 
-  const { data: events } = await supabase
-    .from("events")
-    .select("id, is_promoted")
-    .eq("business_account_id", businessAccountId);
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("analytics_events")
+    .select("type, entity_id")
+    .eq("entity_type", entityType)
+    .in("entity_id", entityIds);
 
-  const eventIds = (events ?? []).map((e) => e.id);
-  const analytics = await countAnalytics("event", eventIds);
+  if (error) {
+    console.error("[analytics] groupAnalyticsByEntity failed:", error.message);
+    return byEntity;
+  }
 
-  const { count: activePromotions } = await supabase
-    .from("promotions")
-    .select("*", { count: "exact", head: true })
-    .eq("business_account_id", businessAccountId)
-    .eq("is_active", true)
-    .gte("expires_at", new Date().toISOString());
+  for (const row of data ?? []) {
+    let counts = byEntity.get(row.entity_id);
+    if (!counts) {
+      counts = createEmptyCounts();
+      byEntity.set(row.entity_id, counts);
+    }
+    incrementCount(counts, row.type);
+  }
 
-  return {
-    ...analytics,
-    totalEvents: events?.length ?? 0,
-    promotedEvents: events?.filter((e) => e.is_promoted).length ?? 0,
-    activePromotions: activePromotions ?? 0,
-  };
+  return byEntity;
+}
+
+export async function getBusinessAnalytics(
+  businessAccountId: string,
+  locale: Locale = "en"
+): Promise<BusinessAnalytics> {
+  if (shouldUseMockData()) return getMockBusinessAnalytics(locale);
+
+  if (!isSupabaseConfigured()) {
+    return emptyBusinessAnalytics;
+  }
+
+  try {
+    const supabase = await createClient();
+
+    const { data: events, error: eventsError } = await supabase
+      .from("events")
+      .select("id, is_promoted, status, starts_at, translations")
+      .eq("business_account_id", businessAccountId);
+
+    if (eventsError) {
+      console.error(
+        "[analytics] Failed to load business events:",
+        eventsError.message
+      );
+      return emptyBusinessAnalytics;
+    }
+
+    const eventRows = events ?? [];
+    const eventIds = eventRows.map((e) => e.id);
+    const countsByEvent = await groupAnalyticsByEntity("event", eventIds);
+
+    const eventAnalytics: EventAnalyticsRow[] = eventRows.map((event) => {
+      const counts = countsByEvent.get(event.id) ?? createEmptyCounts();
+      return {
+        id: event.id,
+        title: getLocalizedField(
+          event.translations as Parameters<typeof getLocalizedField>[0],
+          locale,
+          "title"
+        ),
+        startsAt: event.starts_at,
+        status: event.status,
+        isPromoted: event.is_promoted,
+        ...counts,
+      };
+    });
+
+    eventAnalytics.sort((a, b) => {
+      if (b.views !== a.views) return b.views - a.views;
+      return new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime();
+    });
+
+    const analytics = sumAnalytics(eventAnalytics);
+
+    const { count: activePromotions, error: promotionsError } = await supabase
+      .from("promotions")
+      .select("*", { count: "exact", head: true })
+      .eq("business_account_id", businessAccountId)
+      .eq("is_active", true)
+      .gte("expires_at", new Date().toISOString());
+
+    if (promotionsError) {
+      console.error(
+        "[analytics] Failed to load active promotions:",
+        promotionsError.message
+      );
+    }
+
+    return {
+      ...analytics,
+      totalEvents: eventRows.length,
+      promotedEvents: eventRows.filter((e) => e.is_promoted).length,
+      activePromotions: activePromotions ?? 0,
+      events: eventAnalytics,
+    };
+  } catch (error) {
+    console.error("[analytics] getBusinessAnalytics failed:", error);
+    return emptyBusinessAnalytics;
+  }
 }
 
 export async function getAdminAnalytics(): Promise<AdminAnalytics> {

@@ -280,6 +280,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      contact_messages: {
+        Row: {
+          id: string;
+          business_account_id: string;
+          profile_id: string;
+          subject: string;
+          body: string;
+          status: string;
+          created_at: string;
+          read_at: string | null;
+          read_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          business_account_id: string;
+          profile_id: string;
+          subject: string;
+          body: string;
+          status?: string;
+          created_at?: string;
+          read_at?: string | null;
+          read_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          business_account_id?: string;
+          profile_id?: string;
+          subject?: string;
+          body?: string;
+          status?: string;
+          created_at?: string;
+          read_at?: string | null;
+          read_by?: string | null;
+        };
+        Relationships: [];
+      };
       feed_posts: {
         Row: {
           id: string;
