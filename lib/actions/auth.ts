@@ -86,6 +86,15 @@ type SignUpOptions = {
   displayName?: string;
   businessName?: string;
   businessType?: BusinessType;
+  billing?: {
+    legalName: string;
+    cui: string;
+    billingAddress: string;
+    billingCity: string;
+    billingCounty: string;
+    billingPostalCode: string;
+    billingCountry?: string;
+  };
 };
 
 export async function signUpWithEmail(
@@ -104,6 +113,9 @@ export async function signUpWithEmail(
     }
     if (!options.businessType) {
       return failure("Business type is required");
+    }
+    if (!options.billing) {
+      return failure("Billing information is required");
     }
   }
 
@@ -126,11 +138,21 @@ export async function signUpWithEmail(
   if (!userId) return failure("Sign up failed");
 
   if (accountType === "business") {
+    const billing = options.billing!;
     const businessResult = await createBusinessAccountForProfile(
       supabase,
       userId,
       options.businessType!,
-      options.businessName!.trim()
+      options.businessName!.trim(),
+      {
+        legalName: billing.legalName.trim(),
+        cui: billing.cui.trim(),
+        billingAddress: billing.billingAddress.trim(),
+        billingCity: billing.billingCity.trim(),
+        billingCounty: billing.billingCounty.trim(),
+        billingPostalCode: billing.billingPostalCode.trim(),
+        billingCountry: (billing.billingCountry ?? "RO").trim() || "RO",
+      }
     );
 
     if (!businessResult.success) {

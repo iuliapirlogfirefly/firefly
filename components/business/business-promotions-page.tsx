@@ -3,9 +3,11 @@
 import { Link } from "@/i18n/navigation";
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { PendingButton } from "@/components/ui/pending-button";
 import {
   createSubscriptionCheckout,
   purchasePromotion,
+  cancelSubscription,
 } from "@/lib/actions/payments";
 import {
   PROMOTION_PRICES,
@@ -188,6 +190,28 @@ export function BusinessPromotionsPage({
     });
   };
 
+  const handleCancelSubscription = () => {
+    if (
+      !window.confirm(
+        "Cancel auto-renewal? You will keep access until the end of the current billing period."
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    startTransition(async () => {
+      const result = await cancelSubscription();
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+      setSuccessMessage(
+        "Subscription will not renew. Access continues until the period ends."
+      );
+      router.refresh();
+    });
+  };
+
   const pickerTargets =
     pickerType === "event_boost"
       ? publishedEvents.map((e) => ({ id: e.id, label: e.title }))
@@ -197,8 +221,6 @@ export function BusinessPromotionsPage({
 
   const pickerQuota =
     pickerType && subscription ? getQuotaForType(subscription, pickerType) : null;
-
-  const actionsDisabled = pending || !purchasesEnabled;
 
   if (!hasBusinessAccount) {
     return (
@@ -276,7 +298,9 @@ export function BusinessPromotionsPage({
                 Premium subscription
               </h2>
               <span className="font-mono text-xs uppercase tracking-wider-2 text-firefly">
-                Renews {subscription.renewsAt}
+                {subscription.cancelAtPeriodEnd
+                  ? `Ends ${subscription.renewsAt}`
+                  : `Renews ${subscription.renewsAt}`}
               </span>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -301,6 +325,23 @@ export function BusinessPromotionsPage({
                 quota={subscription.socialQuota}
               />
             </div>
+            {subscription.cancelAtPeriodEnd ? (
+              <p className="mt-4 text-sm text-foreground/60">
+                Auto-renewal is canceled. You keep Premium benefits until{" "}
+                {subscription.renewsAt}.
+              </p>
+            ) : (
+              <PendingButton
+                type="button"
+                onClick={handleCancelSubscription}
+                pending={pending}
+                pendingLabel="Canceling…"
+                disabled={!purchasesEnabled}
+                className="mt-4 text-sm text-destructive/80 underline-offset-2 hover:underline"
+              >
+                Cancel auto-renewal
+              </PendingButton>
+            )}
           </div>
         ) : null}
 
@@ -324,29 +365,29 @@ export function BusinessPromotionsPage({
                 </p>
                 <div className="mt-4 space-y-2">
                   {hasQuota ? (
-                    <button
+                    <PendingButton
                       type="button"
-                      disabled={actionsDisabled}
+                      pending={pending}
+                      pendingLabel="Applying…"
+                      disabled={!purchasesEnabled}
                       onClick={() => handlePlanClick(plan.type, false)}
-                      className="w-full rounded-full bg-firefly py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                      className="w-full rounded-full bg-firefly py-2 text-sm font-medium text-primary-foreground"
                     >
                       Use included slot ({quota!.quota - quota!.used} left)
-                    </button>
+                    </PendingButton>
                   ) : null}
-                  <button
+                  <PendingButton
                     type="button"
-                    disabled={actionsDisabled}
+                    pending={pending}
+                    pendingLabel="Redirecting to checkout…"
+                    disabled={!purchasesEnabled}
                     onClick={() => handlePlanClick(plan.type, !hasQuota)}
-                    className={`w-full rounded-full py-2 text-sm ${
-                      hasQuota
-                        ? "border border-firefly/30 text-firefly hover:bg-firefly/10"
-                        : "border border-firefly/30 text-firefly hover:bg-firefly/10"
-                    } disabled:opacity-50`}
+                    className="w-full rounded-full border border-firefly/30 py-2 text-sm text-firefly hover:bg-firefly/10"
                   >
                     {hasQuota
                       ? `Pay ${formatPrice(price.amount, price.currency)} instead`
                       : "Purchase"}
-                  </button>
+                  </PendingButton>
                 </div>
               </div>
             );
@@ -364,14 +405,16 @@ export function BusinessPromotionsPage({
               4 promoted events, 4 feed posts, 2 newsletters, 2 social posts
               every month.
             </p>
-            <button
+            <PendingButton
               type="button"
-              disabled={actionsDisabled || Boolean(subscription)}
+              pending={pending}
+              pendingLabel="Redirecting to checkout…"
+              disabled={!purchasesEnabled || Boolean(subscription)}
               onClick={handleSubscribe}
-              className="mt-4 w-full rounded-full border border-firefly/30 py-2 text-sm text-firefly hover:bg-firefly/10 disabled:opacity-50"
+              className="mt-4 w-full rounded-full border border-firefly/30 py-2 text-sm text-firefly hover:bg-firefly/10"
             >
               {subscription ? "Subscribed" : "Subscribe"}
-            </button>
+            </PendingButton>
           </div>
         </div>
 
@@ -429,41 +472,47 @@ export function BusinessPromotionsPage({
 
             <div className="mt-6 flex flex-wrap gap-2">
               {pickerQuota && pickerQuota.used < pickerQuota.quota && !forceCheckout ? (
-                <button
+                <PendingButton
                   type="button"
-                  disabled={actionsDisabled || !selectedTarget}
+                  pending={pending}
+                  pendingLabel="Applying…"
+                  disabled={!purchasesEnabled || !selectedTarget}
                   onClick={() =>
                     runPurchase(pickerType, selectedTarget, false)
                   }
-                  className="rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                  className="rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground"
                 >
                   Use slot ({pickerQuota.quota - pickerQuota.used} left)
-                </button>
+                </PendingButton>
               ) : (
-                <button
+                <PendingButton
                   type="button"
-                  disabled={actionsDisabled || !selectedTarget}
+                  pending={pending}
+                  pendingLabel="Redirecting to checkout…"
+                  disabled={!purchasesEnabled || !selectedTarget}
                   onClick={() =>
                     runPurchase(pickerType, selectedTarget, true)
                   }
-                  className="rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                  className="rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground"
                 >
                   Purchase
-                </button>
+                </PendingButton>
               )}
               {pickerQuota &&
               pickerQuota.used < pickerQuota.quota &&
               !forceCheckout ? (
-                <button
+                <PendingButton
                   type="button"
-                  disabled={actionsDisabled || !selectedTarget}
+                  pending={pending}
+                  pendingLabel="Redirecting to checkout…"
+                  disabled={!purchasesEnabled || !selectedTarget}
                   onClick={() =>
                     runPurchase(pickerType, selectedTarget, true)
                   }
-                  className="rounded-full border border-firefly/30 px-4 py-2 text-sm text-firefly disabled:opacity-50"
+                  className="rounded-full border border-firefly/30 px-4 py-2 text-sm text-firefly"
                 >
                   Pay instead
-                </button>
+                </PendingButton>
               ) : null}
               <button
                 type="button"

@@ -40,7 +40,8 @@ export function AdminPostActions({ postId }: Props) {
       <div className="flex flex-wrap gap-2">
         <AdminButton
           onClick={() => run(() => publishFeedPost(postId))}
-          disabled={pending}
+          pending={pending}
+          pendingLabel="Publishing…"
         >
           Publish
         </AdminButton>

@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     handleCheckoutCompleted,
     handleInvoicePaid,
     handleSubscriptionUpdated,
+    handleSubscriptionDeleted,
     isWebhookProcessed,
     markWebhookProcessed,
   } = await import("@/lib/stripe/webhooks");
@@ -52,6 +53,11 @@ export async function POST(request: Request) {
     case "customer.subscription.updated":
     case "customer.subscription.created":
       await handleSubscriptionUpdated(
+        event.data.object as Stripe.Subscription
+      );
+      break;
+    case "customer.subscription.deleted":
+      await handleSubscriptionDeleted(
         event.data.object as Stripe.Subscription
       );
       break;

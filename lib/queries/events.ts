@@ -364,7 +364,11 @@ export async function getPendingEvents(locale: Locale): Promise<
 }
 
 export async function getAllAdminEvents(locale: Locale): Promise<
-  (EventListItem & { status: string; source: string })[]
+  (EventListItem & {
+    status: string;
+    source: string;
+    publishedAt: string | null;
+  })[]
 > {
   if (shouldUseMockData()) {
     const pending = getMockPendingEvents(locale);
@@ -375,13 +379,21 @@ export async function getAllAdminEvents(locale: Locale): Promise<
       seen.add(e.id);
       return true;
     });
-    return merged.map((e) => ({
+    const mapped = merged.map((e) => ({
       ...e,
       status: ("status" in e && typeof e.status === "string"
         ? e.status
         : "published") as string,
       source: "business",
+      publishedAt: e.startsAt as string | null,
     }));
+    return mapped.sort((a, b) => {
+      if (a.isPromoted !== b.isPromoted) return a.isPromoted ? -1 : 1;
+      const aPublished = a.publishedAt ?? "";
+      const bPublished = b.publishedAt ?? "";
+      if (aPublished !== bPublished) return bPublished.localeCompare(aPublished);
+      return 0;
+    });
   }
 
   if (!isSupabaseConfigured()) return [];
@@ -390,6 +402,8 @@ export async function getAllAdminEvents(locale: Locale): Promise<
   const { data, error } = await supabase
     .from("events")
     .select("*")
+    .order("is_promoted", { ascending: false })
+    .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -398,6 +412,7 @@ export async function getAllAdminEvents(locale: Locale): Promise<
     ...mapEventToListItem(e, locale),
     status: e.status,
     source: e.source,
+    publishedAt: e.published_at,
   }));
 }
 

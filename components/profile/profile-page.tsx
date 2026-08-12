@@ -9,6 +9,7 @@ import { EventCard } from "@/components/EventCard";
 import { Nav } from "@/components/Nav";
 import { useSession } from "@/components/session-provider";
 import { useSavedEvents } from "@/hooks/use-saved-events";
+import { SignOutButton } from "@/components/ui/sign-out-button";
 import { signOut } from "@/lib/actions/auth";
 import type { NearbyPreferences } from "@/lib/actions/profile";
 import { NearbyEventsSettings } from "@/components/profile/nearby-events-settings";
@@ -82,13 +83,8 @@ export function ProfilePageClient({
                   </Link>
                 ) : null}
                 <form action={signOut.bind(null, locale)}>
-                <button
-                  type="submit"
-                  className="rounded-full border border-foreground/20 px-4 py-2 font-mono text-[11px] uppercase tracking-wider-2 text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground/90"
-                >
-                  Sign out
-                </button>
-              </form>
+                  <SignOutButton className="rounded-full border border-foreground/20 px-4 py-2 font-mono text-[11px] uppercase tracking-wider-2 text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground/90" />
+                </form>
               </div>
             </div>
           ) : (

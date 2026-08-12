@@ -10,6 +10,13 @@ function getResend(): Resend {
   return resend;
 }
 
+export type EmailAttachment = {
+  filename: string;
+  path?: string;
+  content?: Buffer | string;
+  contentType?: string;
+};
+
 type SendEmailParams = {
   to: string;
   subject: string;
@@ -17,6 +24,7 @@ type SendEmailParams = {
   locale?: Locale;
   headers?: Record<string, string>;
   replyTo?: string;
+  attachments?: EmailAttachment[];
 };
 
 export async function sendEmail({
@@ -25,6 +33,7 @@ export async function sendEmail({
   html,
   headers,
   replyTo,
+  attachments,
 }: SendEmailParams): Promise<void> {
   if (!process.env.RESEND_API_KEY) {
     console.warn("[email] RESEND_API_KEY not set, skipping:", subject, to);
@@ -41,6 +50,16 @@ export async function sendEmail({
     html,
     ...(replyTo ? { replyTo } : {}),
     ...(headers ? { headers } : {}),
+    ...(attachments?.length
+      ? {
+          attachments: attachments.map((a) => ({
+            filename: a.filename,
+            ...(a.path ? { path: a.path } : {}),
+            ...(a.content != null ? { content: a.content } : {}),
+            ...(a.contentType ? { contentType: a.contentType } : {}),
+          })),
+        }
+      : {}),
   });
 }
 

@@ -89,7 +89,7 @@ export function AdminPromotionsTable({
           </AdminCard>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-[640px] text-left text-sm">
+            <table className="w-full min-w-[880px] text-left text-sm">
               <thead className="border-b border-border bg-surface-1 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 font-medium">Business</th>
@@ -97,6 +97,8 @@ export function AdminPromotionsTable({
                   <th className="px-4 py-3 font-medium">Renews</th>
                   <th className="px-4 py-3 font-medium">Promoted</th>
                   <th className="px-4 py-3 font-medium">Posts</th>
+                  <th className="px-4 py-3 font-medium">Newsletters</th>
+                  <th className="px-4 py-3 font-medium">Social</th>
                 </tr>
               </thead>
               <tbody>
@@ -109,16 +111,26 @@ export function AdminPromotionsTable({
                       {sub.businessName}
                     </td>
                     <td className="px-4 py-3">
-                      <AdminBadge status="active">{sub.status}</AdminBadge>
+                      <AdminBadge status="active">
+                        {sub.cancelAtPeriodEnd ? "canceling" : sub.status}
+                      </AdminBadge>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {sub.renewsAt}
+                      {sub.cancelAtPeriodEnd
+                        ? `Ends ${sub.renewsAt}`
+                        : sub.renewsAt}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {sub.promotedUsed}/{sub.promotedQuota}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {sub.postsUsed}/{sub.postsQuota}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {sub.newslettersUsed}/{sub.newslettersQuota}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {sub.socialUsed}/{sub.socialQuota}
                     </td>
                   </tr>
                 ))}

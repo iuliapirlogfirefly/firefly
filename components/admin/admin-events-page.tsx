@@ -23,6 +23,7 @@ type PendingEvent = EventListItem & {
 type AdminEvent = EventListItem & {
   status: string;
   source: string;
+  publishedAt: string | null;
 };
 
 type Props = {
@@ -233,7 +234,8 @@ export function AdminEventsPage({
                 <tr>
                   <th className="px-4 py-3 font-medium">Event</th>
                   <th className="px-4 py-3 font-medium">Venue</th>
-                  <th className="px-4 py-3 font-medium">Date</th>
+                  <th className="px-4 py-3 font-medium">Published</th>
+                  <th className="px-4 py-3 font-medium">Event date</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Source</th>
                   <th className="px-4 py-3 font-medium">Actions</th>
@@ -248,6 +250,11 @@ export function AdminEventsPage({
                     <td className="px-4 py-3 font-medium">{event.title}</td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {event.venueName}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {event.publishedAt
+                        ? formatDateBadge(event.publishedAt)
+                        : "—"}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {formatDateBadge(event.startsAt)}

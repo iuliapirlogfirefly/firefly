@@ -71,9 +71,11 @@ export function RejectDialog({
           <AdminButton
             type="submit"
             variant="danger"
-            disabled={pending || reason.trim().length < 10}
+            pending={pending}
+            pendingLabel="Rejecting…"
+            disabled={reason.trim().length < 10}
           >
-            {pending ? "Rejecting..." : "Reject"}
+            Reject
           </AdminButton>
         </div>
       </form>

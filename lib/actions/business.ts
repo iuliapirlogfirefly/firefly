@@ -7,12 +7,23 @@ import { createClient } from "@/lib/supabase/server";
 import { getSession, requireAuth } from "@/lib/auth/session";
 import { success, failure } from "@/lib/utils/action-result";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
-import type { ActionResult, BusinessType } from "@/types";
+import type { ActionResult, BusinessBillingInfo, BusinessType } from "@/types";
 import type { CreateFeedPostInput, UpdateFeedPostInput } from "@/types/events";
+
+const billingInfoSchema = z.object({
+  legalName: z.string().min(2).max(200),
+  cui: z.string().min(2).max(32),
+  billingAddress: z.string().min(2).max(300),
+  billingCity: z.string().min(2).max(100),
+  billingCounty: z.string().min(2).max(100),
+  billingPostalCode: z.string().min(2).max(20),
+  billingCountry: z.string().min(2).max(2).default("RO"),
+});
 
 const registerBusinessSchema = z.object({
   type: z.enum(["venue", "organizer"]),
   name: z.string().min(2),
+  billing: billingInfoSchema,
   venue: z
     .object({
       name: z.string(),
@@ -28,6 +39,7 @@ export async function createBusinessAccountForProfile(
   userId: string,
   type: BusinessType,
   name: string,
+  billing: BusinessBillingInfo,
   venue?: { name: string; address: string; lat: number; lng: number }
 ): Promise<ActionResult<{ id: string }>> {
   const { data: existing } = await supabase
@@ -54,6 +66,13 @@ export async function createBusinessAccountForProfile(
       type,
       name,
       status: "pending",
+      legal_name: billing.legalName,
+      cui: billing.cui,
+      billing_address: billing.billingAddress,
+      billing_city: billing.billingCity,
+      billing_county: billing.billingCounty,
+      billing_postal_code: billing.billingPostalCode,
+      billing_country: billing.billingCountry || "RO",
     })
     .select("id")
     .single();
@@ -77,13 +96,14 @@ export async function createBusinessAccountForProfile(
 export async function registerBusinessAccount(
   type: BusinessType,
   name: string,
+  billing: BusinessBillingInfo,
   venue?: { name: string; address: string; lat: number; lng: number }
 ): Promise<ActionResult<{ id: string }>> {
   const disabled = supabaseDisabled<{ id: string }>();
   if (disabled) return disabled;
 
   try {
-    const parsed = registerBusinessSchema.safeParse({ type, name, venue });
+    const parsed = registerBusinessSchema.safeParse({ type, name, billing, venue });
     if (!parsed.success) return failure(parsed.error.message);
 
     const session = await getSession();
@@ -91,10 +111,59 @@ export async function registerBusinessAccount(
 
     const supabase = await createClient();
 
-    return createBusinessAccountForProfile(supabase, userId, type, name, venue);
+    return createBusinessAccountForProfile(
+      supabase,
+      userId,
+      type,
+      name,
+      billing,
+      venue
+    );
   } catch (e) {
     return failure(
       e instanceof Error ? e.message : "Failed to register business account"
+    );
+  }
+}
+
+export async function updateBusinessBilling(
+  businessAccountId: string,
+  billing: BusinessBillingInfo
+): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    const parsed = billingInfoSchema.safeParse(billing);
+    if (!parsed.success) return failure(parsed.error.message);
+
+    const isAdmin = session.role === "admin";
+    const isOwner = session.businessAccountId === businessAccountId;
+    if (!isAdmin && !isOwner) {
+      return failure("Not authorized");
+    }
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("business_accounts")
+      .update({
+        legal_name: parsed.data.legalName,
+        cui: parsed.data.cui,
+        billing_address: parsed.data.billingAddress,
+        billing_city: parsed.data.billingCity,
+        billing_county: parsed.data.billingCounty,
+        billing_postal_code: parsed.data.billingPostalCode,
+        billing_country: parsed.data.billingCountry || "RO",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", businessAccountId);
+
+    if (error) return failure(error.message);
+    return success(undefined);
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to update billing info"
     );
   }
 }
@@ -184,7 +253,7 @@ export async function updateFeedPost(
 }
 
 export async function getUploadUrl(
-  bucket: "event-images" | "feed-media",
+  bucket: "event-images" | "feed-media" | "newsletter-media",
   fileName: string
 ): Promise<ActionResult<{ signedUrl: string; token: string; path: string }>> {
   const disabled = supabaseDisabled<{
@@ -198,6 +267,10 @@ export async function getUploadUrl(
     const session = await getSession();
     if (!session.businessAccountId && session.role !== "admin") {
       return failure("Business account required");
+    }
+
+    if (bucket === "newsletter-media" && session.role !== "admin") {
+      return failure("Admin access required");
     }
 
     const supabase = await createClient();
@@ -216,7 +289,7 @@ export async function getUploadUrl(
 }
 
 export async function getPublicImageUrl(
-  bucket: "event-images" | "feed-media",
+  bucket: "event-images" | "feed-media" | "newsletter-media",
   path: string
 ): Promise<string> {
   const disabled = supabaseDisabled();

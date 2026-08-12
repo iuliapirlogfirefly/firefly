@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useSavedEvents } from "@/hooks/use-saved-events";
 import { Link } from "@/i18n/navigation";
+import { Spinner } from "@/components/ui/spinner";
 import { landingImages } from "@/lib/landing/images";
 import type { EventListItem } from "@/types/events";
 
@@ -32,7 +33,7 @@ export function EventCard({
   showSave = true,
 }: Props) {
   const image = event.coverImageUrl ?? landingImages.editorialCrowd;
-  const { has, toggle } = useSavedEvents();
+  const { has, toggle, pending } = useSavedEvents();
   const saved = has(event.id);
 
   return (
@@ -93,20 +94,26 @@ export function EventCard({
             clickEvent.stopPropagation();
             toggle(event.id);
           }}
-          className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-firefly/40 bg-background/60 text-firefly backdrop-blur-sm transition-colors hover:bg-firefly/10"
+          disabled={pending}
+          aria-busy={pending || undefined}
+          className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-firefly/40 bg-background/60 text-firefly backdrop-blur-sm transition-colors hover:bg-firefly/10 disabled:opacity-50"
           aria-label={saved ? "Unsave event" : "Save event"}
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill={saved ? "#FEF7A3" : "none"}
-            stroke="currentColor"
-            strokeWidth="2"
-            aria-hidden
-          >
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-          </svg>
+          {pending ? (
+            <Spinner className="h-4 w-4" />
+          ) : (
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill={saved ? "#FEF7A3" : "none"}
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden
+            >
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+          )}
         </button>
       ) : null}
     </div>

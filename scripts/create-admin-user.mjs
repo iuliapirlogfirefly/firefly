@@ -45,18 +45,22 @@ const supabase = createClient(url, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+async function findUserIdByEmail(targetEmail) {
+  // Prefer generateLink over listUsers — listUsers is paginated and can miss
+  // users; recovery link lookup returns the existing user id without sending mail.
+  const { data, error } = await supabase.auth.admin.generateLink({
+    type: "recovery",
+    email: targetEmail,
+  });
+  if (error) return null;
+  return data?.user?.id ?? null;
+}
+
 async function main() {
-  const { data: listData } = await supabase.auth.admin.listUsers();
-  const existing = listData?.users?.find(
-    (u) => u.email?.toLowerCase() === email.toLowerCase()
-  );
+  let userId = await findUserIdByEmail(email);
+  let created = false;
 
-  let userId;
-
-  if (existing) {
-    userId = existing.id;
-    console.log(`User already exists: ${email} (${userId})`);
-  } else {
+  if (!userId) {
     const { data, error } = await supabase.auth.admin.createUser({
       email,
       password,
@@ -65,12 +69,30 @@ async function main() {
     });
 
     if (error) {
-      console.error("Failed to create user:", error.message);
+      if (/already.*registered/i.test(error.message)) {
+        userId = await findUserIdByEmail(email);
+      }
+      if (!userId) {
+        console.error("Failed to create user:", error.message);
+        process.exit(1);
+      }
+    } else {
+      userId = data.user.id;
+      created = true;
+      console.log(`Created user: ${email} (${userId})`);
+    }
+  }
+
+  if (!created) {
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
+      userId,
+      { password, email_confirm: true }
+    );
+    if (updateError) {
+      console.error("Failed to reset password:", updateError.message);
       process.exit(1);
     }
-
-    userId = data.user.id;
-    console.log(`Created user: ${email} (${userId})`);
+    console.log(`User already exists — password reset: ${email} (${userId})`);
   }
 
   const { error: profileError } = await supabase
@@ -85,9 +107,11 @@ async function main() {
 
   console.log("\nAdmin user ready.");
   console.log(`  Email:    ${email}`);
-  if (!existing) console.log(`  Password: ${password}`);
+  console.log(`  Password: ${password}`);
   console.log(`  Role:     admin`);
-  console.log("\nSign in at /en/login then open /en/admin");
+  console.log(
+    "\nSign in at /en/login with account type Person, then open /en/admin"
+  );
 }
 
 main().catch((err) => {

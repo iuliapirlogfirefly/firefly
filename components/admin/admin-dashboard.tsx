@@ -17,6 +17,13 @@ type Props = {
   unreadMessages: UnreadNotification[];
 };
 
+function formatMoney(cents: number, currency: string) {
+  return new Intl.NumberFormat("en", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+  }).format(cents / 100);
+}
+
 export function AdminDashboard({
   analytics,
   counts,
@@ -118,8 +125,16 @@ export function AdminDashboard({
       ) : null}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <AdminStatCard label="Total users" value={analytics.totalUsers} />
-        <AdminStatCard label="Total events" value={analytics.totalEvents} />
+        <AdminStatCard
+          label="Total users"
+          value={analytics.totalUsers}
+          delta={analytics.deltas.totalUsers}
+        />
+        <AdminStatCard
+          label="Total events"
+          value={analytics.totalEvents}
+          delta={analytics.deltas.totalEvents}
+        />
         <AdminStatCard
           label="Published"
           value={analytics.publishedEvents}
@@ -132,7 +147,11 @@ export function AdminDashboard({
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <AdminStatCard label="Businesses" value={analytics.totalBusinesses} />
+        <AdminStatCard
+          label="Businesses"
+          value={analytics.totalBusinesses}
+          delta={analytics.deltas.totalBusinesses}
+        />
         <AdminStatCard label="Venues" value={analytics.totalVenues} />
         <AdminStatCard label="Organizers" value={analytics.totalOrganizers} />
         <AdminStatCard
@@ -144,10 +163,11 @@ export function AdminDashboard({
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <AdminStatCard
           label="Total revenue"
-          value={new Intl.NumberFormat("en", {
-            style: "currency",
-            currency: analytics.currency.toUpperCase(),
-          }).format(analytics.totalRevenueCents / 100)}
+          value={formatMoney(
+            analytics.totalRevenueCents,
+            analytics.currency
+          )}
+          delta={analytics.deltas.totalRevenueCents}
           hint="Promotions + subscriptions"
         />
         <AdminStatCard
@@ -156,15 +176,58 @@ export function AdminDashboard({
         />
       </div>
 
+      {analytics.revenueBreakdown.length > 0 ? (
+        <AdminCard className="mt-4 p-5">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Revenue by type
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {analytics.revenueBreakdown.map((item) => (
+              <li
+                key={item.key}
+                className="flex items-center justify-between text-sm"
+              >
+                <span className="text-muted-foreground">{item.label}</span>
+                <span className="font-medium text-foreground">
+                  {formatMoney(item.amountCents, analytics.currency)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </AdminCard>
+      ) : null}
+
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <AdminStatCard label="Views" value={analytics.analytics.views} />
-        <AdminStatCard label="Saves" value={analytics.analytics.saves} />
-        <AdminStatCard label="Clicks" value={analytics.analytics.clicks} />
+        <AdminStatCard
+          label="Views"
+          value={analytics.analytics.views}
+          delta={analytics.deltas.views}
+          href="/admin/analytics?metric=views"
+        />
+        <AdminStatCard
+          label="Saves"
+          value={analytics.analytics.saves}
+          delta={analytics.deltas.saves}
+          href="/admin/analytics?metric=saves"
+        />
+        <AdminStatCard
+          label="Clicks"
+          value={analytics.analytics.clicks}
+          delta={analytics.deltas.clicks}
+          href="/admin/analytics?metric=clicks"
+        />
         <AdminStatCard
           label="Ticket clicks"
           value={analytics.analytics.ticketClicks}
+          delta={analytics.deltas.ticketClicks}
+          href="/admin/analytics?metric=ticketClicks"
         />
-        <AdminStatCard label="Shares" value={analytics.analytics.shares} />
+        <AdminStatCard
+          label="Shares"
+          value={analytics.analytics.shares}
+          delta={analytics.deltas.shares}
+          href="/admin/analytics?metric=shares"
+        />
       </div>
     </div>
   );

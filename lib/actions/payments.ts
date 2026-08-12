@@ -331,3 +331,64 @@ export async function purchasePromotion(
     );
   }
 }
+
+export async function cancelSubscription(
+  businessAccountId?: string
+): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    const isAdmin = session.role === "admin";
+    const targetId = isAdmin
+      ? businessAccountId
+      : session.businessAccountId;
+
+    if (!targetId) {
+      return failure("Business account required");
+    }
+
+    if (!isAdmin && session.businessAccountId !== targetId) {
+      return failure("Not authorized");
+    }
+
+    if (isAdmin && !businessAccountId) {
+      return failure("Business account required");
+    }
+
+    const admin = createAdminClient();
+    const { data: sub, error } = await admin
+      .from("subscriptions")
+      .select("id, stripe_subscription_id, status, cancel_at_period_end")
+      .eq("business_account_id", targetId)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (error) return failure(error.message);
+    if (!sub) return failure("No active subscription");
+    if (sub.cancel_at_period_end) {
+      return failure("Subscription is already set to cancel");
+    }
+
+    const stripe = getStripe();
+    await stripe.subscriptions.update(sub.stripe_subscription_id, {
+      cancel_at_period_end: true,
+    });
+
+    const { error: updateError } = await admin
+      .from("subscriptions")
+      .update({
+        cancel_at_period_end: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", sub.id);
+
+    if (updateError) return failure(updateError.message);
+    return success(undefined);
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to cancel subscription"
+    );
+  }
+}

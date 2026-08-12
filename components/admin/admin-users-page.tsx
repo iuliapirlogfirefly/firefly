@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Link } from "@/i18n/navigation";
 import { AdminUserActions } from "@/components/admin/admin-user-actions";
 import { AdminBadge } from "@/components/admin/ui/admin-badge";
 import { AdminCard } from "@/components/admin/ui/admin-card";
@@ -128,16 +129,24 @@ export function AdminUsersPage({ users }: Props) {
                 <td className="px-4 py-3 text-muted-foreground">
                   {user.joinedAt}
                 </td>
-                {tab === "businesses" || tab === "users" ? (
-                  <td className="px-4 py-3">
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {tab === "businesses" && user.businessAccountId ? (
+                      <Link
+                        href={`/admin/users/${user.businessAccountId}`}
+                        className="inline-flex items-center justify-center rounded-lg border border-border bg-transparent px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-surface-2"
+                      >
+                        View details
+                      </Link>
+                    ) : null}
                     <AdminUserActions
                       businessAccountId={user.businessAccountId}
                       userId={user.id}
                       status={user.status}
                       isBusiness={isBusinessUser(user)}
                     />
-                  </td>
-                ) : null}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

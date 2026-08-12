@@ -7,7 +7,7 @@ import { getUploadUrl } from "@/lib/actions/business";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
-type Bucket = "event-images" | "feed-media";
+type Bucket = "event-images" | "feed-media" | "newsletter-media";
 
 async function uploadFile(bucket: Bucket, file: File): Promise<string> {
   const result = await getUploadUrl(bucket, file.name);

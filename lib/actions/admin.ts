@@ -283,7 +283,8 @@ export async function rejectFeedPost(
 
 export async function sendNewsletter(
   subject: string,
-  htmlContent: string
+  htmlContent: string,
+  pdfUrls: string[] = []
 ): Promise<ActionResult<{ sent: number }>> {
   const disabled = supabaseDisabled<{ sent: number }>();
   if (disabled) return disabled;
@@ -291,6 +292,10 @@ export async function sendNewsletter(
   try {
     const session = await getSession();
     requireRole(session, ["admin"]);
+
+    if (pdfUrls.length > 3) {
+      return failure("Maximum 3 PDF attachments allowed");
+    }
 
     const supabase = await createClient();
     const admin = createAdminClient();
@@ -300,6 +305,16 @@ export async function sendNewsletter(
       .eq("newsletter_opt_in", true);
 
     if (error) return failure(error.message);
+
+    const attachments = pdfUrls.map((url, index) => {
+      const filename =
+        url.split("/").pop()?.split("?")[0] || `newsletter-${index + 1}.pdf`;
+      return {
+        filename: filename.endsWith(".pdf") ? filename : `${filename}.pdf`,
+        path: url,
+        contentType: "application/pdf",
+      };
+    });
 
     let sent = 0;
     for (const subscriber of subscribers ?? []) {
@@ -325,6 +340,7 @@ export async function sendNewsletter(
           "List-Unsubscribe": `<${unsubscribeUrl}>`,
           "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
         },
+        attachments,
       });
       sent++;
     }

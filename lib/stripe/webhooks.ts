@@ -182,6 +182,25 @@ export async function handleSubscriptionUpdated(
     (item?.current_period_end ?? Math.floor(Date.now() / 1000)) * 1000
   );
 
+  const { data: existing } = await admin
+    .from("subscriptions")
+    .select("current_period_start")
+    .eq("business_account_id", businessAccountId)
+    .maybeSingle();
+
+  const periodChanged =
+    !existing?.current_period_start ||
+    new Date(existing.current_period_start).getTime() !== periodStart.getTime();
+
+  const usageReset = periodChanged
+    ? {
+        used_promoted_events: 0,
+        used_feed_posts: 0,
+        used_newsletters: 0,
+        used_social_posts: 0,
+      }
+    : {};
+
   await admin.from("subscriptions").upsert(
     {
       business_account_id: businessAccountId,
@@ -190,14 +209,39 @@ export async function handleSubscriptionUpdated(
       status: subscription.status,
       current_period_start: periodStart.toISOString(),
       current_period_end: periodEnd.toISOString(),
+      cancel_at_period_end: subscription.cancel_at_period_end ?? false,
       ...SUBSCRIPTION_QUOTAS,
-      used_promoted_events: 0,
-      used_feed_posts: 0,
-      used_newsletters: 0,
-      used_social_posts: 0,
+      ...usageReset,
     },
     { onConflict: "business_account_id" }
   );
+}
+
+export async function handleSubscriptionDeleted(
+  subscription: Stripe.Subscription
+): Promise<void> {
+  const admin = createAdminClient();
+  const businessAccountId = subscription.metadata.business_account_id;
+  if (!businessAccountId) {
+    await admin
+      .from("subscriptions")
+      .update({
+        status: "canceled",
+        cancel_at_period_end: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("stripe_subscription_id", subscription.id);
+    return;
+  }
+
+  await admin
+    .from("subscriptions")
+    .update({
+      status: "canceled",
+      cancel_at_period_end: false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("business_account_id", businessAccountId);
 }
 
 export async function isWebhookProcessed(

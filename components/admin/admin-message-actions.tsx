@@ -59,7 +59,8 @@ export function AdminMessageActions({
             onClick={() =>
               run(() => markContactMessageRead(messageId), "Marked as read")
             }
-            disabled={pending}
+            pending={pending}
+            pendingLabel="Marking…"
           >
             Mark read
           </AdminButton>
@@ -69,7 +70,8 @@ export function AdminMessageActions({
           onClick={() =>
             run(() => archiveContactMessage(messageId), "Archived")
           }
-          disabled={pending}
+          pending={pending}
+          pendingLabel="Archiving…"
         >
           Archive
         </AdminButton>

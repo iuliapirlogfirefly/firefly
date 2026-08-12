@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
@@ -43,6 +43,18 @@ const DISTANCE_OPTIONS = [
   [10, "10 km"],
 ] as const;
 
+const CLEARED_FILTERS: Partial<EventFilters> = {
+  genre: undefined,
+  eventType: undefined,
+  datePreset: undefined,
+  customDate: undefined,
+  search: undefined,
+  promotedOnly: undefined,
+  distanceKm: undefined,
+  lat: undefined,
+  lng: undefined,
+};
+
 function pillClass(active: boolean) {
   return active
     ? "border-firefly bg-firefly text-primary-foreground firefly-glow"
@@ -76,11 +88,233 @@ function requestLocation(): Promise<{ lat: number; lng: number }> {
   });
 }
 
+function FeedFilters({
+  locale,
+  filters,
+  searchDraft,
+  setSearchDraft,
+  applyFilters,
+  setDistance,
+  distanceLabel,
+  filteredCount,
+  resetFilters,
+  onClose,
+  eventTypeId,
+}: {
+  locale: Locale;
+  filters: EventFilters;
+  searchDraft: string;
+  setSearchDraft: (value: string) => void;
+  applyFilters: (patch: Partial<EventFilters>) => void;
+  setDistance: (distanceKm: number | null) => void;
+  distanceLabel: string | null;
+  filteredCount: number;
+  resetFilters: () => void;
+  onClose?: () => void;
+  eventTypeId: string;
+}) {
+  return (
+    <div className="flex flex-col">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="font-mono text-xs uppercase tracking-wider-2 text-firefly">
+          ◦ {locale === "ro" ? "Ajustează noaptea" : "Tune the night"}
+        </div>
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-firefly/20 transition-colors hover:border-firefly/50"
+            aria-label="Close filters"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
+      </div>
+
+      <div className="relative mb-5">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
+        <input
+          type="search"
+          value={searchDraft}
+          onChange={(event) => setSearchDraft(event.target.value)}
+          placeholder={
+            locale === "ro"
+              ? "Caută locații, petreceri…"
+              : "Search venues, parties…"
+          }
+          className="w-full rounded-xl border border-firefly/10 bg-surface-2/60 py-3 pl-10 pr-3 text-sm transition-colors placeholder:text-foreground/40 focus:border-firefly/50 focus:outline-none"
+        />
+      </div>
+
+      <div className="mb-5">
+        <div className="mb-2 font-mono text-xs uppercase tracking-wider text-foreground/50">
+          {locale === "ro" ? "Când" : "When"}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              applyFilters({ datePreset: undefined, customDate: undefined })
+            }
+            className={`rounded-full border px-3 py-1.5 text-xs transition-all ${pillClass(!filters.datePreset)}`}
+          >
+            {locale === "ro" ? "Oricând" : "Any time"}
+          </button>
+          {DATE_PRESETS.map(([preset, label]) => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => applyFilters({ datePreset: preset })}
+              className={`rounded-full border px-3 py-1.5 text-xs transition-all ${pillClass(filters.datePreset === preset)}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {filters.datePreset === "custom" ? (
+          <input
+            type="date"
+            value={filters.customDate ?? ""}
+            onChange={(event) =>
+              applyFilters({
+                datePreset: "custom",
+                customDate: event.target.value || undefined,
+              })
+            }
+            className="mt-3 rounded-xl border border-firefly/10 bg-surface-2/60 px-3 py-2 text-sm focus:border-firefly/50 focus:outline-none"
+          />
+        ) : null}
+      </div>
+
+      <div className="mb-5">
+        <div className="mb-2 font-mono text-xs uppercase tracking-wider text-foreground/50">
+          Genre
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => applyFilters({ genre: undefined })}
+            className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-all ${
+              !filters.genre
+                ? "border-firefly/60 bg-firefly/10 text-firefly"
+                : "border-firefly/10 bg-surface-2/40 text-foreground/70 hover:border-firefly/30"
+            }`}
+          >
+            All
+          </button>
+          {GENRES.map((genre) => {
+            const on = filters.genre === genre;
+
+            return (
+              <button
+                key={genre}
+                type="button"
+                onClick={() => applyFilters({ genre })}
+                className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-all ${
+                  on
+                    ? "border-firefly/60 bg-firefly/10 text-firefly"
+                    : "border-firefly/10 bg-surface-2/40 text-foreground/70 hover:border-firefly/30"
+                }`}
+              >
+                {formatGenreLabel(genre)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mb-5">
+        <label
+          htmlFor={eventTypeId}
+          className="mb-2 block font-mono text-xs uppercase tracking-wider text-foreground/50"
+        >
+          {locale === "ro" ? "Tip eveniment" : "Event type"}
+        </label>
+        <select
+          id={eventTypeId}
+          value={filters.eventType ?? ""}
+          onChange={(event) =>
+            applyFilters({
+              eventType: event.target.value
+                ? (event.target.value as EventType)
+                : undefined,
+            })
+          }
+          className="w-full rounded-xl border border-firefly/10 bg-surface-2/60 px-3 py-2 text-sm focus:border-firefly/50 focus:outline-none"
+        >
+          <option value="">
+            {locale === "ro" ? "Toate tipurile" : "All types"}
+          </option>
+          {EVENT_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {formatEventTypeLabel(type)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="mb-5">
+        <div className="mb-2 font-mono text-xs uppercase tracking-wider text-foreground/50">
+          {locale === "ro" ? "Distanță" : "Distance"}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {DISTANCE_OPTIONS.map(([km, label]) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => void setDistance(km)}
+              className={`rounded-full border px-3 py-1.5 text-xs transition-all ${pillClass(
+                km == null
+                  ? filters.distanceKm == null
+                  : filters.distanceKm === km
+              )}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {distanceLabel ? (
+          <p className="mt-1.5 text-xs text-foreground/50">{distanceLabel}</p>
+        ) : null}
+      </div>
+
+      <div className="mb-5">
+        <button
+          type="button"
+          onClick={() =>
+            applyFilters({
+              promotedOnly: filters.promotedOnly ? undefined : true,
+            })
+          }
+          className={`rounded-full border px-4 py-2 text-sm transition-all ${pillClass(!!filters.promotedOnly)}`}
+        >
+          {locale === "ro" ? "Doar promovate" : "Promoted only"}
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between border-t border-firefly/10 pt-4">
+        <div className="text-sm text-foreground/60">
+          <span className="font-medium text-firefly">{filteredCount}</span>{" "}
+          {locale === "ro" ? "evenimente strălucesc" : "events glowing"}
+        </div>
+        <button
+          type="button"
+          onClick={resetFilters}
+          className="font-mono text-xs uppercase tracking-wider-2 text-foreground/50 transition-colors hover:text-firefly"
+        >
+          Reset
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function FeedPageClient({ events, weekEvents, locale, filters }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [searchDraft, setSearchDraft] = useState(filters.search ?? "");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     setSearchDraft(filters.search ?? "");
@@ -129,6 +363,11 @@ export function FeedPageClient({ events, weekEvents, locale, filters }: Props) {
     [applyFilters]
   );
 
+  const resetFilters = useCallback(() => {
+    setSearchDraft("");
+    applyFilters(CLEARED_FILTERS);
+  }, [applyFilters]);
+
   const hasFilters = hasActiveEventFilters(filters);
   const showWeekSection = !filters.datePreset && weekEvents.length > 0;
   const weekEventIds = new Set(weekEvents.map((event) => event.id));
@@ -145,6 +384,18 @@ export function FeedPageClient({ events, weekEvents, locale, filters }: Props) {
           ? "Lângă tine"
           : "Near you"
       : null;
+
+  const filterProps = {
+    locale,
+    filters,
+    searchDraft,
+    setSearchDraft,
+    applyFilters,
+    setDistance,
+    distanceLabel,
+    filteredCount: events.length,
+    resetFilters,
+  };
 
   return (
     <main data-route="feed" className="relative min-h-screen pb-24 md:pb-12">
@@ -165,151 +416,44 @@ export function FeedPageClient({ events, weekEvents, locale, filters }: Props) {
             : "Every party glowing on the map — tap for details."}
         </p>
 
-        <div className="relative mt-10">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
-          <input
-            type="search"
-            value={searchDraft}
-            onChange={(event) => setSearchDraft(event.target.value)}
-            placeholder={
-              locale === "ro"
-                ? "Caută locații, petreceri…"
-                : "Search venues, parties…"
-            }
-            className="w-full rounded-xl border border-firefly/10 bg-surface-2/60 py-3 pl-10 pr-3 text-sm transition-colors placeholder:text-foreground/40 focus:border-firefly/50 focus:outline-none"
-          />
-        </div>
-
-        <div className="mt-6">
-          <div className="mb-2 font-mono text-xs uppercase tracking-wider text-foreground/50">
-            {locale === "ro" ? "Când" : "When"}
-          </div>
-          <div className="-mx-6 flex gap-2 overflow-x-auto px-6 pb-2 scrollbar-none">
+        {/* Mobile: Filters pill + toggle panel */}
+        <div className="mt-10 lg:hidden">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() =>
-                applyFilters({ datePreset: undefined, customDate: undefined })
-              }
-              className={`shrink-0 rounded-full border px-4 py-2 text-sm transition-all ${pillClass(!filters.datePreset)}`}
+              onClick={() => setFiltersOpen((open) => !open)}
+              className="glass flex items-center gap-2 rounded-full px-4 py-2.5 text-sm transition-colors hover:bg-surface-1/80"
+              aria-expanded={filtersOpen}
+              aria-label={filtersOpen ? "Hide filters" : "Show filters"}
             >
-              {locale === "ro" ? "Oricând" : "Any time"}
+              <Menu className="h-4 w-4 text-firefly" />
+              <span className="font-mono text-[11px] uppercase tracking-wider-2">
+                Filters
+              </span>
+              {hasFilters ? (
+                <span className="h-2 w-2 rounded-full bg-firefly" />
+              ) : null}
             </button>
-            {DATE_PRESETS.map(([preset, label]) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => applyFilters({ datePreset: preset })}
-                className={`shrink-0 rounded-full border px-4 py-2 text-sm transition-all ${pillClass(filters.datePreset === preset)}`}
-              >
-                {label}
-              </button>
-            ))}
+            <span className="font-mono text-[10px] uppercase tracking-wider-2 text-foreground/50">
+              <span className="font-medium text-firefly">{events.length}</span>
+              <span className="ml-1.5">glowing</span>
+            </span>
           </div>
-          {filters.datePreset === "custom" ? (
-            <input
-              type="date"
-              value={filters.customDate ?? ""}
-              onChange={(event) =>
-                applyFilters({
-                  datePreset: "custom",
-                  customDate: event.target.value || undefined,
-                })
-              }
-              className="mt-3 rounded-xl border border-firefly/10 bg-surface-2/60 px-3 py-2 text-sm focus:border-firefly/50 focus:outline-none"
-            />
+
+          {filtersOpen ? (
+            <aside className="glass mt-3 rounded-2xl p-4 animate-fade-up">
+              <FeedFilters
+                {...filterProps}
+                eventTypeId="feed-event-type-mobile"
+                onClose={() => setFiltersOpen(false)}
+              />
+            </aside>
           ) : null}
         </div>
 
-        <div className="mt-6">
-          <div className="mb-2 font-mono text-xs uppercase tracking-wider text-foreground/50">
-            Genre
-          </div>
-          <div className="-mx-6 flex gap-2 overflow-x-auto px-6 pb-2 scrollbar-none">
-            <button
-              type="button"
-              onClick={() => applyFilters({ genre: undefined })}
-              className={`shrink-0 rounded-full border px-4 py-2 text-sm transition-all ${pillClass(!filters.genre)}`}
-            >
-              All
-            </button>
-            {GENRES.map((genre) => (
-              <button
-                key={genre}
-                type="button"
-                onClick={() => applyFilters({ genre })}
-                className={`shrink-0 rounded-full border px-4 py-2 text-sm transition-all ${pillClass(filters.genre === genre)}`}
-              >
-                {formatGenreLabel(genre)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-6 flex flex-wrap items-end gap-4">
-          <div>
-            <label
-              htmlFor="feed-event-type"
-              className="mb-2 block font-mono text-xs uppercase tracking-wider text-foreground/50"
-            >
-              {locale === "ro" ? "Tip eveniment" : "Event type"}
-            </label>
-            <select
-              id="feed-event-type"
-              value={filters.eventType ?? ""}
-              onChange={(event) =>
-                applyFilters({
-                  eventType: event.target.value
-                    ? (event.target.value as EventType)
-                    : undefined,
-                })
-              }
-              className="rounded-xl border border-firefly/10 bg-surface-2/60 px-3 py-2 text-sm focus:border-firefly/50 focus:outline-none"
-            >
-              <option value="">
-                {locale === "ro" ? "Toate tipurile" : "All types"}
-              </option>
-              {EVENT_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {formatEventTypeLabel(type)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <div className="mb-2 font-mono text-xs uppercase tracking-wider text-foreground/50">
-              {locale === "ro" ? "Distanță" : "Distance"}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {DISTANCE_OPTIONS.map(([km, label]) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => void setDistance(km)}
-                  className={`rounded-full border px-3 py-1.5 text-xs transition-all ${pillClass(
-                    km == null
-                      ? filters.distanceKm == null
-                      : filters.distanceKm === km
-                  )}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {distanceLabel ? (
-              <p className="mt-1.5 text-xs text-foreground/50">{distanceLabel}</p>
-            ) : null}
-          </div>
-
-          <button
-            type="button"
-            onClick={() =>
-              applyFilters({ promotedOnly: filters.promotedOnly ? undefined : true })
-            }
-            className={`rounded-full border px-4 py-2 text-sm transition-all ${pillClass(!!filters.promotedOnly)}`}
-          >
-            {locale === "ro" ? "Doar promovate" : "Promoted only"}
-          </button>
+        {/* Desktop: always-visible filters */}
+        <div className="mt-10 hidden lg:block">
+          <FeedFilters {...filterProps} eventTypeId="feed-event-type-desktop" />
         </div>
 
         {showWeekSection ? (

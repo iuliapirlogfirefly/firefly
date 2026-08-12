@@ -12,6 +12,16 @@ export type AccountType = "person" | "business";
 
 export type BusinessType = "venue" | "organizer";
 
+export type BusinessBillingInfo = {
+  legalName: string;
+  cui: string;
+  billingAddress: string;
+  billingCity: string;
+  billingCounty: string;
+  billingPostalCode: string;
+  billingCountry: string;
+};
+
 export type BusinessStatus =
   | "pending"
   | "approved"

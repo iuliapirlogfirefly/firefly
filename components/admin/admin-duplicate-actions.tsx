@@ -47,7 +47,8 @@ export function AdminDuplicateActions({ group }: Props) {
         <AdminButton
           size="sm"
           onClick={() => run(() => mergeEvents(first.id, second.id))}
-          disabled={pending}
+          pending={pending}
+          pendingLabel="Merging…"
         >
           Keep &ldquo;{first.title}&rdquo;
         </AdminButton>
@@ -55,7 +56,8 @@ export function AdminDuplicateActions({ group }: Props) {
           size="sm"
           variant="secondary"
           onClick={() => run(() => mergeEvents(second.id, first.id))}
-          disabled={pending}
+          pending={pending}
+          pendingLabel="Merging…"
         >
           Keep &ldquo;{second.title}&rdquo;
         </AdminButton>
@@ -65,7 +67,8 @@ export function AdminDuplicateActions({ group }: Props) {
           onClick={() =>
             run(() => dismissDuplicatePair(first.id, second.id))
           }
-          disabled={pending}
+          pending={pending}
+          pendingLabel="Dismissing…"
         >
           Not duplicates
         </AdminButton>

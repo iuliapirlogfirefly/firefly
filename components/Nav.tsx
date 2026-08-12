@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { Heart, LayoutDashboard, User } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useSession } from "@/components/session-provider";
+import { SignOutButton } from "@/components/ui/sign-out-button";
 import { signOut } from "@/lib/actions/auth";
 
 const navLinks = [
@@ -128,13 +129,10 @@ export function Nav() {
                       </Link>
                     ) : null}
                     <form action={signOut.bind(null, locale)}>
-                      <button
-                        type="submit"
+                      <SignOutButton
                         role="menuitem"
                         className="w-full px-4 py-2.5 text-left font-mono text-[11px] uppercase tracking-wider-2 text-foreground/70 transition-colors hover:bg-firefly/10 hover:text-firefly"
-                      >
-                        Sign out
-                      </button>
+                      />
                     </form>
                   </div>
                 ) : null}

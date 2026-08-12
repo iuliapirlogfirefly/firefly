@@ -216,7 +216,11 @@ export async function approveEvent(id: string): Promise<ActionResult> {
     const supabase = await createClient();
     const { data: event, error } = await supabase
       .from("events")
-      .update({ status: "published", rejection_reason: null })
+      .update({
+        status: "published",
+        rejection_reason: null,
+        published_at: new Date().toISOString(),
+      })
       .eq("id", id)
       .eq("status", "pending")
       .select("translations, business_account_id")
@@ -382,7 +386,11 @@ export async function restoreEvent(id: string): Promise<ActionResult> {
     const supabase = await createClient();
     const { error } = await supabase
       .from("events")
-      .update({ status: "published", rejection_reason: null })
+      .update({
+        status: "published",
+        rejection_reason: null,
+        published_at: new Date().toISOString(),
+      })
       .eq("id", id)
       .eq("status", "archived");
 
@@ -433,6 +441,7 @@ export async function createAdminEvent(
         lng: data.lng,
         address: data.address ?? null,
         venue_name: data.venueName ?? null,
+        published_at: new Date().toISOString(),
       })
       .select("id")
       .single();

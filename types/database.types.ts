@@ -67,6 +67,13 @@ export type Database = {
           type: string;
           status: string;
           name: string;
+          legal_name: string | null;
+          cui: string | null;
+          billing_address: string | null;
+          billing_city: string | null;
+          billing_county: string | null;
+          billing_postal_code: string | null;
+          billing_country: string;
           rejection_reason: string | null;
           approved_at: string | null;
           created_at: string;
@@ -78,6 +85,13 @@ export type Database = {
           type: string;
           status?: string;
           name: string;
+          legal_name?: string | null;
+          cui?: string | null;
+          billing_address?: string | null;
+          billing_city?: string | null;
+          billing_county?: string | null;
+          billing_postal_code?: string | null;
+          billing_country?: string;
           rejection_reason?: string | null;
           approved_at?: string | null;
           created_at?: string;
@@ -89,6 +103,13 @@ export type Database = {
           type?: string;
           status?: string;
           name?: string;
+          legal_name?: string | null;
+          cui?: string | null;
+          billing_address?: string | null;
+          billing_city?: string | null;
+          billing_county?: string | null;
+          billing_postal_code?: string | null;
+          billing_country?: string;
           rejection_reason?: string | null;
           approved_at?: string | null;
           created_at?: string;
@@ -157,6 +178,7 @@ export type Database = {
           address: string | null;
           venue_name: string | null;
           search_vector: unknown;
+          published_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -183,6 +205,7 @@ export type Database = {
           lng: number;
           address?: string | null;
           venue_name?: string | null;
+          published_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -209,6 +232,7 @@ export type Database = {
           lng?: number;
           address?: string | null;
           venue_name?: string | null;
+          published_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -397,6 +421,7 @@ export type Database = {
           status: string;
           current_period_start: string;
           current_period_end: string;
+          cancel_at_period_end: boolean;
           quota_promoted_events: number;
           quota_feed_posts: number;
           quota_newsletters: number;
@@ -416,6 +441,7 @@ export type Database = {
           status?: string;
           current_period_start: string;
           current_period_end: string;
+          cancel_at_period_end?: boolean;
           quota_promoted_events?: number;
           quota_feed_posts?: number;
           quota_newsletters?: number;
@@ -435,6 +461,7 @@ export type Database = {
           status?: string;
           current_period_start?: string;
           current_period_end?: string;
+          cancel_at_period_end?: boolean;
           quota_promoted_events?: number;
           quota_feed_posts?: number;
           quota_newsletters?: number;

@@ -64,7 +64,8 @@ export function AdminEventActions({ eventId, status, compact = false }: Props) {
             <AdminButton
               size={compact ? "sm" : "md"}
               onClick={() => run(() => approveEvent(eventId))}
-              disabled={pending}
+              pending={pending}
+              pendingLabel="Approving…"
             >
               Approve
             </AdminButton>
@@ -96,7 +97,8 @@ export function AdminEventActions({ eventId, status, compact = false }: Props) {
             <AdminButton
               size={compact ? "sm" : "md"}
               onClick={() => run(() => restoreEvent(eventId))}
-              disabled={pending}
+              pending={pending}
+              pendingLabel="Restoring…"
             >
               Restore
             </AdminButton>

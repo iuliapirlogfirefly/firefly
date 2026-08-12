@@ -18,11 +18,8 @@ import {
 } from "@/components/auth/account-type-switch";
 import { AuthField } from "@/components/auth/auth-field";
 import { FireflyField } from "@/components/FireflyField";
-import {
-  signInWithEmail,
-  signInWithOAuth,
-  signUpWithEmail,
-} from "@/lib/actions/auth";
+import { PendingButton } from "@/components/ui/pending-button";
+import { signInWithEmail, signUpWithEmail } from "@/lib/actions/auth";
 import { landingImages } from "@/lib/landing/images";
 import type { AccountType, BusinessType, Locale } from "@/types";
 
@@ -34,29 +31,7 @@ type Props = {
   initialAccountType?: AccountType;
 };
 
-function SocialBtn({
-  label,
-  onClick,
-  disabled,
-}: {
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="flex items-center justify-center gap-2 rounded-xl border border-border bg-surface-1/40 px-4 py-3 text-sm text-foreground/80 transition-all hover:border-firefly/40 hover:bg-surface-1 hover:text-firefly disabled:opacity-50"
-    >
-      <span className="font-medium">{label}</span>
-    </button>
-  );
-}
-
 export function AuthPage({
-  locale,
   initialMode = "signin",
   initialAccountType = "person",
 }: Props) {
@@ -67,6 +42,12 @@ export function AuthPage({
   const [showPass, setShowPass] = useState(false);
   const [name, setName] = useState("");
   const [businessName, setBusinessName] = useState("");
+  const [legalName, setLegalName] = useState("");
+  const [cui, setCui] = useState("");
+  const [billingAddress, setBillingAddress] = useState("");
+  const [billingCity, setBillingCity] = useState("");
+  const [billingCounty, setBillingCounty] = useState("");
+  const [billingPostalCode, setBillingPostalCode] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
@@ -78,6 +59,12 @@ export function AuthPage({
   const clearTypeSpecificFields = () => {
     setName("");
     setBusinessName("");
+    setLegalName("");
+    setCui("");
+    setBillingAddress("");
+    setBillingCity("");
+    setBillingCounty("");
+    setBillingPostalCode("");
     setError("");
   };
 
@@ -100,6 +87,20 @@ export function AuthPage({
       return;
     }
 
+    if (
+      mode === "signup" &&
+      isBusiness &&
+      (!legalName.trim() ||
+        !cui.trim() ||
+        !billingAddress.trim() ||
+        !billingCity.trim() ||
+        !billingCounty.trim() ||
+        !billingPostalCode.trim())
+    ) {
+      setError("Please fill in all billing details");
+      return;
+    }
+
     startTransition(async () => {
       const result =
         mode === "signin"
@@ -108,6 +109,17 @@ export function AuthPage({
               displayName: name.trim() || undefined,
               businessName: isBusiness ? businessName.trim() : undefined,
               businessType: isBusiness ? businessType : undefined,
+              billing: isBusiness
+                ? {
+                    legalName: legalName.trim(),
+                    cui: cui.trim(),
+                    billingAddress: billingAddress.trim(),
+                    billingCity: billingCity.trim(),
+                    billingCounty: billingCounty.trim(),
+                    billingPostalCode: billingPostalCode.trim(),
+                    billingCountry: "RO",
+                  }
+                : undefined,
             });
 
       if (!result.success) {
@@ -117,21 +129,6 @@ export function AuthPage({
 
       router.push(result.data.redirectTo);
       router.refresh();
-    });
-  };
-
-  const handleOAuth = (provider: "google" | "apple") => {
-    setError("");
-
-    startTransition(async () => {
-      const result = await signInWithOAuth(provider, locale);
-
-      if (!result.success) {
-        setError(result.error);
-        return;
-      }
-
-      window.location.href = result.data.url;
     });
   };
 
@@ -234,31 +231,6 @@ export function AuthPage({
               <p className="mt-4 text-pretty text-foreground/60">{subtitle}</p>
             </div>
 
-            {!isBusiness ? (
-              <>
-                <div className="mb-6 grid grid-cols-2 gap-3">
-                  <SocialBtn
-                    label="Google"
-                    disabled={pending}
-                    onClick={() => handleOAuth("google")}
-                  />
-                  <SocialBtn
-                    label="Apple"
-                    disabled={pending}
-                    onClick={() => handleOAuth("apple")}
-                  />
-                </div>
-
-                <div className="relative my-6 flex items-center">
-                  <div className="deco-line flex-1" />
-                  <span className="px-3 font-mono text-[10px] tracking-wider-2 text-foreground/40">
-                    OR WITH EMAIL
-                  </span>
-                  <div className="deco-line flex-1" />
-                </div>
-              </>
-            ) : null}
-
             <form onSubmit={handleSubmit} className="space-y-4">
               <AccountTypeSwitch
                 value={accountType}
@@ -305,6 +277,98 @@ export function AuthPage({
                       />
                     </div>
                   </div>
+
+                  <AuthField
+                    icon={<Building2 className="h-4 w-4" />}
+                    label="Legal company name"
+                  >
+                    <input
+                      type="text"
+                      value={legalName}
+                      onChange={(event) => setLegalName(event.target.value)}
+                      placeholder="SC Example SRL"
+                      required
+                      minLength={2}
+                      className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
+                    />
+                  </AuthField>
+
+                  <AuthField
+                    icon={<Building2 className="h-4 w-4" />}
+                    label="CUI"
+                  >
+                    <input
+                      type="text"
+                      value={cui}
+                      onChange={(event) => setCui(event.target.value)}
+                      placeholder="RO12345678"
+                      required
+                      minLength={2}
+                      className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
+                    />
+                  </AuthField>
+
+                  <AuthField
+                    icon={<Building2 className="h-4 w-4" />}
+                    label="Billing address"
+                  >
+                    <input
+                      type="text"
+                      value={billingAddress}
+                      onChange={(event) => setBillingAddress(event.target.value)}
+                      placeholder="Street, number"
+                      required
+                      minLength={2}
+                      className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
+                    />
+                  </AuthField>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <AuthField
+                      icon={<Building2 className="h-4 w-4" />}
+                      label="City"
+                    >
+                      <input
+                        type="text"
+                        value={billingCity}
+                        onChange={(event) => setBillingCity(event.target.value)}
+                        placeholder="Bucharest"
+                        required
+                        className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
+                      />
+                    </AuthField>
+                    <AuthField
+                      icon={<Building2 className="h-4 w-4" />}
+                      label="County"
+                    >
+                      <input
+                        type="text"
+                        value={billingCounty}
+                        onChange={(event) =>
+                          setBillingCounty(event.target.value)
+                        }
+                        placeholder="București"
+                        required
+                        className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
+                      />
+                    </AuthField>
+                  </div>
+
+                  <AuthField
+                    icon={<Building2 className="h-4 w-4" />}
+                    label="Postal code"
+                  >
+                    <input
+                      type="text"
+                      value={billingPostalCode}
+                      onChange={(event) =>
+                        setBillingPostalCode(event.target.value)
+                      }
+                      placeholder="010101"
+                      required
+                      className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
+                    />
+                  </AuthField>
                 </>
               ) : null}
 
@@ -367,10 +431,13 @@ export function AuthPage({
                 <p className="text-sm text-destructive">{error}</p>
               ) : null}
 
-              <button
+              <PendingButton
                 type="submit"
-                disabled={pending}
-                className="group mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-firefly px-6 py-3.5 text-sm font-medium text-primary-foreground transition-all hover:scale-[1.01] hover:firefly-glow disabled:opacity-50"
+                pending={pending}
+                pendingLabel={
+                  mode === "signin" ? "Signing in…" : "Creating account…"
+                }
+                className="group mt-2 w-full rounded-full bg-firefly px-6 py-3.5 text-sm font-medium text-primary-foreground transition-all hover:scale-[1.01] hover:firefly-glow"
               >
                 {mode === "signin"
                   ? isBusiness
@@ -379,8 +446,10 @@ export function AuthPage({
                   : isBusiness
                     ? "Register business"
                     : "Light the jar"}
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </button>
+                {!pending ? (
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                ) : null}
+              </PendingButton>
             </form>
 
             <p className="mt-8 text-center text-sm text-foreground/60">

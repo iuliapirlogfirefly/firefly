@@ -5,6 +5,7 @@ import { ArrowRight, Eye, EyeOff, Lock } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { AuthField } from "@/components/auth/auth-field";
 import { FireflyField } from "@/components/FireflyField";
+import { PendingButton } from "@/components/ui/pending-button";
 import { updatePassword } from "@/lib/actions/auth";
 
 type Props = {
@@ -142,14 +143,17 @@ export function ResetPasswordPage({ authenticated }: Props) {
               <p className="text-sm text-destructive">{error}</p>
             ) : null}
 
-            <button
+            <PendingButton
               type="submit"
-              disabled={pending}
-              className="group mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-firefly px-6 py-3.5 text-sm font-medium text-primary-foreground transition-all hover:scale-[1.01] hover:firefly-glow disabled:opacity-50"
+              pending={pending}
+              pendingLabel="Updating…"
+              className="group mt-2 w-full rounded-full bg-firefly px-6 py-3.5 text-sm font-medium text-primary-foreground transition-all hover:scale-[1.01] hover:firefly-glow"
             >
               Update password
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            </button>
+              {!pending ? (
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              ) : null}
+            </PendingButton>
           </form>
         </div>
       </section>

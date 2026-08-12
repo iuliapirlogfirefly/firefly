@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { Bell, Share2, Ticket } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
+import { PendingButton } from "@/components/ui/pending-button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   removeReminder,
   saveEvent,
@@ -154,11 +156,12 @@ export function EventActions({
         </a>
       ) : null}
 
-      <button
+      <PendingButton
         type="button"
         onClick={toggleSaved}
-        disabled={pending}
-        className={`flex w-full items-center justify-center gap-2 rounded-full border px-6 py-4 font-medium transition-all ${
+        pending={pending}
+        pendingLabel={saved ? "Updating…" : "Saving…"}
+        className={`w-full rounded-full border px-6 py-4 font-medium transition-all ${
           saved
             ? "border-firefly bg-firefly/10 text-firefly"
             : "border-firefly/30 text-foreground hover:bg-firefly/5"
@@ -176,21 +179,30 @@ export function EventActions({
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
         </svg>
         {saved ? "Saved to your jar" : "Save this night"}
-      </button>
+      </PendingButton>
 
       <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
           onClick={toggleReminder}
           disabled={reminderPending || (!reminded && !remindAt)}
+          aria-busy={reminderPending || undefined}
           className={`flex items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm transition-colors ${
             reminded
               ? "border-firefly bg-firefly/10 text-firefly"
               : "border-firefly/20 hover:border-firefly/50"
           } disabled:cursor-not-allowed disabled:opacity-50`}
         >
-          <Bell className="h-4 w-4" />
-          {reminded ? "Reminder set" : "Remind"}
+          {reminderPending ? (
+            <Spinner className="h-4 w-4" />
+          ) : (
+            <Bell className="h-4 w-4" />
+          )}
+          {reminderPending
+            ? "Updating…"
+            : reminded
+              ? "Reminder set"
+              : "Remind"}
         </button>
         <button
           type="button"

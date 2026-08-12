@@ -8,6 +8,7 @@ import {
   Syne,
 } from "next/font/google";
 import { notFound } from "next/navigation";
+import NextTopLoader from "nextjs-toploader";
 import { SessionProvider } from "@/components/session-provider";
 import { routing } from "@/i18n/routing";
 import { getSession } from "@/lib/auth/session";
@@ -69,6 +70,13 @@ export default async function LocaleLayout({ children, params }: Props) {
       className={`dark ${limelight.variable} ${syne.variable} ${inter.variable} ${caveat.variable} ${jetbrainsMono.variable}`}
     >
       <body>
+        <NextTopLoader
+          color="#FEF7A3"
+          height={3}
+          showSpinner={false}
+          crawl
+          easing="ease"
+        />
         <NextIntlClientProvider messages={messages}>
           <SessionProvider initialSession={session}>{children}</SessionProvider>
         </NextIntlClientProvider>

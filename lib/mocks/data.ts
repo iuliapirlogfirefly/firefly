@@ -55,6 +55,7 @@ function row(
     address: "Strada Academiei 19, Bucharest",
     venue_name: "Control Club",
     search_vector: null,
+    published_at: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     starts_at: tomorrow.toISOString(),
@@ -622,6 +623,24 @@ export function getMockAdminAnalytics() {
     activeSubscriptions: 12,
     totalRevenueCents: 284500,
     currency: "eur",
+    revenueBreakdown: [
+      { key: "subscription", label: "Premium Monthly", amountCents: 120000 },
+      { key: "event_boost", label: "Promoted Event", amountCents: 90000 },
+      { key: "feed_post", label: "Feed Post", amountCents: 40000 },
+      { key: "newsletter", label: "Newsletter Inclusion", amountCents: 24000 },
+      { key: "social_media", label: "Social Media Post", amountCents: 10500 },
+    ],
+    deltas: {
+      totalUsers: 12,
+      totalEvents: 8,
+      totalBusinesses: 5,
+      totalRevenueCents: 18,
+      views: 14,
+      saves: -3,
+      clicks: 9,
+      ticketClicks: 6,
+      shares: 11,
+    },
   };
 }
 
@@ -670,6 +689,14 @@ export function getMockBusinessAnalytics(locale: Locale = "en") {
       if (b.views !== a.views) return b.views - a.views;
       return new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime();
     }),
+    deltas: {
+      totalEvents: 25,
+      views: 12,
+      saves: -4,
+      clicks: 8,
+      ticketClicks: 15,
+      shares: 6,
+    },
   };
 }
 

@@ -58,7 +58,8 @@ export function AdminUserActions({
               size="sm"
               variant="danger"
               onClick={() => run(() => suspendUser(userId))}
-              disabled={pending}
+              pending={pending}
+              pendingLabel="Suspending…"
             >
               Suspend
             </AdminButton>
@@ -67,7 +68,8 @@ export function AdminUserActions({
             <AdminButton
               size="sm"
               onClick={() => run(() => unsuspendUser(userId))}
-              disabled={pending}
+              pending={pending}
+              pendingLabel="Unsuspending…"
             >
               Unsuspend
             </AdminButton>
@@ -94,7 +96,8 @@ export function AdminUserActions({
             <AdminButton
               size="sm"
               onClick={() => run(() => approveBusinessAccount(businessAccountId))}
-              disabled={pending}
+              pending={pending}
+              pendingLabel="Approving…"
             >
               Approve
             </AdminButton>
@@ -113,7 +116,8 @@ export function AdminUserActions({
             size="sm"
             variant="danger"
             onClick={() => run(() => suspendUser(userId))}
-            disabled={pending}
+            pending={pending}
+            pendingLabel="Suspending…"
           >
             Suspend
           </AdminButton>
@@ -124,7 +128,8 @@ export function AdminUserActions({
             onClick={() =>
               run(() => reactivateBusinessAccount(businessAccountId))
             }
-            disabled={pending}
+            pending={pending}
+            pendingLabel="Reactivating…"
           >
             Reactivate
           </AdminButton>

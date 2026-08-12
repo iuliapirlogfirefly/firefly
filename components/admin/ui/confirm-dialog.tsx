@@ -55,9 +55,10 @@ export function ConfirmDialog({
             type="button"
             variant={confirmVariant}
             onClick={onConfirm}
-            disabled={pending}
+            pending={pending}
+            pendingLabel="Processing…"
           >
-            {pending ? "Processing..." : confirmLabel}
+            {confirmLabel}
           </AdminButton>
         </div>
       </div>

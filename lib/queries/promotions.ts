@@ -15,10 +15,15 @@ export type AdminSubscriptionRow = {
   businessName: string;
   status: string;
   renewsAt: string;
+  cancelAtPeriodEnd: boolean;
   promotedUsed: number;
   promotedQuota: number;
   postsUsed: number;
   postsQuota: number;
+  newslettersUsed: number;
+  newslettersQuota: number;
+  socialUsed: number;
+  socialQuota: number;
 };
 
 export type BusinessPromotionRow = {
@@ -33,6 +38,7 @@ export type BusinessSubscriptionInfo = {
   id: string;
   status: string;
   renewsAt: string;
+  cancelAtPeriodEnd: boolean;
   promotedUsed: number;
   promotedQuota: number;
   postsUsed: number;
@@ -153,6 +159,7 @@ export async function getBusinessSubscription(
       id: "sub-1",
       status: "active",
       renewsAt: "2026-04-15",
+      cancelAtPeriodEnd: false,
       promotedUsed: 2,
       promotedQuota: SUBSCRIPTION_QUOTAS.quota_promoted_events,
       postsUsed: 1,
@@ -172,7 +179,7 @@ export async function getBusinessSubscription(
   const { data: sub, error } = await supabase
     .from("subscriptions")
     .select(
-      "id, status, current_period_end, used_promoted_events, quota_promoted_events, used_feed_posts, quota_feed_posts, used_newsletters, quota_newsletters, used_social_posts, quota_social_posts"
+      "id, status, current_period_end, cancel_at_period_end, used_promoted_events, quota_promoted_events, used_feed_posts, quota_feed_posts, used_newsletters, quota_newsletters, used_social_posts, quota_social_posts"
     )
     .eq("business_account_id", businessAccountId)
     .eq("status", "active")
@@ -185,6 +192,7 @@ export async function getBusinessSubscription(
     id: sub.id,
     status: sub.status,
     renewsAt: sub.current_period_end?.slice(0, 10) ?? "",
+    cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
     promotedUsed: sub.used_promoted_events,
     promotedQuota: sub.quota_promoted_events,
     postsUsed: sub.used_feed_posts,
@@ -253,10 +261,15 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
         businessName: "Control Club",
         status: "active",
         renewsAt: "2026-04-15",
+        cancelAtPeriodEnd: false,
         promotedUsed: 2,
         promotedQuota: 4,
         postsUsed: 1,
         postsQuota: 4,
+        newslettersUsed: 1,
+        newslettersQuota: 2,
+        socialUsed: 0,
+        socialQuota: 2,
       },
     ];
   }
@@ -271,7 +284,7 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
       supabase
         .from("subscriptions")
         .select(
-          "id, status, current_period_end, used_promoted_events, quota_promoted_events, used_feed_posts, quota_feed_posts, business_account_id"
+          "id, status, current_period_end, cancel_at_period_end, used_promoted_events, quota_promoted_events, used_feed_posts, quota_feed_posts, used_newsletters, quota_newsletters, used_social_posts, quota_social_posts, business_account_id"
         )
         .eq("status", "active"),
       supabase.from("business_accounts").select("id, name"),
@@ -288,9 +301,14 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
     businessName: businessMap.get(s.business_account_id) ?? "Unknown",
     status: s.status,
     renewsAt: s.current_period_end?.slice(0, 10) ?? "",
+    cancelAtPeriodEnd: s.cancel_at_period_end ?? false,
     promotedUsed: s.used_promoted_events,
     promotedQuota: s.quota_promoted_events,
     postsUsed: s.used_feed_posts,
     postsQuota: s.quota_feed_posts,
+    newslettersUsed: s.used_newsletters,
+    newslettersQuota: s.quota_newsletters,
+    socialUsed: s.used_social_posts,
+    socialQuota: s.quota_social_posts,
   }));
 }

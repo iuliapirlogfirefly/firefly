@@ -34,6 +34,14 @@ export default async function BusinessDashboardPage({ params }: Props) {
         promotedEvents: 0,
         activePromotions: 0,
         events: [],
+        deltas: {
+          totalEvents: null,
+          views: null,
+          saves: null,
+          clicks: null,
+          ticketClicks: null,
+          shares: null,
+        },
       };
 
   return (
