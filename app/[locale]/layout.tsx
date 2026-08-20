@@ -9,6 +9,8 @@ import {
 } from "next/font/google";
 import { notFound } from "next/navigation";
 import NextTopLoader from "nextjs-toploader";
+import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
+import { SiteFooter } from "@/components/legal/site-footer";
 import { SessionProvider } from "@/components/session-provider";
 import { routing } from "@/i18n/routing";
 import { getSession } from "@/lib/auth/session";
@@ -78,7 +80,11 @@ export default async function LocaleLayout({ children, params }: Props) {
           easing="ease"
         />
         <NextIntlClientProvider messages={messages}>
-          <SessionProvider initialSession={session}>{children}</SessionProvider>
+          <SessionProvider initialSession={session}>
+            {children}
+            <SiteFooter />
+            <CookieConsentBanner />
+          </SessionProvider>
         </NextIntlClientProvider>
       </body>
     </html>

@@ -19,8 +19,10 @@ export const SUBSCRIPTION_QUOTAS = {
 
 export const PROMOTION_DURATION_DAYS = 7;
 
+export const PREMIUM_PRODUCT = "premium";
+
 export const SUBSCRIPTION_PRICE = {
-  amount: 10000,
-  currency: "eur",
-  label: "Premium Monthly",
+  amount: 50000,
+  currency: "ron",
+  label: "Premium Subscription",
 };

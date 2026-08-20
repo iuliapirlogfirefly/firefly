@@ -111,12 +111,24 @@ export function AdminPromotionsTable({
                       {sub.businessName}
                     </td>
                     <td className="px-4 py-3">
-                      <AdminBadge status="active">
-                        {sub.cancelAtPeriodEnd ? "canceling" : sub.status}
+                      <AdminBadge
+                        status={
+                          sub.paymentFailed
+                            ? "rejected"
+                            : sub.entitled
+                              ? "active"
+                              : "default"
+                        }
+                      >
+                        {sub.paymentFailed
+                          ? "payment failed"
+                          : sub.cancelAtPeriodEnd
+                            ? "canceling"
+                            : sub.status}
                       </AdminBadge>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {sub.cancelAtPeriodEnd
+                      {sub.cancelAtPeriodEnd || sub.billingType === "one_time"
                         ? `Ends ${sub.renewsAt}`
                         : sub.renewsAt}
                     </td>

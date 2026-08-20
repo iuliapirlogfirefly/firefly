@@ -13,9 +13,9 @@ import { Link, usePathname } from "@/i18n/navigation";
 const items = [
   { href: "/", label: "Home", icon: Home },
   { href: "/map", label: "Map", icon: MapPin },
+  { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/feed", label: "Feed", icon: LayoutGrid },
   { href: "/missed", label: "Missed", icon: Sparkles },
-  { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/profile", label: "Account", icon: User },
 ] as const;
 

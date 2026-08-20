@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { EventCard } from "@/components/EventCard";
 import { Nav } from "@/components/Nav";
+import { DiscoveryFilterBar } from "@/components/filters/discovery-filter-bar";
 import {
   EVENT_TYPES,
   formatEventTypeLabel,
@@ -16,12 +17,11 @@ import {
   hasActiveEventFilters,
   updateFeedSearchParams,
 } from "@/lib/utils/feed-filters";
-import type { DatePreset, EventType, Locale } from "@/types";
+import type { DatePreset, EventType, Genre, Locale } from "@/types";
 import type { EventFilters, EventListItem } from "@/types/events";
 
 type Props = {
   events: EventListItem[];
-  weekEvents: EventListItem[];
   locale: Locale;
   filters: EventFilters;
 };
@@ -309,7 +309,35 @@ function FeedFilters({
   );
 }
 
-export function FeedPageClient({ events, weekEvents, locale, filters }: Props) {
+function FeedEventSection({
+  eyebrow,
+  title,
+  events,
+}: {
+  eyebrow: string;
+  title: string;
+  events: EventListItem[];
+}) {
+  if (events.length === 0) return null;
+
+  return (
+    <section className="mt-10">
+      <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
+        ◦ {eyebrow}
+      </div>
+      <h2 className="mb-6 font-heading text-3xl font-bold md:text-4xl">
+        {title}
+      </h2>
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {events.map((event) => (
+          <EventCard key={event.id} event={event} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function FeedPageClient({ events, locale, filters }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -369,12 +397,9 @@ export function FeedPageClient({ events, weekEvents, locale, filters }: Props) {
   }, [applyFilters]);
 
   const hasFilters = hasActiveEventFilters(filters);
-  const showWeekSection = !filters.datePreset && weekEvents.length > 0;
-  const weekEventIds = new Set(weekEvents.map((event) => event.id));
-  const mainEvents = showWeekSection
-    ? events.filter((event) => !weekEventIds.has(event.id))
-    : events;
-  const distanceLabel =
+  const hottest = events.filter((event) => event.isPromoted);
+  const rest = events.filter((event) => !event.isPromoted);
+  const distanceHint =
     filters.distanceKm != null
       ? isBucharestFallback(filters.lat, filters.lng)
         ? locale === "ro"
@@ -384,18 +409,6 @@ export function FeedPageClient({ events, weekEvents, locale, filters }: Props) {
           ? "Lângă tine"
           : "Near you"
       : null;
-
-  const filterProps = {
-    locale,
-    filters,
-    searchDraft,
-    setSearchDraft,
-    applyFilters,
-    setDistance,
-    distanceLabel,
-    filteredCount: events.length,
-    resetFilters,
-  };
 
   return (
     <main data-route="feed" className="relative min-h-screen pb-24 md:pb-12">
@@ -416,7 +429,6 @@ export function FeedPageClient({ events, weekEvents, locale, filters }: Props) {
             : "Every party glowing on the map — tap for details."}
         </p>
 
-        {/* Mobile: Filters pill + toggle panel */}
         <div className="mt-10 lg:hidden">
           <div className="flex items-center gap-2">
             <button
@@ -443,7 +455,15 @@ export function FeedPageClient({ events, weekEvents, locale, filters }: Props) {
           {filtersOpen ? (
             <aside className="glass mt-3 rounded-2xl p-4 animate-fade-up">
               <FeedFilters
-                {...filterProps}
+                locale={locale}
+                filters={filters}
+                searchDraft={searchDraft}
+                setSearchDraft={setSearchDraft}
+                applyFilters={applyFilters}
+                setDistance={setDistance}
+                distanceLabel={distanceHint}
+                filteredCount={events.length}
+                resetFilters={resetFilters}
                 eventTypeId="feed-event-type-mobile"
                 onClose={() => setFiltersOpen(false)}
               />
@@ -451,36 +471,56 @@ export function FeedPageClient({ events, weekEvents, locale, filters }: Props) {
           ) : null}
         </div>
 
-        {/* Desktop: always-visible filters */}
         <div className="mt-10 hidden lg:block">
-          <FeedFilters {...filterProps} eventTypeId="feed-event-type-desktop" />
+          <DiscoveryFilterBar
+            locale={locale}
+            searchDraft={searchDraft}
+            onSearchDraftChange={setSearchDraft}
+            eventType={filters.eventType}
+            onEventTypeChange={(value: EventType | undefined) =>
+              applyFilters({ eventType: value })
+            }
+            datePreset={filters.datePreset}
+            customDate={filters.customDate}
+            onDateChange={({ datePreset, customDate }) =>
+              applyFilters({ datePreset, customDate })
+            }
+            genre={filters.genre}
+            onGenreChange={(value: Genre | undefined) =>
+              applyFilters({ genre: value })
+            }
+            distanceKm={filters.distanceKm}
+            onDistanceChange={(value) => void setDistance(value)}
+            distanceHint={distanceHint}
+            promotedOnly={filters.promotedOnly}
+            onPromotedChange={(value) => applyFilters({ promotedOnly: value })}
+            filteredCount={events.length}
+            hasActiveFilters={hasFilters}
+            onReset={resetFilters}
+          />
         </div>
 
-        {showWeekSection ? (
-          <section className="mt-10">
-            <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-              ◦ {locale === "ro" ? "Petreceri săptămâna asta" : "Parties this week"}
-            </div>
-            <h2 className="mb-6 font-heading text-3xl font-bold md:text-4xl">
-              {locale === "ro"
-                ? "Nopțile care strălucesc până duminică"
-                : "The nights glowing through Sunday"}
-            </h2>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {weekEvents.map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
-            </div>
-          </section>
-        ) : null}
+        <FeedEventSection
+          eyebrow={locale === "ro" ? "Promovate" : "Promoted"}
+          title={
+            locale === "ro"
+              ? "Cele mai hot petreceri din București"
+              : "Hottest parties in Bucharest"
+          }
+          events={hottest}
+        />
 
-        <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {mainEvents.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
-        </div>
+        <FeedEventSection
+          eyebrow={locale === "ro" ? "Nu rata" : "Don't miss"}
+          title={
+            locale === "ro"
+              ? "Nu rata aceste petreceri"
+              : "Don't miss these parties"
+          }
+          events={rest}
+        />
 
-        {mainEvents.length === 0 && !showWeekSection ? (
+        {events.length === 0 ? (
           <div className="mt-20 text-center">
             <div className="mb-4 inline-block h-12 w-12 animate-firefly-pulse rounded-full border border-firefly/30 bg-firefly/10" />
             <p className="text-foreground/60">

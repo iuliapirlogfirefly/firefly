@@ -1,5 +1,11 @@
 import type { PromotionType } from "@/types";
 import { SUBSCRIPTION_QUOTAS } from "@/lib/stripe/products";
+import {
+  isPaymentFailedStatus,
+  isPremiumEntitled,
+  parseBillingType,
+  type BillingType,
+} from "@/lib/stripe/entitlement";
 
 export type AdminPromotionRow = {
   id: string;
@@ -14,8 +20,11 @@ export type AdminSubscriptionRow = {
   id: string;
   businessName: string;
   status: string;
+  billingType: BillingType;
   renewsAt: string;
   cancelAtPeriodEnd: boolean;
+  entitled: boolean;
+  paymentFailed: boolean;
   promotedUsed: number;
   promotedQuota: number;
   postsUsed: number;
@@ -37,8 +46,13 @@ export type BusinessPromotionRow = {
 export type BusinessSubscriptionInfo = {
   id: string;
   status: string;
+  billingType: BillingType;
   renewsAt: string;
   cancelAtPeriodEnd: boolean;
+  entitled: boolean;
+  paymentFailed: boolean;
+  canCancelRenewal: boolean;
+  canManageBilling: boolean;
   promotedUsed: number;
   promotedQuota: number;
   postsUsed: number;
@@ -158,8 +172,13 @@ export async function getBusinessSubscription(
     return {
       id: "sub-1",
       status: "active",
+      billingType: "recurring",
       renewsAt: "2026-04-15",
       cancelAtPeriodEnd: false,
+      entitled: true,
+      paymentFailed: false,
+      canCancelRenewal: true,
+      canManageBilling: true,
       promotedUsed: 2,
       promotedQuota: SUBSCRIPTION_QUOTAS.quota_promoted_events,
       postsUsed: 1,
@@ -179,20 +198,34 @@ export async function getBusinessSubscription(
   const { data: sub, error } = await supabase
     .from("subscriptions")
     .select(
-      "id, status, current_period_end, cancel_at_period_end, used_promoted_events, quota_promoted_events, used_feed_posts, quota_feed_posts, used_newsletters, quota_newsletters, used_social_posts, quota_social_posts"
+      "id, status, billing_type, current_period_end, cancel_at_period_end, stripe_subscription_id, stripe_customer_id, used_promoted_events, quota_promoted_events, used_feed_posts, quota_feed_posts, used_newsletters, quota_newsletters, used_social_posts, quota_social_posts"
     )
     .eq("business_account_id", businessAccountId)
-    .eq("status", "active")
     .maybeSingle();
 
   if (error) throw error;
   if (!sub) return null;
 
+  const entitled = isPremiumEntitled(sub);
+  const paymentFailed = isPaymentFailedStatus(sub.status);
+  if (!entitled && !paymentFailed) return null;
+
+  const billingType = parseBillingType(sub.billing_type);
+
   return {
     id: sub.id,
     status: sub.status,
+    billingType,
     renewsAt: sub.current_period_end?.slice(0, 10) ?? "",
-    cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
+    cancelAtPeriodEnd: sub.cancel_at_period_end ?? billingType === "one_time",
+    entitled,
+    paymentFailed,
+    canCancelRenewal:
+      entitled &&
+      billingType === "recurring" &&
+      Boolean(sub.stripe_subscription_id) &&
+      !sub.cancel_at_period_end,
+    canManageBilling: Boolean(sub.stripe_customer_id),
     promotedUsed: sub.used_promoted_events,
     promotedQuota: sub.quota_promoted_events,
     postsUsed: sub.used_feed_posts,
@@ -260,8 +293,11 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
         id: "sub-1",
         businessName: "Control Club",
         status: "active",
+        billingType: "recurring",
         renewsAt: "2026-04-15",
         cancelAtPeriodEnd: false,
+        entitled: true,
+        paymentFailed: false,
         promotedUsed: 2,
         promotedQuota: 4,
         postsUsed: 1,
@@ -284,9 +320,8 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
       supabase
         .from("subscriptions")
         .select(
-          "id, status, current_period_end, cancel_at_period_end, used_promoted_events, quota_promoted_events, used_feed_posts, quota_feed_posts, used_newsletters, quota_newsletters, used_social_posts, quota_social_posts, business_account_id"
-        )
-        .eq("status", "active"),
+          "id, status, billing_type, current_period_end, cancel_at_period_end, used_promoted_events, quota_promoted_events, used_feed_posts, quota_feed_posts, used_newsletters, quota_newsletters, used_social_posts, quota_social_posts, business_account_id"
+        ),
       supabase.from("business_accounts").select("id, name"),
     ]);
 
@@ -300,8 +335,11 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
     id: s.id,
     businessName: businessMap.get(s.business_account_id) ?? "Unknown",
     status: s.status,
+    billingType: parseBillingType(s.billing_type),
     renewsAt: s.current_period_end?.slice(0, 10) ?? "",
     cancelAtPeriodEnd: s.cancel_at_period_end ?? false,
+    entitled: isPremiumEntitled(s),
+    paymentFailed: isPaymentFailedStatus(s.status),
     promotedUsed: s.used_promoted_events,
     promotedQuota: s.quota_promoted_events,
     postsUsed: s.used_feed_posts,
@@ -310,5 +348,5 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
     newslettersQuota: s.quota_newsletters,
     socialUsed: s.used_social_posts,
     socialQuota: s.quota_social_posts,
-  }));
+  })).filter((s) => s.entitled || s.paymentFailed);
 }

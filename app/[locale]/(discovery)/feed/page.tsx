@@ -44,21 +44,9 @@ export default async function FeedPage({ params, searchParams }: Props) {
   }
 
   const filters = parseEventFilters(resolvedSearchParams);
-  const { datePreset: _datePreset, customDate: _customDate, ...nonDateFilters } =
-    filters;
-  const [events, weekEvents] = await Promise.all([
-    getEvents(locale, filters),
-    !filters.datePreset
-      ? getEvents(locale, { ...nonDateFilters, datePreset: "this_week" })
-      : Promise.resolve([]),
-  ]);
+  const events = await getEvents(locale, filters);
 
   return (
-    <FeedPageClient
-      events={events}
-      weekEvents={weekEvents}
-      locale={locale}
-      filters={filters}
-    />
+    <FeedPageClient events={events} locale={locale} filters={filters} />
   );
 }

@@ -4,7 +4,9 @@ import Image from "next/image";
 import { useSavedEvents } from "@/hooks/use-saved-events";
 import { Link } from "@/i18n/navigation";
 import { Spinner } from "@/components/ui/spinner";
+import { formatEventTypeLabel } from "@/lib/constants/event-types";
 import { landingImages } from "@/lib/landing/images";
+import { formatPrice } from "@/lib/utils/event-format";
 import type { EventListItem } from "@/types/events";
 
 type Props = {
@@ -74,14 +76,13 @@ export function EventCard({
             {event.title}
           </h3>
           <div className="flex items-center justify-between gap-3 text-sm text-foreground/60">
-            <span>
-              {event.venueName} · {formatGenre(event.genre)}
+            <span className="min-w-0 truncate">
+              {event.venueName} · {formatEventTypeLabel(event.eventType)} ·{" "}
+              {formatGenre(event.genre)}
             </span>
-            {event.price != null && (
-              <span className="rounded-full bg-amber-warm/15 px-2 py-0.5 text-[10px] font-medium text-amber-warm">
-                {event.price} lei
-              </span>
-            )}
+            <span className="shrink-0 whitespace-nowrap rounded-full bg-amber-warm/15 px-2 py-0.5 text-[10px] font-medium text-amber-warm">
+              {formatPrice(event.price)}
+            </span>
           </div>
         </div>
       </Link>

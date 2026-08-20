@@ -136,19 +136,31 @@ export function AdminBusinessDetailsPage({ details }: Props) {
           Subscription
         </h2>
         {!sub ? (
-          <p className="text-sm text-muted-foreground">No active subscription.</p>
+          <p className="text-sm text-muted-foreground">No subscription.</p>
         ) : (
           <>
             <dl className="grid gap-2 text-sm sm:grid-cols-2">
               <div>
+                <dt className="text-muted-foreground">Billing</dt>
+                <dd className="font-medium">
+                  {sub.billingType === "one_time" ? "One-time" : "Recurring"}
+                </dd>
+              </div>
+              <div>
                 <dt className="text-muted-foreground">Status</dt>
                 <dd className="font-medium">
-                  {sub.cancelAtPeriodEnd ? "Canceling" : sub.status}
+                  {sub.paymentFailed
+                    ? "Payment failed"
+                    : sub.cancelAtPeriodEnd
+                      ? "Canceling"
+                      : sub.status}
                 </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">
-                  {sub.cancelAtPeriodEnd ? "Ends" : "Renews"}
+                  {sub.cancelAtPeriodEnd || sub.billingType === "one_time"
+                    ? "Ends"
+                    : "Renews"}
                 </dt>
                 <dd className="font-medium">{sub.renewsAt}</dd>
               </div>
@@ -177,7 +189,15 @@ export function AdminBusinessDetailsPage({ details }: Props) {
                 </dd>
               </div>
             </dl>
-            {!sub.cancelAtPeriodEnd ? (
+            {!sub.canCancelRenewal ? (
+              sub.entitled &&
+              (sub.cancelAtPeriodEnd || sub.billingType === "one_time") ? (
+                <p className="text-xs text-muted-foreground">
+                  Auto-renewal already canceled. Access continues until{" "}
+                  {sub.renewsAt}.
+                </p>
+              ) : null
+            ) : (
               <AdminButton
                 size="md"
                 variant="danger"
@@ -186,11 +206,6 @@ export function AdminBusinessDetailsPage({ details }: Props) {
               >
                 Cancel subscription
               </AdminButton>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Auto-renewal already canceled. Access continues until{" "}
-                {sub.renewsAt}.
-              </p>
             )}
           </>
         )}

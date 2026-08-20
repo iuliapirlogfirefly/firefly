@@ -38,6 +38,8 @@ export type EventDetail = EventListItem & {
   description: string;
   address: string;
   ticketUrl: string | null;
+  websiteUrl: string | null;
+  specialGuest: string | null;
   images: string[];
   organizerName: string | null;
   isSaved: boolean;
@@ -82,6 +84,8 @@ export type CreateEventInput = {
   eventType: EventType;
   price?: number;
   ticketUrl?: string;
+  websiteUrl?: string;
+  specialGuest?: string;
   coverImageUrl?: string;
   images?: string[];
   venueId?: string;

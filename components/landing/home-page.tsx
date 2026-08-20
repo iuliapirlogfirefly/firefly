@@ -369,7 +369,7 @@ export function HomePage({ featured }: Props) {
               </div>
               <div className="mt-3 flex items-center justify-between">
                 <span className="rounded-full bg-amber-warm/15 px-2 py-0.5 text-[10px] font-medium text-amber-warm">
-                  35 lei
+                  From 35 lei
                 </span>
                 <span className="font-hand text-base text-firefly">tap me →</span>
               </div>
@@ -421,10 +421,10 @@ export function HomePage({ featured }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-12 md:gap-6">
             {featured[0] ? (
               <div className="md:col-span-7 md:row-span-2">
-                <div className="h-full" style={{ transform: "rotate(-0.6deg)" }}>
+                <div className="h-full md:-rotate-[0.6deg]">
                   <EventCard event={featured[0]} featured />
                 </div>
               </div>
@@ -432,8 +432,7 @@ export function HomePage({ featured }: Props) {
             {featured.slice(1, 3).map((event, i) => (
               <div
                 key={event.id}
-                className="md:col-span-5"
-                style={{ transform: `translateY(${i === 0 ? 0 : 24}px)` }}
+                className={`md:col-span-5${i === 1 ? " md:translate-y-6" : ""}`}
               >
                 <EventCard event={event} />
               </div>
@@ -441,8 +440,7 @@ export function HomePage({ featured }: Props) {
             {featured.slice(3, 5).map((event, i) => (
               <div
                 key={event.id}
-                className="md:col-span-6"
-                style={{ transform: `translateY(${i === 1 ? 16 : 0}px)` }}
+                className={`md:col-span-6${i === 1 ? " md:translate-y-4" : ""}`}
               >
                 <EventCard event={event} />
               </div>
@@ -644,34 +642,6 @@ export function HomePage({ featured }: Props) {
           </Link>
         </div>
       </section>
-
-      <footer className="relative border-t border-firefly/10 py-12">
-        <div className="mx-auto flex max-w-[1400px] flex-col items-center justify-between gap-6 px-6 md:flex-row">
-          <div className="flex items-center gap-2.5">
-            <span className="relative inline-flex h-2 w-2">
-              <span className="absolute inset-0 rounded-full bg-firefly animate-firefly-pulse" />
-            </span>
-            <span className="font-display text-lg tracking-tight-logo">firefly</span>
-            <span className="ml-3 font-mono text-[11px] uppercase tracking-wider-2 text-foreground/40">
-              Bucharest · est. 2026
-            </span>
-          </div>
-          <span className="font-hand text-xl text-foreground/40">
-            made by night owls, for night owls.
-          </span>
-          <div className="flex items-center gap-8 text-sm text-foreground/50">
-            <a href="#" className="transition-colors hover:text-firefly">
-              For venues
-            </a>
-            <a href="#" className="transition-colors hover:text-firefly">
-              Privacy
-            </a>
-            <a href="#" className="transition-colors hover:text-firefly">
-              Contact
-            </a>
-          </div>
-        </div>
-      </footer>
 
       <BottomNav />
     </main>

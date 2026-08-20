@@ -9,6 +9,7 @@ import { Link } from "@/i18n/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { Nav } from "@/components/Nav";
 import { useSavedEvents } from "@/hooks/use-saved-events";
+import { EVENT_TYPES, formatEventTypeLabel } from "@/lib/constants/event-types";
 import { formatGenreLabel, GENRES } from "@/lib/constants/genres";
 import { landingImages } from "@/lib/landing/images";
 import {
@@ -21,7 +22,7 @@ import {
   type DateFilter,
 } from "@/lib/utils/map-filters";
 import { formatDateBadge, formatTime } from "@/lib/utils/event-format";
-import type { Genre } from "@/types";
+import type { EventType, Genre } from "@/types";
 import type { EventListItem } from "@/types/events";
 
 type Props = {
@@ -42,6 +43,8 @@ function MapFilters({
   setDate,
   genres,
   toggleGenre,
+  eventTypes,
+  toggleEventType,
   filteredCount,
   resetFilters,
   onClose,
@@ -52,6 +55,8 @@ function MapFilters({
   setDate: (value: DateFilter) => void;
   genres: Set<Genre>;
   toggleGenre: (genre: Genre) => void;
+  eventTypes: Set<EventType>;
+  toggleEventType: (type: EventType) => void;
   filteredCount: number;
   resetFilters: () => void;
   onClose?: () => void;
@@ -126,6 +131,32 @@ function MapFilters({
                 }`}
               >
                 {formatGenreLabel(genre)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mb-5">
+        <div className="mb-2 font-mono text-xs uppercase tracking-wider text-foreground/50">
+          Event type
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {EVENT_TYPES.map((type) => {
+            const on = eventTypes.has(type);
+
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => toggleEventType(type)}
+                className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-all ${
+                  on
+                    ? "border-firefly/60 bg-firefly/10 text-firefly"
+                    : "border-firefly/10 bg-surface-2/40 text-foreground/70 hover:border-firefly/30"
+                }`}
+              >
+                {formatEventTypeLabel(type)}
               </button>
             );
           })}
@@ -380,13 +411,14 @@ export function MapPageClient({ events }: Props) {
   const [query, setQuery] = useState("");
   const [date, setDate] = useState<DateFilter>("any");
   const [genres, setGenres] = useState<Set<Genre>>(new Set());
+  const [eventTypes, setEventTypes] = useState<Set<EventType>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const { has, toggle } = useSavedEvents();
 
   const filtered = useMemo(
-    () => filterMapEvents(events, { query, date, genres }),
-    [events, query, date, genres]
+    () => filterMapEvents(events, { query, date, genres, eventTypes }),
+    [events, query, date, genres, eventTypes]
   );
 
   const active = activeId
@@ -394,7 +426,10 @@ export function MapPageClient({ events }: Props) {
     : null;
 
   const hasActiveFilters =
-    query.length > 0 || date !== "any" || genres.size > 0;
+    query.length > 0 ||
+    date !== "any" ||
+    genres.size > 0 ||
+    eventTypes.size > 0;
 
   const toggleGenre = (genre: Genre) => {
     setGenres((current) => {
@@ -405,10 +440,20 @@ export function MapPageClient({ events }: Props) {
     });
   };
 
+  const toggleEventType = (type: EventType) => {
+    setEventTypes((current) => {
+      const next = new Set(current);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  };
+
   const resetFilters = () => {
     setQuery("");
     setDate("any");
     setGenres(new Set());
+    setEventTypes(new Set());
     setActiveId(null);
   };
 
@@ -419,6 +464,8 @@ export function MapPageClient({ events }: Props) {
     setDate,
     genres,
     toggleGenre,
+    eventTypes,
+    toggleEventType,
     filteredCount: filtered.length,
     resetFilters,
   };

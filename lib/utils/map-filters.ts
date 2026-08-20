@@ -35,6 +35,7 @@ export function filterMapEvents<T extends EventListItem>(
     query: string;
     date: DateFilter;
     genres: Set<EventListItem["genre"]>;
+    eventTypes: Set<EventListItem["eventType"]>;
   }
 ): T[] {
   const normalizedQuery = options.query.trim().toLowerCase();
@@ -51,6 +52,12 @@ export function filterMapEvents<T extends EventListItem>(
 
     if (!matchesDateFilter(event.startsAt, options.date)) return false;
     if (options.genres.size > 0 && !options.genres.has(event.genre)) {
+      return false;
+    }
+    if (
+      options.eventTypes.size > 0 &&
+      !options.eventTypes.has(event.eventType)
+    ) {
       return false;
     }
 

@@ -29,6 +29,8 @@ const createEventSchema = z.object({
   eventType: z.string(),
   price: z.number().optional(),
   ticketUrl: z.string().url().optional().or(z.literal("")),
+  websiteUrl: z.string().url().optional().or(z.literal("")),
+  specialGuest: z.string().optional(),
   coverImageUrl: z.string().optional(),
   images: z.array(z.string()).optional(),
   venueId: z.string().uuid().optional(),
@@ -113,6 +115,8 @@ export async function createEvent(
         event_type: data.eventType,
         price: data.price ?? null,
         ticket_url: data.ticketUrl || null,
+        website_url: data.websiteUrl || null,
+        special_guest: data.specialGuest?.trim() || null,
         cover_image_url: data.coverImageUrl ?? null,
         images: data.images ?? [],
         translations: data.translations,
@@ -166,6 +170,12 @@ export async function updateEvent(
         ...(data.price !== undefined && { price: data.price }),
         ...(data.ticketUrl !== undefined && {
           ticket_url: data.ticketUrl || null,
+        }),
+        ...(data.websiteUrl !== undefined && {
+          website_url: data.websiteUrl || null,
+        }),
+        ...(data.specialGuest !== undefined && {
+          special_guest: data.specialGuest?.trim() || null,
         }),
         ...(data.coverImageUrl !== undefined && {
           cover_image_url: data.coverImageUrl,
@@ -434,6 +444,8 @@ export async function createAdminEvent(
         event_type: data.eventType,
         price: data.price ?? null,
         ticket_url: data.ticketUrl || null,
+        website_url: data.websiteUrl || null,
+        special_guest: data.specialGuest?.trim() || null,
         cover_image_url: data.coverImageUrl ?? null,
         images: data.images ?? [],
         translations: data.translations,
@@ -485,6 +497,12 @@ export async function updateAdminEvent(
         ...(data.price !== undefined && { price: data.price }),
         ...(data.ticketUrl !== undefined && {
           ticket_url: data.ticketUrl || null,
+        }),
+        ...(data.websiteUrl !== undefined && {
+          website_url: data.websiteUrl || null,
+        }),
+        ...(data.specialGuest !== undefined && {
+          special_guest: data.specialGuest?.trim() || null,
         }),
         ...(data.coverImageUrl !== undefined && {
           cover_image_url: data.coverImageUrl,

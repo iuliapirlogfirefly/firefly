@@ -7,6 +7,8 @@ import { ChevronLeft, ChevronRight, Clock, MapPin, Search } from "lucide-react";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { Nav } from "@/components/Nav";
+import { DiscoveryFilterBar } from "@/components/filters/discovery-filter-bar";
+import { EVENT_TYPES, formatEventTypeLabel } from "@/lib/constants/event-types";
 import { landingImages } from "@/lib/landing/images";
 import {
   buildEventsByDate,
@@ -17,7 +19,7 @@ import {
   WEEKDAYS,
 } from "@/lib/utils/calendar";
 import { formatTimeRange } from "@/lib/utils/event-format";
-import type { Locale } from "@/types";
+import type { EventType, Locale } from "@/types";
 import type { EventFilters, EventListItem } from "@/types/events";
 
 type Props = {
@@ -47,7 +49,12 @@ export function CalendarPageClient({
   }, [filters.search]);
 
   const applySearchParams = useCallback(
-    (patch: { month?: number; year?: number; search?: string | undefined }) => {
+    (patch: {
+      month?: number;
+      year?: number;
+      search?: string | undefined;
+      eventType?: EventType | undefined;
+    }) => {
       const next = updateCalendarSearchParams(
         new URLSearchParams(searchParams.toString()),
         patch
@@ -102,18 +109,69 @@ export function CalendarPageClient({
           Time, made <span className="text-gradient-firefly">visible.</span>
         </h1>
 
-        <div className="relative mt-8">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
-          <input
-            type="search"
-            value={searchDraft}
-            onChange={(event) => setSearchDraft(event.target.value)}
-            placeholder={
-              locale === "ro"
-                ? "Caută locații, petreceri…"
-                : "Search venues, parties…"
+        <div className="mt-8 lg:hidden">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
+            <input
+              type="search"
+              value={searchDraft}
+              onChange={(event) => setSearchDraft(event.target.value)}
+              placeholder={
+                locale === "ro"
+                  ? "Caută locații, petreceri…"
+                  : "Search venues, parties…"
+              }
+              className="w-full rounded-xl border border-firefly/10 bg-surface-2/60 py-3 pl-10 pr-3 text-sm transition-colors placeholder:text-foreground/40 focus:border-firefly/50 focus:outline-none"
+            />
+          </div>
+
+          <div className="mt-5">
+            <div className="mb-2 font-mono text-xs uppercase tracking-wider text-foreground/50">
+              {locale === "ro" ? "Tip eveniment" : "Event type"}
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <button
+                type="button"
+                onClick={() => applySearchParams({ eventType: undefined })}
+                className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-all ${
+                  !filters.eventType
+                    ? "border-firefly/60 bg-firefly/10 text-firefly"
+                    : "border-firefly/10 bg-surface-2/40 text-foreground/70 hover:border-firefly/30"
+                }`}
+              >
+                {locale === "ro" ? "Toate" : "All"}
+              </button>
+              {EVENT_TYPES.map((type) => {
+                const on = filters.eventType === type;
+
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => applySearchParams({ eventType: type })}
+                    className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-all ${
+                      on
+                        ? "border-firefly/60 bg-firefly/10 text-firefly"
+                        : "border-firefly/10 bg-surface-2/40 text-foreground/70 hover:border-firefly/30"
+                    }`}
+                  >
+                    {formatEventTypeLabel(type)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 hidden lg:block">
+          <DiscoveryFilterBar
+            locale={locale}
+            searchDraft={searchDraft}
+            onSearchDraftChange={setSearchDraft}
+            eventType={filters.eventType}
+            onEventTypeChange={(value) =>
+              applySearchParams({ eventType: value })
             }
-            className="w-full rounded-xl border border-firefly/10 bg-surface-2/60 py-3 pl-10 pr-3 text-sm transition-colors placeholder:text-foreground/40 focus:border-firefly/50 focus:outline-none"
           />
         </div>
 

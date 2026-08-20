@@ -11,6 +11,7 @@ import {
   Mail,
   User,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import {
   AccountTypeSwitch,
@@ -35,6 +36,7 @@ export function AuthPage({
   initialMode = "signin",
   initialAccountType = "person",
 }: Props) {
+  const tAuth = useTranslations("auth");
   const router = useRouter();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [accountType, setAccountType] = useState<AccountType>(initialAccountType);
@@ -51,6 +53,8 @@ export function AuthPage({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
+  const [confirmedAge, setConfirmedAge] = useState(false);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -65,6 +69,8 @@ export function AuthPage({
     setBillingCity("");
     setBillingCounty("");
     setBillingPostalCode("");
+    setAcceptedLegal(false);
+    setConfirmedAge(false);
     setError("");
   };
 
@@ -98,6 +104,11 @@ export function AuthPage({
         !billingPostalCode.trim())
     ) {
       setError("Please fill in all billing details");
+      return;
+    }
+
+    if (mode === "signup" && (!acceptedLegal || !confirmedAge)) {
+      setError(tAuth("mustAcceptLegal"));
       return;
     }
 
@@ -425,7 +436,50 @@ export function AuthPage({
                     Forgot password?
                   </Link>
                 </div>
-              ) : null}
+              ) : (
+                <div className="space-y-3 text-xs text-foreground/65">
+                  <label className="flex cursor-pointer items-start gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={acceptedLegal}
+                      onChange={(event) =>
+                        setAcceptedLegal(event.target.checked)
+                      }
+                      className="mt-0.5 accent-firefly"
+                      required
+                    />
+                    <span>
+                      {tAuth("agreeTermsPrefix")}{" "}
+                      <Link
+                        href="/terms"
+                        className="text-firefly/90 underline-offset-2 hover:underline"
+                      >
+                        {tAuth("termsLink")}
+                      </Link>{" "}
+                      {tAuth("agreeTermsMiddle")}{" "}
+                      <Link
+                        href="/privacy"
+                        className="text-firefly/90 underline-offset-2 hover:underline"
+                      >
+                        {tAuth("privacyLink")}
+                      </Link>
+                      .
+                    </span>
+                  </label>
+                  <label className="flex cursor-pointer items-start gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={confirmedAge}
+                      onChange={(event) =>
+                        setConfirmedAge(event.target.checked)
+                      }
+                      className="mt-0.5 accent-firefly"
+                      required
+                    />
+                    <span>{tAuth("agreeAge")}</span>
+                  </label>
+                </div>
+              )}
 
               {error ? (
                 <p className="text-sm text-destructive">{error}</p>

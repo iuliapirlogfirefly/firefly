@@ -56,6 +56,8 @@ export function EventForm({ mode, eventId, initial }: Props) {
     initial?.price != null ? String(initial.price) : ""
   );
   const [ticketUrl, setTicketUrl] = useState(initial?.ticketUrl ?? "");
+  const [websiteUrl, setWebsiteUrl] = useState(initial?.websiteUrl ?? "");
+  const [specialGuest, setSpecialGuest] = useState(initial?.specialGuest ?? "");
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(
     initial?.coverImageUrl ?? null
   );
@@ -100,6 +102,8 @@ export function EventForm({ mode, eventId, initial }: Props) {
       eventType,
       price: price ? Number(price) : undefined,
       ticketUrl: ticketUrl || undefined,
+      websiteUrl: websiteUrl || undefined,
+      specialGuest: specialGuest.trim() || undefined,
       coverImageUrl: coverImageUrl ?? undefined,
       images,
       venueName: venueName || undefined,
@@ -219,6 +223,16 @@ export function EventForm({ mode, eventId, initial }: Props) {
           </div>
         </div>
 
+        <div>
+          <label className={labelClass}>Special Guest (optional)</label>
+          <input
+            className={inputClass}
+            value={specialGuest}
+            onChange={(e) => setSpecialGuest(e.target.value)}
+            placeholder="DJ Ion Popescu"
+          />
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={labelClass}>Price (RON)</label>
@@ -240,6 +254,17 @@ export function EventForm({ mode, eventId, initial }: Props) {
               placeholder="https://"
             />
           </div>
+        </div>
+
+        <div>
+          <label className={labelClass}>Website / social link</label>
+          <input
+            type="url"
+            className={inputClass}
+            value={websiteUrl}
+            onChange={(e) => setWebsiteUrl(e.target.value)}
+            placeholder="https://"
+          />
         </div>
 
         <div>

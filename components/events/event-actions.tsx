@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
-import { Bell, Share2, Ticket } from "lucide-react";
+import { Bell, ExternalLink, Share2, Ticket } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { PendingButton } from "@/components/ui/pending-button";
 import { Spinner } from "@/components/ui/spinner";
@@ -57,6 +57,7 @@ type Props = {
   initialSaved: boolean;
   initialReminded: boolean;
   ticketUrl: string | null;
+  websiteUrl: string | null;
 };
 
 export function EventActions({
@@ -66,6 +67,7 @@ export function EventActions({
   initialSaved,
   initialReminded,
   ticketUrl,
+  websiteUrl,
 }: Props) {
   const router = useRouter();
   const [saved, setSaved] = useState(initialSaved);
@@ -153,6 +155,18 @@ export function EventActions({
         >
           <Ticket className="h-5 w-5" />
           Get tickets
+        </a>
+      ) : null}
+
+      {websiteUrl ? (
+        <a
+          href={websiteUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 rounded-full border border-firefly/30 px-6 py-4 font-medium text-foreground transition-all hover:bg-firefly/5"
+        >
+          <ExternalLink className="h-5 w-5" />
+          Visit website
         </a>
       ) : null}
 

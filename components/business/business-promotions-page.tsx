@@ -3,8 +3,10 @@
 import { Link } from "@/i18n/navigation";
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { PendingButton } from "@/components/ui/pending-button";
 import {
+  createBillingPortalSession,
   createSubscriptionCheckout,
   purchasePromotion,
   cancelSubscription,
@@ -59,6 +61,7 @@ const ONE_TIME_PLANS: {
 
 function formatPrice(amountCents: number, currency: string) {
   const value = amountCents / 100;
+  if (currency === "ron") return `${Math.round(value)} lei`;
   return currency === "eur" ? `€${value}` : `${value} ${currency.toUpperCase()}`;
 }
 
@@ -93,11 +96,18 @@ export function BusinessPromotionsPage({
   hasBusinessAccount,
   purchasesEnabled,
 }: Props) {
+  const t = useTranslations("premium");
+  const tAuth = useTranslations("auth");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [autoRenew, setAutoRenew] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  const isPending = (action: string) => pending && pendingAction === action;
 
   const [pickerOpen, setPickerOpen] = useState(
     Boolean(
@@ -120,7 +130,7 @@ export function BusinessPromotionsPage({
       return { type: "success" as const, message: "Payment successful — your promotion is now active." };
     }
     if (searchParams.get("subscription") === "success") {
-      return { type: "success" as const, message: "Subscription activated — your monthly slots are ready." };
+      return { type: "success" as const, message: t("activated") };
     }
     if (searchParams.get("canceled") === "true") {
       return { type: "error" as const, message: "Checkout was canceled." };
@@ -142,10 +152,12 @@ export function BusinessPromotionsPage({
   const runPurchase = (
     type: PromotionType,
     targetId?: string,
-    checkout = false
+    checkout = false,
+    actionKey = `purchase:${type}:${checkout ? "pay" : "quota"}`
   ) => {
     setError(null);
     setSuccessMessage(null);
+    setPendingAction(actionKey);
 
     startTransition(async () => {
       const result = await purchasePromotion(type, targetId, {
@@ -154,6 +166,7 @@ export function BusinessPromotionsPage({
 
       if (!result.success) {
         setError(result.error);
+        setPendingAction(null);
         return;
       }
 
@@ -165,6 +178,7 @@ export function BusinessPromotionsPage({
       if (result.data.usedQuota) {
         setSuccessMessage("Promotion activated using your subscription slot.");
         setPickerOpen(false);
+        setPendingAction(null);
         router.refresh();
       }
     });
@@ -179,11 +193,34 @@ export function BusinessPromotionsPage({
   };
 
   const handleSubscribe = () => {
+    if (!acceptedTerms) {
+      setError(t("mustAcceptLegal"));
+      return;
+    }
     setError(null);
+    setPendingAction("subscribe");
     startTransition(async () => {
-      const result = await createSubscriptionCheckout();
+      const result = await createSubscriptionCheckout({
+        autoRenew,
+        acceptedTerms: true,
+      });
       if (!result.success) {
         setError(result.error);
+        setPendingAction(null);
+        return;
+      }
+      window.location.href = result.data.url;
+    });
+  };
+
+  const handleManageBilling = () => {
+    setError(null);
+    setPendingAction("billing");
+    startTransition(async () => {
+      const result = await createBillingPortalSession();
+      if (!result.success) {
+        setError(result.error);
+        setPendingAction(null);
         return;
       }
       window.location.href = result.data.url;
@@ -193,21 +230,24 @@ export function BusinessPromotionsPage({
   const handleCancelSubscription = () => {
     if (
       !window.confirm(
-        "Cancel auto-renewal? You will keep access until the end of the current billing period."
+        t("cancelConfirm")
       )
     ) {
       return;
     }
     setError(null);
+    setPendingAction("cancel");
     startTransition(async () => {
       const result = await cancelSubscription();
       if (!result.success) {
         setError(result.error);
+        setPendingAction(null);
         return;
       }
       setSuccessMessage(
-        "Subscription will not renew. Access continues until the period ends."
+        t("canceledSuccess")
       );
+      setPendingAction(null);
       router.refresh();
     });
   };
@@ -220,7 +260,9 @@ export function BusinessPromotionsPage({
         : [];
 
   const pickerQuota =
-    pickerType && subscription ? getQuotaForType(subscription, pickerType) : null;
+    pickerType && subscription?.entitled
+      ? getQuotaForType(subscription, pickerType)
+      : null;
 
   if (!hasBusinessAccount) {
     return (
@@ -295,53 +337,86 @@ export function BusinessPromotionsPage({
           <div className="glass mt-8 rounded-2xl p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-heading text-lg font-semibold">
-                Premium subscription
+                {subscription.paymentFailed
+                  ? t("statusPaymentFailed")
+                  : t("statusActive")}
               </h2>
-              <span className="font-mono text-xs uppercase tracking-wider-2 text-firefly">
-                {subscription.cancelAtPeriodEnd
-                  ? `Ends ${subscription.renewsAt}`
-                  : `Renews ${subscription.renewsAt}`}
+              <span
+                className={`font-mono text-xs uppercase tracking-wider-2 ${
+                  subscription.paymentFailed ? "text-destructive" : "text-firefly"
+                }`}
+              >
+                {subscription.paymentFailed
+                  ? t("paymentFailedLabel")
+                  : subscription.cancelAtPeriodEnd ||
+                      subscription.billingType === "one_time"
+                    ? t("expiresOn", { date: subscription.renewsAt })
+                    : t("nextPayment", { date: subscription.renewsAt })}
               </span>
             </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <QuotaMeter
-                label="Event boosts"
-                used={subscription.promotedUsed}
-                quota={subscription.promotedQuota}
-              />
-              <QuotaMeter
-                label="Feed posts"
-                used={subscription.postsUsed}
-                quota={subscription.postsQuota}
-              />
-              <QuotaMeter
-                label="Newsletters"
-                used={subscription.newslettersUsed}
-                quota={subscription.newslettersQuota}
-              />
-              <QuotaMeter
-                label="Social posts"
-                used={subscription.socialUsed}
-                quota={subscription.socialQuota}
-              />
-            </div>
-            {subscription.cancelAtPeriodEnd ? (
-              <p className="mt-4 text-sm text-foreground/60">
-                Auto-renewal is canceled. You keep Premium benefits until{" "}
-                {subscription.renewsAt}.
-              </p>
+            <p className="mt-1 text-sm text-foreground/60">{t("priceMonthly")}</p>
+            {subscription.entitled ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <QuotaMeter
+                  label="Event boosts"
+                  used={subscription.promotedUsed}
+                  quota={subscription.promotedQuota}
+                />
+                <QuotaMeter
+                  label="Feed posts"
+                  used={subscription.postsUsed}
+                  quota={subscription.postsQuota}
+                />
+                <QuotaMeter
+                  label="Newsletters"
+                  used={subscription.newslettersUsed}
+                  quota={subscription.newslettersQuota}
+                />
+                <QuotaMeter
+                  label="Social posts"
+                  used={subscription.socialUsed}
+                  quota={subscription.socialQuota}
+                />
+              </div>
             ) : (
-              <PendingButton
-                type="button"
-                onClick={handleCancelSubscription}
-                pending={pending}
-                pendingLabel="Canceling…"
-                disabled={!purchasesEnabled}
-                className="mt-4 text-sm text-destructive/80 underline-offset-2 hover:underline"
-              >
-                Cancel auto-renewal
-              </PendingButton>
+              <p className="mt-4 text-sm text-foreground/60">
+                {t("benefitsPaused")}
+              </p>
             )}
+            <div className="mt-4 flex flex-wrap gap-3">
+              {subscription.paymentFailed || subscription.canManageBilling ? (
+                <PendingButton
+                  type="button"
+                  onClick={handleManageBilling}
+                  pending={isPending("billing")}
+                  pendingLabel={t("openingBilling")}
+                  disabled={!purchasesEnabled || (pending && !isPending("billing"))}
+                  className="rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground"
+                >
+                  {subscription.paymentFailed
+                    ? t("updatePayment")
+                    : t("manageBilling")}
+                </PendingButton>
+              ) : null}
+              {subscription.canCancelRenewal ? (
+                <PendingButton
+                  type="button"
+                  onClick={handleCancelSubscription}
+                  pending={isPending("cancel")}
+                  pendingLabel={t("canceling")}
+                  disabled={!purchasesEnabled || (pending && !isPending("cancel"))}
+                  className="text-sm text-destructive/80 underline-offset-2 hover:underline"
+                >
+                  {t("cancelRenewal")}
+                </PendingButton>
+              ) : subscription.entitled &&
+                (subscription.cancelAtPeriodEnd ||
+                  subscription.billingType === "one_time") ? (
+                <p className="text-sm text-foreground/60">
+                  {t("canceledNotice", { date: subscription.renewsAt })}
+                </p>
+              ) : null}
+            </div>
           </div>
         ) : null}
 
@@ -350,7 +425,9 @@ export function BusinessPromotionsPage({
             const price = PROMOTION_PRICES[plan.type];
             const quota = getQuotaForType(subscription, plan.type);
             const hasQuota =
-              subscription && quota && quota.used < quota.quota;
+              Boolean(subscription?.entitled) &&
+              quota &&
+              quota.used < quota.quota;
 
             return (
               <div key={plan.type} className="glass rounded-2xl p-5">
@@ -367,9 +444,9 @@ export function BusinessPromotionsPage({
                   {hasQuota ? (
                     <PendingButton
                       type="button"
-                      pending={pending}
+                      pending={isPending(`purchase:${plan.type}:quota`)}
                       pendingLabel="Applying…"
-                      disabled={!purchasesEnabled}
+                      disabled={!purchasesEnabled || pending}
                       onClick={() => handlePlanClick(plan.type, false)}
                       className="w-full rounded-full bg-firefly py-2 text-sm font-medium text-primary-foreground"
                     >
@@ -378,10 +455,10 @@ export function BusinessPromotionsPage({
                   ) : null}
                   <PendingButton
                     type="button"
-                    pending={pending}
+                    pending={isPending(`purchase:${plan.type}:pay`)}
                     pendingLabel="Redirecting to checkout…"
-                    disabled={!purchasesEnabled}
-                    onClick={() => handlePlanClick(plan.type, !hasQuota)}
+                    disabled={!purchasesEnabled || pending}
+                    onClick={() => handlePlanClick(plan.type, true)}
                     className="w-full rounded-full border border-firefly/30 py-2 text-sm text-firefly hover:bg-firefly/10"
                   >
                     {hasQuota
@@ -395,26 +472,76 @@ export function BusinessPromotionsPage({
 
           <div className="glass rounded-2xl p-5 sm:col-span-2 lg:col-span-1">
             <div className="font-heading text-lg font-semibold">
-              {SUBSCRIPTION_PRICE.label}
+              {t("cardTitle")}
             </div>
             <div className="mt-2 text-2xl font-bold text-firefly">
               {formatPrice(SUBSCRIPTION_PRICE.amount, SUBSCRIPTION_PRICE.currency)}
-              /mo
             </div>
-            <p className="mt-2 text-sm text-foreground/65">
-              4 promoted events, 4 feed posts, 2 newsletters, 2 social posts
-              every month.
-            </p>
-            <PendingButton
-              type="button"
-              pending={pending}
-              pendingLabel="Redirecting to checkout…"
-              disabled={!purchasesEnabled || Boolean(subscription)}
-              onClick={handleSubscribe}
-              className="mt-4 w-full rounded-full border border-firefly/30 py-2 text-sm text-firefly hover:bg-firefly/10"
-            >
-              {subscription ? "Subscribed" : "Subscribe"}
-            </PendingButton>
+            <p className="mt-2 text-sm text-foreground/65">{t("included")}</p>
+            {subscription?.entitled || subscription?.paymentFailed ? (
+              <PendingButton
+                type="button"
+                pending={false}
+                pendingLabel={t("redirecting")}
+                disabled
+                className="mt-4 w-full rounded-full border border-firefly/30 py-2 text-sm text-firefly/50"
+              >
+                {subscription.paymentFailed ? t("paymentFailedLabel") : t("subscribed")}
+              </PendingButton>
+            ) : (
+              <>
+                <label className="mt-4 flex items-start gap-2 text-sm text-foreground/80">
+                  <input
+                    type="checkbox"
+                    checked={autoRenew}
+                    onChange={(event) => setAutoRenew(event.target.checked)}
+                    className="mt-0.5 accent-firefly"
+                  />
+                  <span>{t("autoRenew")}</span>
+                </label>
+                {autoRenew ? (
+                  <p className="mt-2 text-xs text-foreground/55">
+                    {t("autoRenewDetails")}
+                  </p>
+                ) : null}
+                <label className="mt-3 flex items-start gap-2 text-sm text-foreground/80">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(event) => setAcceptedTerms(event.target.checked)}
+                    className="mt-0.5 accent-firefly"
+                    required
+                  />
+                  <span>
+                    {tAuth("agreeTermsPrefix")}{" "}
+                    <Link
+                      href="/terms"
+                      className="text-firefly/90 underline-offset-2 hover:underline"
+                    >
+                      {tAuth("termsLink")}
+                    </Link>{" "}
+                    {tAuth("agreeTermsMiddle")}{" "}
+                    <Link
+                      href="/privacy"
+                      className="text-firefly/90 underline-offset-2 hover:underline"
+                    >
+                      {tAuth("privacyLink")}
+                    </Link>
+                    .
+                  </span>
+                </label>
+                <PendingButton
+                  type="button"
+                  pending={isPending("subscribe")}
+                  pendingLabel={t("redirecting")}
+                  disabled={!purchasesEnabled || pending}
+                  onClick={handleSubscribe}
+                  className="mt-4 w-full rounded-full border border-firefly/30 py-2 text-sm text-firefly hover:bg-firefly/10"
+                >
+                  {t("continueToCheckout")}
+                </PendingButton>
+              </>
+            )}
           </div>
         </div>
 
@@ -474,9 +601,9 @@ export function BusinessPromotionsPage({
               {pickerQuota && pickerQuota.used < pickerQuota.quota && !forceCheckout ? (
                 <PendingButton
                   type="button"
-                  pending={pending}
+                  pending={isPending(`purchase:${pickerType}:quota`)}
                   pendingLabel="Applying…"
-                  disabled={!purchasesEnabled || !selectedTarget}
+                  disabled={!purchasesEnabled || !selectedTarget || pending}
                   onClick={() =>
                     runPurchase(pickerType, selectedTarget, false)
                   }
@@ -487,9 +614,9 @@ export function BusinessPromotionsPage({
               ) : (
                 <PendingButton
                   type="button"
-                  pending={pending}
+                  pending={isPending(`purchase:${pickerType}:pay`)}
                   pendingLabel="Redirecting to checkout…"
-                  disabled={!purchasesEnabled || !selectedTarget}
+                  disabled={!purchasesEnabled || !selectedTarget || pending}
                   onClick={() =>
                     runPurchase(pickerType, selectedTarget, true)
                   }
@@ -503,9 +630,9 @@ export function BusinessPromotionsPage({
               !forceCheckout ? (
                 <PendingButton
                   type="button"
-                  pending={pending}
+                  pending={isPending(`purchase:${pickerType}:pay`)}
                   pendingLabel="Redirecting to checkout…"
-                  disabled={!purchasesEnabled || !selectedTarget}
+                  disabled={!purchasesEnabled || !selectedTarget || pending}
                   onClick={() =>
                     runPurchase(pickerType, selectedTarget, true)
                   }

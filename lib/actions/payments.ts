@@ -4,11 +4,17 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
 import { getStripe } from "@/lib/stripe/client";
-import { PROMOTION_PRICES } from "@/lib/stripe/products";
+import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
+import {
+  hasBlockingPremium,
+  isPremiumEntitled,
+} from "@/lib/stripe/entitlement";
+import { PREMIUM_PRODUCT, PROMOTION_PRICES, SUBSCRIPTION_PRICE } from "@/lib/stripe/products";
 import { activatePromotion } from "@/lib/stripe/activate-promotion";
 import { success, failure } from "@/lib/utils/action-result";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
 import type { ActionResult, PromotionType } from "@/types";
+import type Stripe from "stripe";
 
 const QUOTA_MAP: Record<
   PromotionType,
@@ -25,6 +31,8 @@ const QUOTA_MAP: Record<
 
 type SubscriptionRow = {
   id: string;
+  status: string;
+  current_period_end: string;
   quota_promoted_events: number;
   used_promoted_events: number;
   quota_feed_posts: number;
@@ -34,6 +42,9 @@ type SubscriptionRow = {
   quota_social_posts: number;
   used_social_posts: number;
 };
+
+const SUBSCRIPTION_SELECT =
+  "id, status, current_period_end, quota_promoted_events, used_promoted_events, quota_feed_posts, used_feed_posts, quota_newsletters, used_newsletters, quota_social_posts, used_social_posts";
 
 const TARGET_REQUIRED_TYPES: PromotionType[] = ["event_boost", "feed_post"];
 
@@ -79,14 +90,18 @@ async function getActiveSubscription(
   const supabase = await createClient();
   const { data } = await supabase
     .from("subscriptions")
-    .select(
-      "id, quota_promoted_events, used_promoted_events, quota_feed_posts, used_feed_posts, quota_newsletters, used_newsletters, quota_social_posts, used_social_posts"
-    )
+    .select(SUBSCRIPTION_SELECT)
     .eq("business_account_id", businessAccountId)
-    .eq("status", "active")
     .maybeSingle();
 
+  if (!data || !isPremiumEntitled(data)) return null;
   return data;
+}
+
+function checkoutLocale(
+  locale: string
+): Stripe.Checkout.SessionCreateParams.Locale {
+  return locale === "ro" ? "ro" : "en";
 }
 
 function hasQuotaRemaining(sub: SubscriptionRow, type: PromotionType): boolean {
@@ -138,7 +153,6 @@ export async function createCheckoutSession(
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card"],
       line_items: [
         {
           price_data: {
@@ -167,7 +181,147 @@ export async function createCheckoutSession(
   }
 }
 
-export async function createSubscriptionCheckout(): Promise<
+export async function createSubscriptionCheckout(options: {
+  autoRenew: boolean;
+  acceptedTerms: boolean;
+}): Promise<ActionResult<{ url: string }>> {
+  const disabled = supabaseDisabled<{ url: string }>();
+  if (disabled) return disabled;
+
+  try {
+    if (!options.acceptedTerms) {
+      return failure("You must accept the Terms and Privacy Policy");
+    }
+
+    const session = await getSession();
+    if (!session.businessAccountId) {
+      return failure("Business account required");
+    }
+
+    const admin = createAdminClient();
+    const { data: existing } = await admin
+      .from("subscriptions")
+      .select("status, current_period_end")
+      .eq("business_account_id", session.businessAccountId)
+      .maybeSingle();
+
+    if (hasBlockingPremium(existing)) {
+      return failure("A Premium subscription is already active or pending payment");
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const locale = session.preferredLocale ?? "en";
+    const promotionsPath = `${appUrl}/${locale}/business/promotions`;
+    const customerId = await getOrCreateStripeCustomer({
+      businessAccountId: session.businessAccountId,
+      email: session.email,
+    });
+
+    const acceptedAt = new Date().toISOString();
+    const metadata = {
+      business_account_id: session.businessAccountId,
+      product: PREMIUM_PRODUCT,
+      auto_renew: options.autoRenew ? "true" : "false",
+      accepted_terms: "true",
+      terms_accepted_at: acceptedAt,
+    };
+
+    const checkoutSession = options.autoRenew
+      ? await createRecurringCheckout({
+          customerId,
+          locale,
+          promotionsPath,
+          metadata,
+        })
+      : await createOneTimeCheckout({
+          customerId,
+          locale,
+          promotionsPath,
+          metadata,
+        });
+
+    if (!checkoutSession.url) return failure("Failed to create checkout session");
+    return success({ url: checkoutSession.url });
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to create subscription checkout"
+    );
+  }
+}
+
+async function createRecurringCheckout(params: {
+  customerId: string;
+  locale: string;
+  promotionsPath: string;
+  metadata: Record<string, string>;
+}) {
+  const priceId = process.env.STRIPE_PREMIUM_SUBSCRIPTION_PRICE_ID?.trim();
+  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = priceId
+    ? [{ price: priceId, quantity: 1 }]
+    : [
+        {
+          price_data: {
+            currency: SUBSCRIPTION_PRICE.currency,
+            unit_amount: SUBSCRIPTION_PRICE.amount,
+            recurring: { interval: "month" },
+            product_data: {
+              name: SUBSCRIPTION_PRICE.label,
+            },
+          },
+          quantity: 1,
+        },
+      ];
+
+  return getStripe().checkout.sessions.create({
+    mode: "subscription",
+    customer: params.customerId,
+    customer_update: { address: "auto", name: "auto" },
+    locale: checkoutLocale(params.locale),
+    line_items: lineItems,
+    metadata: params.metadata,
+    subscription_data: {
+      metadata: params.metadata,
+    },
+    success_url: `${params.promotionsPath}?subscription=success`,
+    cancel_url: `${params.promotionsPath}?canceled=true`,
+  });
+}
+
+async function createOneTimeCheckout(params: {
+  customerId: string;
+  locale: string;
+  promotionsPath: string;
+  metadata: Record<string, string>;
+}) {
+  const oneTimePriceId = process.env.STRIPE_PREMIUM_ONETIME_PRICE_ID;
+  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = oneTimePriceId
+    ? [{ price: oneTimePriceId, quantity: 1 }]
+    : [
+        {
+          price_data: {
+            currency: SUBSCRIPTION_PRICE.currency,
+            unit_amount: SUBSCRIPTION_PRICE.amount,
+            product_data: {
+              name: `${SUBSCRIPTION_PRICE.label} (one month)`,
+            },
+          },
+          quantity: 1,
+        },
+      ];
+
+  return getStripe().checkout.sessions.create({
+    mode: "payment",
+    customer: params.customerId,
+    customer_update: { address: "auto", name: "auto" },
+    locale: checkoutLocale(params.locale),
+    line_items: lineItems,
+    metadata: params.metadata,
+    success_url: `${params.promotionsPath}?subscription=success`,
+    cancel_url: `${params.promotionsPath}?canceled=true`,
+  });
+}
+
+export async function createBillingPortalSession(): Promise<
   ActionResult<{ url: string }>
 > {
   const disabled = supabaseDisabled<{ url: string }>();
@@ -179,35 +333,25 @@ export async function createSubscriptionCheckout(): Promise<
       return failure("Business account required");
     }
 
-    const priceId = process.env.STRIPE_PREMIUM_SUBSCRIPTION_PRICE_ID;
-    if (!priceId) return failure("Subscription price not configured");
+    const customerId = await getOrCreateStripeCustomer({
+      businessAccountId: session.businessAccountId,
+      email: session.email,
+    });
 
-    const stripe = getStripe();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
     const locale = session.preferredLocale ?? "en";
     const promotionsPath = `${appUrl}/${locale}/business/promotions`;
 
-    const checkoutSession = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      payment_method_types: ["card"],
-      line_items: [{ price: priceId, quantity: 1 }],
-      metadata: {
-        business_account_id: session.businessAccountId,
-      },
-      subscription_data: {
-        metadata: {
-          business_account_id: session.businessAccountId,
-        },
-      },
-      success_url: `${promotionsPath}?subscription=success`,
-      cancel_url: `${promotionsPath}?canceled=true`,
+    const portal = await getStripe().billingPortal.sessions.create({
+      customer: customerId,
+      return_url: promotionsPath,
     });
 
-    if (!checkoutSession.url) return failure("Failed to create checkout session");
-    return success({ url: checkoutSession.url });
+    if (!portal.url) return failure("Failed to open billing portal");
+    return success({ url: portal.url });
   } catch (e) {
     return failure(
-      e instanceof Error ? e.message : "Failed to create subscription checkout"
+      e instanceof Error ? e.message : "Failed to open billing portal"
     );
   }
 }
@@ -244,7 +388,6 @@ export async function useSubscriptionQuota(
       if (!validation.success) return validation;
     }
 
-    const supabase = await createClient();
     const sub = await getActiveSubscription(session.businessAccountId);
 
     if (!sub) return failure("No active subscription");
@@ -264,14 +407,14 @@ export async function useSubscriptionQuota(
             ? { used_newsletters: used + 1 }
             : { used_social_posts: used + 1 };
 
-    const { error } = await supabase
+    const admin = createAdminClient();
+    const { error } = await admin
       .from("subscriptions")
       .update(updatePayload)
       .eq("id", sub.id);
 
     if (error) return failure(error.message);
 
-    const admin = createAdminClient();
     await activatePromotion(admin, {
       businessAccountId: session.businessAccountId,
       type,
@@ -360,13 +503,18 @@ export async function cancelSubscription(
     const admin = createAdminClient();
     const { data: sub, error } = await admin
       .from("subscriptions")
-      .select("id, stripe_subscription_id, status, cancel_at_period_end")
+      .select("id, stripe_subscription_id, status, cancel_at_period_end, current_period_end, billing_type")
       .eq("business_account_id", targetId)
-      .eq("status", "active")
       .maybeSingle();
 
     if (error) return failure(error.message);
     if (!sub) return failure("No active subscription");
+    if (!isPremiumEntitled(sub) && sub.status !== "unpaid") {
+      return failure("No active subscription");
+    }
+    if (sub.billing_type === "one_time" || !sub.stripe_subscription_id) {
+      return failure("This Premium period does not auto-renew");
+    }
     if (sub.cancel_at_period_end) {
       return failure("Subscription is already set to cancel");
     }

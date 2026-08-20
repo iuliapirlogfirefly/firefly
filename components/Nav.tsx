@@ -11,9 +11,9 @@ import { signOut } from "@/lib/actions/auth";
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/map", label: "Map" },
+  { href: "/calendar", label: "Calendar" },
   { href: "/feed", label: "Feed" },
   { href: "/missed", label: "Missed" },
-  { href: "/calendar", label: "Calendar" },
 ] as const;
 
 export function Nav() {

@@ -5,6 +5,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { EventCard } from "@/components/EventCard";
 import { Nav } from "@/components/Nav";
 import { EventActions } from "@/components/events/event-actions";
+import { formatEventTypeLabel } from "@/lib/constants/event-types";
 import { formatGenreLabel } from "@/lib/constants/genres";
 import { landingImages } from "@/lib/landing/images";
 import {
@@ -85,11 +86,19 @@ export function EventDetailPage({ event, related }: Props) {
 
           <div className="mt-10 flex flex-wrap gap-3">
             <span className="rounded-full border border-firefly/30 bg-firefly/10 px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-firefly">
+              {formatEventTypeLabel(event.eventType)}
+            </span>
+            <span className="rounded-full border border-firefly/30 bg-firefly/10 px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-firefly">
               {formatGenreLabel(event.genre)}
             </span>
             <span className="rounded-full bg-amber-warm/15 px-3 py-1.5 text-xs font-medium text-amber-warm">
               {formatPrice(event.price)}
             </span>
+            {event.specialGuest ? (
+              <span className="rounded-full border border-firefly/30 bg-firefly/10 px-3 py-1.5 text-xs font-medium text-firefly">
+                {event.specialGuest}
+              </span>
+            ) : null}
             {event.organizerName ? (
               <span className="rounded-full bg-surface-2 px-3 py-1.5 text-xs text-foreground/70">
                 by {event.organizerName}
@@ -124,6 +133,7 @@ export function EventDetailPage({ event, related }: Props) {
           initialSaved={event.isSaved}
           initialReminded={event.isReminded}
           ticketUrl={event.ticketUrl}
+          websiteUrl={event.websiteUrl}
         />
       </section>
 

@@ -45,6 +45,8 @@ function row(
     event_type: "club_night",
     price: 50,
     ticket_url: "https://example.com/tickets",
+    website_url: "https://example.com",
+    special_guest: null,
     cover_image_url: null,
     images: [],
     is_promoted: false,
@@ -71,6 +73,7 @@ const MOCK_EVENT_ROWS: EventRow[] = [
     event_type: "club_night",
     is_promoted: true,
     promotion_intensity: 3,
+    special_guest: "DJ Ion Popescu",
     cover_image_url: eventImages.event1,
     translations: {
       en: {
@@ -422,6 +425,8 @@ export function getMockEventBySlug(
     description: t[locale]?.description ?? t.en?.description ?? "",
     address: event.address ?? "",
     ticketUrl: event.ticket_url,
+    websiteUrl: event.website_url,
+    specialGuest: event.special_guest,
     images: event.images ?? [],
     organizerName: null,
     isSaved: false,

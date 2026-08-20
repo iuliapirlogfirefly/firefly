@@ -1,6 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured, shouldUseMockData } from "@/lib/supabase/config";
 import { MOCK_BUSINESS_ACCOUNT_ID } from "@/lib/mocks/data";
+import {
+  isPaymentFailedStatus,
+  isPremiumEntitled,
+  parseBillingType,
+  type BillingType,
+} from "@/lib/stripe/entitlement";
 import type { BusinessBillingInfo, BusinessType } from "@/types";
 
 export type BusinessAccountInfo = {
@@ -126,8 +132,12 @@ export type AdminBusinessDetails = {
   subscription: {
     id: string;
     status: string;
+    billingType: BillingType;
     renewsAt: string;
     cancelAtPeriodEnd: boolean;
+    entitled: boolean;
+    paymentFailed: boolean;
+    canCancelRenewal: boolean;
     promotedUsed: number;
     promotedQuota: number;
     postsUsed: number;
@@ -169,8 +179,12 @@ export async function getAdminBusinessDetails(
       subscription: {
         id: "sub-1",
         status: "active",
+        billingType: "recurring",
         renewsAt: "2026-04-15",
         cancelAtPeriodEnd: false,
+        entitled: true,
+        paymentFailed: false,
+        canCancelRenewal: true,
         promotedUsed: 2,
         promotedQuota: 4,
         postsUsed: 1,
@@ -215,10 +229,9 @@ export async function getAdminBusinessDetails(
   const { data: sub } = await supabase
     .from("subscriptions")
     .select(
-      "id, status, current_period_end, cancel_at_period_end, used_promoted_events, quota_promoted_events, used_feed_posts, quota_feed_posts, used_newsletters, quota_newsletters, used_social_posts, quota_social_posts"
+      "id, status, billing_type, current_period_end, cancel_at_period_end, stripe_subscription_id, used_promoted_events, quota_promoted_events, used_feed_posts, quota_feed_posts, used_newsletters, quota_newsletters, used_social_posts, quota_social_posts"
     )
     .eq("business_account_id", businessAccountId)
-    .eq("status", "active")
     .maybeSingle();
 
   const { data: payments } = await supabase
@@ -241,8 +254,18 @@ export async function getAdminBusinessDetails(
       ? {
           id: sub.id,
           status: sub.status,
+          billingType: parseBillingType(sub.billing_type),
           renewsAt: sub.current_period_end?.slice(0, 10) ?? "",
-          cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
+          cancelAtPeriodEnd:
+            sub.cancel_at_period_end ??
+            parseBillingType(sub.billing_type) === "one_time",
+          entitled: isPremiumEntitled(sub),
+          paymentFailed: isPaymentFailedStatus(sub.status),
+          canCancelRenewal:
+            isPremiumEntitled(sub) &&
+            parseBillingType(sub.billing_type) === "recurring" &&
+            Boolean(sub.stripe_subscription_id) &&
+            !sub.cancel_at_period_end,
           promotedUsed: sub.used_promoted_events,
           promotedQuota: sub.quota_promoted_events,
           postsUsed: sub.used_feed_posts,

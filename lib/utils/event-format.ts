@@ -24,6 +24,6 @@ export function formatTimeRange(
 }
 
 export function formatPrice(price: number | null) {
-  if (price == null) return "Free";
-  return `${price} lei`;
+  if (price == null || price === 0) return "Free entry";
+  return `From ${price} lei`;
 }

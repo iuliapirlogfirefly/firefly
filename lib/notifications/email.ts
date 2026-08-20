@@ -210,3 +210,54 @@ export async function sendNearbyEventsDigestEmail(
 
   await sendEmail({ to, subject, html, locale });
 }
+
+function formatRonAmount(amountCents: number, currency: string): string {
+  if (currency.toLowerCase() === "ron") {
+    return `${Math.round(amountCents / 100)} RON`;
+  }
+  return `${(amountCents / 100).toFixed(2)} ${currency.toUpperCase()}`;
+}
+
+function promotionsUrl(locale: Locale): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  return `${appUrl}/${locale}/business/promotions`;
+}
+
+export async function sendPremiumPaymentFailedEmail(
+  to: string,
+  amountCents: number,
+  currency: string,
+  locale: Locale = "en"
+): Promise<void> {
+  const amount = formatRonAmount(amountCents, currency);
+  const dashboardUrl = promotionsUrl(locale);
+  const subject =
+    locale === "ro"
+      ? "Plata Firefly Premium a eșuat"
+      : "Your Firefly Premium payment failed";
+
+  const html =
+    locale === "ro"
+      ? `<p>Nu am putut procesa plata lunară de <strong>${amount}</strong>.</p><p>Te rugăm să actualizezi metoda de plată pentru a păstra beneficiile Premium active.</p><p><a href="${dashboardUrl}">Actualizează metoda de plată</a></p>`
+      : `<p>We couldn't process your monthly payment of <strong>${amount}</strong>.</p><p>Please update your payment method to keep your Premium benefits active.</p><p><a href="${dashboardUrl}">Update payment method</a></p>`;
+
+  await sendEmail({ to, subject, html, locale });
+}
+
+export async function sendPremiumUnpaidEmail(
+  to: string,
+  locale: Locale = "en"
+): Promise<void> {
+  const dashboardUrl = promotionsUrl(locale);
+  const subject =
+    locale === "ro"
+      ? "Beneficiile Firefly Premium au fost suspendate"
+      : "Your Firefly Premium benefits are paused";
+
+  const html =
+    locale === "ro"
+      ? `<p>Nu am putut încasa plata Premium după mai multe încercări, iar beneficiile au fost suspendate.</p><p>Actualizează metoda de plată pentru a reactiva Premium.</p><p><a href="${dashboardUrl}">Actualizează metoda de plată</a></p>`
+      : `<p>We couldn't collect your Premium payment after several attempts, so your benefits have been paused.</p><p>Update your payment method to reactivate Premium.</p><p><a href="${dashboardUrl}">Update payment method</a></p>`;
+
+  await sendEmail({ to, subject, html, locale });
+}

@@ -74,6 +74,7 @@ export type Database = {
           billing_county: string | null;
           billing_postal_code: string | null;
           billing_country: string;
+          stripe_customer_id: string | null;
           rejection_reason: string | null;
           approved_at: string | null;
           created_at: string;
@@ -92,6 +93,7 @@ export type Database = {
           billing_county?: string | null;
           billing_postal_code?: string | null;
           billing_country?: string;
+          stripe_customer_id?: string | null;
           rejection_reason?: string | null;
           approved_at?: string | null;
           created_at?: string;
@@ -110,6 +112,7 @@ export type Database = {
           billing_county?: string | null;
           billing_postal_code?: string | null;
           billing_country?: string;
+          stripe_customer_id?: string | null;
           rejection_reason?: string | null;
           approved_at?: string | null;
           created_at?: string;
@@ -167,6 +170,8 @@ export type Database = {
           event_type: string;
           price: number | null;
           ticket_url: string | null;
+          website_url: string | null;
+          special_guest: string | null;
           cover_image_url: string | null;
           images: string[];
           translations: Json;
@@ -195,6 +200,8 @@ export type Database = {
           event_type: string;
           price?: number | null;
           ticket_url?: string | null;
+          website_url?: string | null;
+          special_guest?: string | null;
           cover_image_url?: string | null;
           images?: string[];
           translations?: Json;
@@ -222,6 +229,8 @@ export type Database = {
           event_type?: string;
           price?: number | null;
           ticket_url?: string | null;
+          website_url?: string | null;
+          special_guest?: string | null;
           cover_image_url?: string | null;
           images?: string[];
           translations?: Json;
@@ -416,12 +425,14 @@ export type Database = {
         Row: {
           id: string;
           business_account_id: string;
-          stripe_subscription_id: string;
+          stripe_subscription_id: string | null;
           stripe_customer_id: string;
           status: string;
+          billing_type: string;
           current_period_start: string;
           current_period_end: string;
           cancel_at_period_end: boolean;
+          terms_accepted_at: string | null;
           quota_promoted_events: number;
           quota_feed_posts: number;
           quota_newsletters: number;
@@ -436,12 +447,14 @@ export type Database = {
         Insert: {
           id?: string;
           business_account_id: string;
-          stripe_subscription_id: string;
+          stripe_subscription_id?: string | null;
           stripe_customer_id: string;
           status?: string;
+          billing_type?: string;
           current_period_start: string;
           current_period_end: string;
           cancel_at_period_end?: boolean;
+          terms_accepted_at?: string | null;
           quota_promoted_events?: number;
           quota_feed_posts?: number;
           quota_newsletters?: number;
@@ -456,12 +469,14 @@ export type Database = {
         Update: {
           id?: string;
           business_account_id?: string;
-          stripe_subscription_id?: string;
+          stripe_subscription_id?: string | null;
           stripe_customer_id?: string;
           status?: string;
+          billing_type?: string;
           current_period_start?: string;
           current_period_end?: string;
           cancel_at_period_end?: boolean;
+          terms_accepted_at?: string | null;
           quota_promoted_events?: number;
           quota_feed_posts?: number;
           quota_newsletters?: number;

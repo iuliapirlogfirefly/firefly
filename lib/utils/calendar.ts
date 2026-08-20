@@ -1,3 +1,5 @@
+import type { EventType } from "@/types";
+
 export const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
 
 export function toDateKey(date: Date): string {
@@ -71,7 +73,12 @@ export function parseCalendarMonthYear(
 
 export function updateCalendarSearchParams(
   current: URLSearchParams,
-  patch: { month?: number; year?: number; search?: string | undefined }
+  patch: {
+    month?: number;
+    year?: number;
+    search?: string | undefined;
+    eventType?: EventType | undefined;
+  }
 ): URLSearchParams {
   const next = new URLSearchParams(current);
 
@@ -88,6 +95,11 @@ export function updateCalendarSearchParams(
   if ("search" in patch) {
     if (!patch.search) next.delete("search");
     else next.set("search", patch.search);
+  }
+
+  if ("eventType" in patch) {
+    if (!patch.eventType) next.delete("eventType");
+    else next.set("eventType", patch.eventType);
   }
 
   return next;

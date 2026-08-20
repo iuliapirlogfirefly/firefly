@@ -12,6 +12,7 @@ export async function POST(request: Request) {
   const {
     handleCheckoutCompleted,
     handleInvoicePaid,
+    handleInvoicePaymentFailed,
     handleSubscriptionUpdated,
     handleSubscriptionDeleted,
     isWebhookProcessed,
@@ -49,6 +50,9 @@ export async function POST(request: Request) {
       break;
     case "invoice.payment_succeeded":
       await handleInvoicePaid(event.data.object as Stripe.Invoice);
+      break;
+    case "invoice.payment_failed":
+      await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
       break;
     case "customer.subscription.updated":
     case "customer.subscription.created":
