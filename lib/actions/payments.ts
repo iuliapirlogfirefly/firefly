@@ -11,6 +11,7 @@ import {
 } from "@/lib/stripe/entitlement";
 import { PREMIUM_PRODUCT, PROMOTION_PRICES, SUBSCRIPTION_PRICE } from "@/lib/stripe/products";
 import { activatePromotion } from "@/lib/stripe/activate-promotion";
+import { hasActivePromotion } from "@/lib/stripe/promotions";
 import { success, failure } from "@/lib/utils/action-result";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
 import type { ActionResult, PromotionType } from "@/types";
@@ -65,10 +66,7 @@ async function validatePromotionTarget(
       .maybeSingle();
 
     if (!data) return failure("Published event not found");
-    return success(undefined);
-  }
-
-  if (type === "feed_post") {
+  } else if (type === "feed_post") {
     const { data } = await supabase
       .from("feed_posts")
       .select("id")
@@ -78,7 +76,12 @@ async function validatePromotionTarget(
       .maybeSingle();
 
     if (!data) return failure("Published feed post not found");
+  } else {
     return success(undefined);
+  }
+
+  if (await hasActivePromotion(supabase, type, targetId)) {
+    return failure("This item is already boosted until it expires");
   }
 
   return success(undefined);

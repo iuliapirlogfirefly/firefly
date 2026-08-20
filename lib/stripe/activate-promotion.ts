@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import type { PromotionType } from "@/types";
 import { PROMOTION_DURATION_DAYS } from "./products";
+import { hasActivePromotion } from "./promotions";
 
 type AdminClient = SupabaseClient<Database>;
 
@@ -17,6 +18,10 @@ export async function activatePromotion(
   params: ActivatePromotionParams
 ): Promise<void> {
   const { businessAccountId, type, targetId, stripePaymentId } = params;
+
+  if (await hasActivePromotion(admin, type, targetId)) {
+    return;
+  }
 
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + PROMOTION_DURATION_DAYS);

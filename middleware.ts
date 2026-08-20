@@ -68,6 +68,13 @@ export async function middleware(request: NextRequest) {
       const locale = pathname.match(/^\/(en|ro)/)?.[1] ?? "en";
       const url = request.nextUrl.clone();
       url.pathname = `/${locale}${stripLocale(access.redirect)}`;
+      // Guests hitting protected routes (e.g. returning from Stripe) keep a
+      // return path so auth can send them back instead of dropping query-only.
+      if (role === "guest" && access.redirect === "/login") {
+        const returnTo = `${pathname}${request.nextUrl.search}`;
+        url.pathname = `/${locale}/auth`;
+        url.search = `?next=${encodeURIComponent(returnTo)}`;
+      }
       if (isSuspended) {
         clearSupabaseAuthCookies(request, intlResponse);
       }

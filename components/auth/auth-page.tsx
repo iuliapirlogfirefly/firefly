@@ -11,6 +11,7 @@ import {
   Mail,
   User,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import {
@@ -32,12 +33,21 @@ type Props = {
   initialAccountType?: AccountType;
 };
 
+function safeReturnPath(raw: string | null): string | null {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
+  // Middleware may pass a locale-prefixed path; next-intl router expects unprefixed.
+  const withoutLocale = raw.replace(/^\/(en|ro)(?=\/|$)/, "") || "/";
+  return withoutLocale.startsWith("/") ? withoutLocale : `/${withoutLocale}`;
+}
+
 export function AuthPage({
   initialMode = "signin",
   initialAccountType = "person",
 }: Props) {
   const tAuth = useTranslations("auth");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = safeReturnPath(searchParams.get("next"));
   const [mode, setMode] = useState<Mode>(initialMode);
   const [accountType, setAccountType] = useState<AccountType>(initialAccountType);
   const [businessType, setBusinessType] = useState<BusinessType>("venue");
@@ -138,7 +148,7 @@ export function AuthPage({
         return;
       }
 
-      router.push(result.data.redirectTo);
+      router.push(returnTo ?? result.data.redirectTo);
       router.refresh();
     });
   };

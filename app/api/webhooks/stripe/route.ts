@@ -27,14 +27,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
 
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
+  if (!webhookSecret) {
+    console.error("[stripe] STRIPE_WEBHOOK_SECRET is not set");
+    return NextResponse.json({ error: "Webhook secret missing" }, { status: 500 });
+  }
+
   let event: Stripe.Event;
   try {
-    event = getStripe().webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+    event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
+  } catch (error) {
+    console.error(
+      "[stripe] Webhook signature verification failed. For local `stripe listen`, use the whsec_ printed by the CLI (not the Dashboard endpoint secret).",
+      error instanceof Error ? error.message : error
     );
-  } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 

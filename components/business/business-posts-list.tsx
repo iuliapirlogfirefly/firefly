@@ -60,6 +60,9 @@ export function BusinessPostsList({ posts, locale }: Props) {
                   >
                     {post.status}
                   </span>
+                  {post.isPromoted ? (
+                    <span className="text-[10px] text-amber-warm">Boosted</span>
+                  ) : null}
                 </div>
                 <div className="mt-1 font-heading font-semibold">{post.title}</div>
                 <p className="mt-1 text-sm text-foreground/65">{post.description}</p>
@@ -70,7 +73,7 @@ export function BusinessPostsList({ posts, locale }: Props) {
                 ) : null}
               </div>
               <div className="flex shrink-0 flex-col gap-2 self-start">
-                {post.status === "published" ? (
+                {post.status === "published" && !post.isPromoted ? (
                   <Link
                     href={`/business/promotions?boost=feed_post&target=${post.id}`}
                     className="rounded-full border border-firefly/30 px-3 py-1.5 text-xs text-firefly transition-colors hover:bg-firefly/10"

@@ -276,9 +276,39 @@ export async function getBusinessEvents(
 
   if (error) throw error;
 
-  return (data ?? []).map((e) => ({
-    ...mapEventToListItem(e, locale),
-    status: e.status,
+  const rows = data ?? [];
+  const { getActivePromotionTargetIds } = await import(
+    "@/lib/stripe/promotions"
+  );
+  const promotedIds = await getActivePromotionTargetIds(
+    supabase,
+    "event_boost",
+    rows.map((event) => event.id)
+  );
+
+  const stalePromotedIds = rows
+    .filter((event) => event.is_promoted && !promotedIds.has(event.id))
+    .map((event) => event.id);
+
+  if (stalePromotedIds.length > 0) {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+    await admin
+      .from("events")
+      .update({ is_promoted: false, promotion_intensity: 1 })
+      .in("id", stalePromotedIds);
+  }
+
+  return rows.map((event) => ({
+    ...mapEventToListItem(
+      stalePromotedIds.includes(event.id)
+        ? { ...event, is_promoted: false, promotion_intensity: 1 }
+        : promotedIds.has(event.id)
+          ? { ...event, is_promoted: true, promotion_intensity: 3 }
+          : event,
+      locale
+    ),
+    status: event.status,
   }));
 }
 

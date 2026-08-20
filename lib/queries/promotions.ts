@@ -97,6 +97,7 @@ export async function getBusinessPromotions(
     .select("id, type, target_id, expires_at, is_active")
     .eq("business_account_id", businessAccountId)
     .eq("is_active", true)
+    .gt("expires_at", new Date().toISOString())
     .order("expires_at", { ascending: true });
 
   if (error) throw error;

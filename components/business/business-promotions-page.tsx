@@ -254,10 +254,20 @@ export function BusinessPromotionsPage({
 
   const pickerTargets =
     pickerType === "event_boost"
-      ? publishedEvents.map((e) => ({ id: e.id, label: e.title }))
+      ? publishedEvents
+          .filter((e) => !e.isPromoted)
+          .map((e) => ({ id: e.id, label: e.title }))
       : pickerType === "feed_post"
-        ? publishedPosts.map((p) => ({ id: p.id, label: p.title }))
+        ? publishedPosts
+            .filter((p) => !p.isPromoted)
+            .map((p) => ({ id: p.id, label: p.title }))
         : [];
+
+  const effectiveSelectedTarget = pickerTargets.some(
+    (target) => target.id === selectedTarget
+  )
+    ? selectedTarget
+    : "";
 
   const pickerQuota =
     pickerType && subscription?.entitled
@@ -580,11 +590,13 @@ export function BusinessPromotionsPage({
             {pickerTargets.length === 0 ? (
               <p className="mt-4 text-sm text-foreground/50">
                 No published{" "}
-                {pickerType === "event_boost" ? "events" : "feed posts"} yet.
+                {pickerType === "event_boost" ? "events" : "feed posts"}{" "}
+                available to boost. Items with an active boost appear again
+                after it expires.
               </p>
             ) : (
               <select
-                value={selectedTarget}
+                value={effectiveSelectedTarget}
                 onChange={(e) => setSelectedTarget(e.target.value)}
                 className="mt-4 w-full rounded-xl border border-firefly/20 bg-surface-1/50 px-3.5 py-2.5 text-sm"
               >
@@ -603,9 +615,9 @@ export function BusinessPromotionsPage({
                   type="button"
                   pending={isPending(`purchase:${pickerType}:quota`)}
                   pendingLabel="Applying…"
-                  disabled={!purchasesEnabled || !selectedTarget || pending}
+                  disabled={!purchasesEnabled || !effectiveSelectedTarget || pending}
                   onClick={() =>
-                    runPurchase(pickerType, selectedTarget, false)
+                    runPurchase(pickerType, effectiveSelectedTarget, false)
                   }
                   className="rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground"
                 >
@@ -616,9 +628,9 @@ export function BusinessPromotionsPage({
                   type="button"
                   pending={isPending(`purchase:${pickerType}:pay`)}
                   pendingLabel="Redirecting to checkout…"
-                  disabled={!purchasesEnabled || !selectedTarget || pending}
+                  disabled={!purchasesEnabled || !effectiveSelectedTarget || pending}
                   onClick={() =>
-                    runPurchase(pickerType, selectedTarget, true)
+                    runPurchase(pickerType, effectiveSelectedTarget, true)
                   }
                   className="rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground"
                 >
@@ -632,9 +644,9 @@ export function BusinessPromotionsPage({
                   type="button"
                   pending={isPending(`purchase:${pickerType}:pay`)}
                   pendingLabel="Redirecting to checkout…"
-                  disabled={!purchasesEnabled || !selectedTarget || pending}
+                  disabled={!purchasesEnabled || !effectiveSelectedTarget || pending}
                   onClick={() =>
-                    runPurchase(pickerType, selectedTarget, true)
+                    runPurchase(pickerType, effectiveSelectedTarget, true)
                   }
                   className="rounded-full border border-firefly/30 px-4 py-2 text-sm text-firefly"
                 >

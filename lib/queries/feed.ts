@@ -18,15 +18,10 @@ export type FeedPostItem = {
 
 async function getActiveFeedPostPromotionIds(): Promise<Set<string>> {
   const supabase = await createClient();
-  const now = new Date().toISOString();
-  const { data } = await supabase
-    .from("promotions")
-    .select("target_id")
-    .eq("type", "feed_post")
-    .eq("is_active", true)
-    .gt("expires_at", now);
-
-  return new Set((data ?? []).map((row) => row.target_id));
+  const { getActivePromotionTargetIds } = await import(
+    "@/lib/stripe/promotions"
+  );
+  return getActivePromotionTargetIds(supabase, "feed_post");
 }
 
 export async function getFeedPosts(
@@ -147,7 +142,17 @@ export async function getBusinessFeedPosts(
 
   if (error) throw error;
 
-  return (data ?? []).map((post) => ({
+  const rows = data ?? [];
+  const { getActivePromotionTargetIds } = await import(
+    "@/lib/stripe/promotions"
+  );
+  const promotedIds = await getActivePromotionTargetIds(
+    supabase,
+    "feed_post",
+    rows.map((post) => post.id)
+  );
+
+  return rows.map((post) => ({
     id: post.id,
     category: post.category as FeedPostCategory,
     title: getLocalizedField(
@@ -162,7 +167,7 @@ export async function getBusinessFeedPosts(
     ),
     mediaUrl: post.media_url,
     publishedAt: post.published_at ?? post.created_at,
-    isPromoted: false,
+    isPromoted: promotedIds.has(post.id),
     status: post.status,
     rejectionReason: post.rejection_reason,
   }));
