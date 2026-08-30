@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { Heart, LayoutDashboard, User } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { usePrelaunch } from "@/components/launch-provider";
 import { useSession } from "@/components/session-provider";
 import { SignOutButton } from "@/components/ui/sign-out-button";
 import { signOut } from "@/lib/actions/auth";
@@ -18,6 +20,8 @@ const navLinks = [
 
 export function Nav() {
   const session = useSession();
+  const isPrelaunch = usePrelaunch();
+  const t = useTranslations("prelaunch");
   const params = useParams();
   const locale = (params?.locale as string) ?? "en";
   const isLoggedIn = Boolean(session.userId);
@@ -50,28 +54,32 @@ export function Nav() {
           <span className="font-display text-xl tracking-tight-logo">firefly</span>
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="font-mono text-[11px] uppercase tracking-wider-2 text-foreground/70 transition-colors hover:text-firefly"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        {!isPrelaunch ? (
+          <nav className="hidden items-center gap-8 md:flex">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="font-mono text-[11px] uppercase tracking-wider-2 text-foreground/70 transition-colors hover:text-firefly"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
 
         <div className="flex items-center gap-2 sm:gap-3">
           {isLoggedIn ? (
             <>
-              <Link
-                href="/profile#saved"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-firefly/30 text-firefly transition-colors hover:bg-firefly/10"
-                aria-label="Saved events"
-              >
-                <Heart className="h-4 w-4" />
-              </Link>
+              {!isPrelaunch ? (
+                <Link
+                  href="/profile#saved"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-firefly/30 text-firefly transition-colors hover:bg-firefly/10"
+                  aria-label="Saved events"
+                >
+                  <Heart className="h-4 w-4" />
+                </Link>
+              ) : null}
 
               {isAdmin ? (
                 <Link
@@ -83,7 +91,7 @@ export function Nav() {
                 </Link>
               ) : null}
 
-              {isBusiness ? (
+              {isBusiness && !isPrelaunch ? (
                 <Link
                   href="/business"
                   className="flex h-9 w-9 items-center justify-center rounded-full border border-firefly/30 text-firefly transition-colors hover:bg-firefly/10"
@@ -93,7 +101,10 @@ export function Nav() {
                 </Link>
               ) : null}
 
-              <div ref={menuRef} className="relative hidden sm:block">
+              <div
+                ref={menuRef}
+                className={`relative ${isPrelaunch ? "" : "hidden sm:block"}`}
+              >
                 <button
                   type="button"
                   onClick={() => setMenuOpen((open) => !open)}
@@ -118,7 +129,7 @@ export function Nav() {
                     >
                       Account
                     </Link>
-                    {isBusiness ? (
+                    {isBusiness && !isPrelaunch ? (
                       <Link
                         href="/business"
                         role="menuitem"
@@ -141,17 +152,29 @@ export function Nav() {
           ) : (
             <Link
               href="/auth"
-              className="hidden rounded-full border border-firefly/30 px-4 py-2 font-mono text-[11px] uppercase tracking-wider-2 text-firefly transition-colors hover:bg-firefly/10 sm:inline-flex"
+              className={`${
+                isPrelaunch ? "inline-flex" : "hidden sm:inline-flex"
+              } rounded-full border border-firefly/30 px-4 py-2 font-mono text-[11px] uppercase tracking-wider-2 text-firefly transition-colors hover:bg-firefly/10`}
             >
-              Sign in
+              {isPrelaunch ? t("signIn") : "Sign in"}
             </Link>
           )}
-          <Link
-            href="/map"
-            className="inline-flex rounded-full bg-firefly px-4 py-2 font-medium text-primary-foreground transition-all hover:firefly-glow hover:scale-[1.02]"
-          >
-            Open map
-          </Link>
+          {isPrelaunch && !isLoggedIn ? (
+            <Link
+              href="/register"
+              className="inline-flex rounded-full bg-firefly px-4 py-2 font-medium text-primary-foreground transition-all hover:firefly-glow hover:scale-[1.02]"
+            >
+              {t("createAccount")}
+            </Link>
+          ) : null}
+          {!isPrelaunch ? (
+            <Link
+              href="/map"
+              className="inline-flex rounded-full bg-firefly px-4 py-2 font-medium text-primary-foreground transition-all hover:firefly-glow hover:scale-[1.02]"
+            >
+              Open map
+            </Link>
+          ) : null}
         </div>
       </div>
     </header>

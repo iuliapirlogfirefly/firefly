@@ -12,7 +12,6 @@ type Props = {
   searchParams: Promise<{
     month?: string;
     year?: string;
-    search?: string;
     genre?: string;
     eventType?: string;
   }>;
@@ -34,7 +33,10 @@ export default async function CalendarPage({ params, searchParams }: Props) {
   setRequestLocale(locale);
 
   const { month, year } = parseCalendarMonthYear(resolvedSearchParams);
-  const filters = parseEventFilters(resolvedSearchParams);
+  const filters = {
+    ...parseEventFilters(resolvedSearchParams),
+    search: undefined,
+  };
   const calendarDays = await getCalendarEvents(locale, month, year, filters);
   const events = calendarDays.flatMap((day) => day.events);
 

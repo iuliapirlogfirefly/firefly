@@ -5,7 +5,7 @@ export const PROMOTION_PRICES: Record<
   { amount: number; currency: string; label: string }
 > = {
   event_boost: { amount: 3000, currency: "eur", label: "Promoted Event" },
-  feed_post: { amount: 2000, currency: "eur", label: "Feed Post" },
+  feed_post: { amount: 2000, currency: "eur", label: "What did you missed post" },
   newsletter: { amount: 3000, currency: "eur", label: "Newsletter Inclusion" },
   social_media: { amount: 3000, currency: "eur", label: "Social Media Post" },
 };
@@ -13,7 +13,7 @@ export const PROMOTION_PRICES: Record<
 export const SUBSCRIPTION_QUOTAS = {
   quota_promoted_events: 4,
   quota_feed_posts: 4,
-  quota_newsletters: 2,
+  quota_newsletters: 1,
   quota_social_posts: 2,
 };
 

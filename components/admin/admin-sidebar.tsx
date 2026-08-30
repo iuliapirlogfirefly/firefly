@@ -9,6 +9,8 @@ import {
   Menu,
   MessageSquare,
   Newspaper,
+  Package,
+  Settings,
   Users,
   X,
 } from "lucide-react";
@@ -22,7 +24,9 @@ const navItems = [
   { href: "/admin/users", label: "Users", icon: Users, countKey: "pendingBusinesses" as const },
   { href: "/admin/messages", label: "Messages", icon: MessageSquare, countKey: "unreadMessages" as const },
   { href: "/admin/promotions", label: "Promotions", icon: Megaphone, countKey: null },
+  { href: "/admin/deliveries", label: "Deliveries", icon: Package, countKey: "pendingDeliveries" as const },
   { href: "/admin/newsletters", label: "Newsletters", icon: Mail, countKey: null },
+  { href: "/admin/settings", label: "Settings", icon: Settings, countKey: null },
 ] as const;
 
 type Props = {

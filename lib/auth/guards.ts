@@ -1,4 +1,5 @@
 import type { UserRole } from "@/types";
+import { isPrelaunchLockedPath } from "@/lib/launch/config";
 import { isBusinessRole } from "./session";
 
 const PUBLIC_PATHS = [
@@ -53,7 +54,8 @@ export function isAdminPath(pathname: string): boolean {
 export function canAccessPath(
   pathname: string,
   role: UserRole | "guest",
-  isSuspended = false
+  isSuspended = false,
+  prelaunchActive = false
 ): { allowed: boolean; redirect?: string } {
   const path = stripLocale(pathname);
 
@@ -62,6 +64,10 @@ export function canAccessPath(
       return { allowed: true };
     }
     return { allowed: false, redirect: "/auth?reason=suspended" };
+  }
+
+  if (prelaunchActive && role !== "admin" && isPrelaunchLockedPath(path)) {
+    return { allowed: false, redirect: "/" };
   }
 
   if (isPublicPath(pathname)) {

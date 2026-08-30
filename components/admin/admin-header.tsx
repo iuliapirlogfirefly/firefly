@@ -5,7 +5,7 @@ export function AdminHeader() {
   return (
     <header className="flex h-14 shrink-0 items-center justify-end border-b border-border bg-background px-4 lg:px-8">
       <Link
-        href="/map"
+        href="/"
         className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         Back to site

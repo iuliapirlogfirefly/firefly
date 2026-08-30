@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { isBusinessRole } from "@/lib/auth/session";
+import { getAuthenticatedHomePath } from "@/lib/launch/settings";
 import type { UserRole } from "@/types";
 
 function isRecoveryFlow(next: string | null): boolean {
@@ -57,7 +58,7 @@ export async function GET(request: Request) {
       .single();
 
     const role = (profile?.role as UserRole) ?? "user";
-    const redirectPath = isBusinessRole(role) ? "/business" : "/";
+    const redirectPath = await getAuthenticatedHomePath(isBusinessRole(role));
 
     return NextResponse.redirect(`${origin}/${locale}${redirectPath}`);
   } catch {

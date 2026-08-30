@@ -43,7 +43,7 @@ const ONE_TIME_PLANS: {
 }[] = [
   {
     type: "event_boost",
-    description: `Glow brighter on the map for ${PROMOTION_DURATION_DAYS} days.`,
+    description: `Boost your event for ${PROMOTION_DURATION_DAYS} days — it appears separately as boosted on the calendar, map, and events section.`,
   },
   {
     type: "feed_post",
@@ -441,8 +441,8 @@ export function BusinessPromotionsPage({
 
             return (
               <div key={plan.type} className="glass rounded-2xl p-5">
-                <div className="font-heading text-lg font-semibold capitalize">
-                  {formatPromotionType(plan.type)}
+                <div className="font-heading text-lg font-semibold">
+                  {price.label}
                 </div>
                 <div className="mt-2 text-2xl font-bold text-firefly">
                   {formatPrice(price.amount, price.currency)}

@@ -3,6 +3,38 @@
     "appName": "Firefly",
     "loading": "Se încarcă..."
   },
+  "landing": {
+    "chapter01Headline": "Orașul <glow>strălucește</glow> când știi unde să te uiți.",
+    "pin1Title": "Nimic inventat. Nimic întâmplător.",
+    "pin1Description": "Venue-uri reale. Promoteri reali. Nopți pentru care merită să ieși din casă.",
+    "pin2Title": "Asta-seară strălucește",
+    "pin2Description": "Evenimentele de acum ard mai tare și te atrag mai aproape de acțiune.",
+    "pin3Title": "Păstrează-ți borcanul de nopți",
+    "pin3Description": "O colecție privată pe care o vezi doar tu."
+  },
+  "prelaunch": {
+    "badge": "București · se lansează curând",
+    "headlineFollow": "Follow",
+    "headlineThe": "the",
+    "headlineLight": "light.",
+    "promise": "Viața de noapte a orașului, cartografiată în timp real. Creează un cont ca să fii gata când harta se aprinde.",
+    "createAccount": "Creează cont",
+    "signIn": "Autentificare",
+    "youreIn": "Ești pe listă. Harta se deschide când se aprind luminile.",
+    "opensOn": "Se deschide {date}",
+    "days": "Zile",
+    "hours": "Ore",
+    "minutes": "Minute",
+    "seconds": "Secunde",
+    "launchesOn": "Se lansează pe {date}",
+    "metaTitle": "Firefly se lansează curând",
+    "metaDescription": "Viața de noapte din București, cartografiată în timp real. Creează un cont — harta se deschide curând.",
+    "polaroidCaption": "curând · bucurești",
+    "soonChip": "curând",
+    "soonChipLine": "București · noaptea lansării",
+    "heroCrowdAlt": "DJ și public într-un club din București",
+    "heroFrameAlt": "Public dansând sub luminile clubului"
+  },
   "newsletter": {
     "sectionLabel": "Newsletter",
     "title": "Newsletter-ul săptămânal Firefly",
@@ -64,7 +96,7 @@
   },
   "premium": {
     "cardTitle": "Premium Subscription (doar o lună)",
-    "included": "4 evenimente promovate, 4 postări feed, 2 newsletter-e, 2 postări social media în această lună.",
+    "included": "4 evenimente promovate, 4 postări feed, 1 newsletter, 2 postări social media în această lună.",
     "autoRenew": "Doresc să reînnoiesc automat abonamentul în fiecare lună",
     "autoRenewDetails": "Plata se reînnoiește automat în fiecare lună. Poți anula abonamentul oricând, iar anularea va opri următoarea plată.",
     "continueToCheckout": "Continuă către Stripe Checkout",

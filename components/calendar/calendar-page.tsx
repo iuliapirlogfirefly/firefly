@@ -1,9 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Clock, MapPin, Search } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  MapPin,
+  Menu,
+  X,
+} from "lucide-react";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { Nav } from "@/components/Nav";
@@ -30,6 +37,88 @@ type Props = {
   filters: EventFilters;
 };
 
+function CalendarFilters({
+  locale,
+  filters,
+  applyEventType,
+  resetFilters,
+  filteredCount,
+  onClose,
+  eventTypeId,
+}: {
+  locale: Locale;
+  filters: EventFilters;
+  applyEventType: (value: EventType | undefined) => void;
+  resetFilters: () => void;
+  filteredCount: number;
+  onClose?: () => void;
+  eventTypeId: string;
+}) {
+  return (
+    <div className="flex flex-col">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="font-mono text-xs uppercase tracking-wider-2 text-firefly">
+          ◦ {locale === "ro" ? "Ajustează noaptea" : "Tune the night"}
+        </div>
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-firefly/20 transition-colors hover:border-firefly/50"
+            aria-label="Close filters"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
+      </div>
+
+      <div className="mb-5">
+        <label
+          htmlFor={eventTypeId}
+          className="mb-2 block font-mono text-xs uppercase tracking-wider text-foreground/50"
+        >
+          {locale === "ro" ? "Tip eveniment" : "Event type"}
+        </label>
+        <select
+          id={eventTypeId}
+          value={filters.eventType ?? ""}
+          onChange={(event) =>
+            applyEventType(
+              event.target.value
+                ? (event.target.value as EventType)
+                : undefined
+            )
+          }
+          className="w-full rounded-xl border border-firefly/10 bg-surface-2/60 px-3 py-2 text-sm focus:border-firefly/50 focus:outline-none"
+        >
+          <option value="">
+            {locale === "ro" ? "Toate tipurile" : "All types"}
+          </option>
+          {EVENT_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {formatEventTypeLabel(type)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex items-center justify-between border-t border-firefly/10 pt-4">
+        <div className="text-sm text-foreground/60">
+          <span className="font-medium text-firefly">{filteredCount}</span>{" "}
+          {locale === "ro" ? "evenimente strălucesc" : "events glowing"}
+        </div>
+        <button
+          type="button"
+          onClick={resetFilters}
+          className="font-mono text-xs uppercase tracking-wider-2 text-foreground/50 transition-colors hover:text-firefly"
+        >
+          Reset
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function CalendarPageClient({
   events,
   locale,
@@ -41,18 +130,13 @@ export function CalendarPageClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const today = new Date();
-  const [searchDraft, setSearchDraft] = useState(filters.search ?? "");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState(toDateKey(today));
-
-  useEffect(() => {
-    setSearchDraft(filters.search ?? "");
-  }, [filters.search]);
 
   const applySearchParams = useCallback(
     (patch: {
       month?: number;
       year?: number;
-      search?: string | undefined;
       eventType?: EventType | undefined;
     }) => {
       const next = updateCalendarSearchParams(
@@ -65,16 +149,11 @@ export function CalendarPageClient({
     [pathname, router, searchParams]
   );
 
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      const trimmed = searchDraft.trim();
-      if (trimmed === (filters.search ?? "")) return;
-      applySearchParams({ search: trimmed || undefined });
-    }, 300);
+  const resetFilters = useCallback(() => {
+    applySearchParams({ eventType: undefined });
+  }, [applySearchParams]);
 
-    return () => window.clearTimeout(timeout);
-  }, [searchDraft, filters.search, applySearchParams]);
-
+  const hasFilters = !!filters.eventType;
   const cells = useMemo(
     () => monthMatrix(year, month - 1),
     [year, month]
@@ -110,68 +189,54 @@ export function CalendarPageClient({
         </h1>
 
         <div className="mt-8 lg:hidden">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
-            <input
-              type="search"
-              value={searchDraft}
-              onChange={(event) => setSearchDraft(event.target.value)}
-              placeholder={
-                locale === "ro"
-                  ? "Caută locații, petreceri…"
-                  : "Search venues, parties…"
-              }
-              className="w-full rounded-xl border border-firefly/10 bg-surface-2/60 py-3 pl-10 pr-3 text-sm transition-colors placeholder:text-foreground/40 focus:border-firefly/50 focus:outline-none"
-            />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((open) => !open)}
+              className="glass flex items-center gap-2 rounded-full px-4 py-2.5 text-sm transition-colors hover:bg-surface-1/80"
+              aria-expanded={filtersOpen}
+              aria-label={filtersOpen ? "Hide filters" : "Show filters"}
+            >
+              <Menu className="h-4 w-4 text-firefly" />
+              <span className="font-mono text-[11px] uppercase tracking-wider-2">
+                Filters
+              </span>
+              {hasFilters ? (
+                <span className="h-2 w-2 rounded-full bg-firefly" />
+              ) : null}
+            </button>
+            <span className="font-mono text-[10px] uppercase tracking-wider-2 text-foreground/50">
+              <span className="font-medium text-firefly">{events.length}</span>
+              <span className="ml-1.5">glowing</span>
+            </span>
           </div>
 
-          <div className="mt-5">
-            <div className="mb-2 font-mono text-xs uppercase tracking-wider text-foreground/50">
-              {locale === "ro" ? "Tip eveniment" : "Event type"}
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              <button
-                type="button"
-                onClick={() => applySearchParams({ eventType: undefined })}
-                className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-all ${
-                  !filters.eventType
-                    ? "border-firefly/60 bg-firefly/10 text-firefly"
-                    : "border-firefly/10 bg-surface-2/40 text-foreground/70 hover:border-firefly/30"
-                }`}
-              >
-                {locale === "ro" ? "Toate" : "All"}
-              </button>
-              {EVENT_TYPES.map((type) => {
-                const on = filters.eventType === type;
-
-                return (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => applySearchParams({ eventType: type })}
-                    className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-all ${
-                      on
-                        ? "border-firefly/60 bg-firefly/10 text-firefly"
-                        : "border-firefly/10 bg-surface-2/40 text-foreground/70 hover:border-firefly/30"
-                    }`}
-                  >
-                    {formatEventTypeLabel(type)}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          {filtersOpen ? (
+            <aside className="glass mt-3 rounded-2xl p-4 animate-fade-up">
+              <CalendarFilters
+                locale={locale}
+                filters={filters}
+                applyEventType={(value) =>
+                  applySearchParams({ eventType: value })
+                }
+                resetFilters={resetFilters}
+                filteredCount={events.length}
+                eventTypeId="calendar-event-type-mobile"
+                onClose={() => setFiltersOpen(false)}
+              />
+            </aside>
+          ) : null}
         </div>
 
         <div className="mt-8 hidden lg:block">
           <DiscoveryFilterBar
             locale={locale}
-            searchDraft={searchDraft}
-            onSearchDraftChange={setSearchDraft}
             eventType={filters.eventType}
             onEventTypeChange={(value) =>
               applySearchParams({ eventType: value })
             }
+            hasActiveFilters={hasFilters}
+            onReset={resetFilters}
           />
         </div>
 

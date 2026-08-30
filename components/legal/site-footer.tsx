@@ -5,11 +5,15 @@ import {
   getLegalCompany,
 } from "@/lib/legal/company";
 import { ManageCookiesButton } from "./manage-cookies-button";
+import { isPrelaunchActive } from "@/lib/launch/settings";
 
 export async function SiteFooter() {
   const t = await getTranslations("footer");
   const company = getLegalCompany();
   const year = new Date().getFullYear();
+  const venuesHref = (await isPrelaunchActive())
+    ? "/auth?mode=signup&type=business"
+    : "/business";
 
   return (
     <footer className="relative border-t border-firefly/10 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-12 md:pb-12">
@@ -29,7 +33,7 @@ export async function SiteFooter() {
           <p className="font-hand text-xl text-foreground/40">{t("madeBy")}</p>
           <div className="flex flex-wrap gap-4 pt-2 text-sm text-foreground/50">
             <Link
-              href="/business"
+              href={venuesHref}
               className="transition-colors hover:text-firefly"
             >
               {t("forVenues")}
@@ -51,16 +55,6 @@ export async function SiteFooter() {
           <p className="font-medium text-foreground/80">{company.legalName}</p>
           <dl className="space-y-1.5">
             <div>
-              <dt className="inline text-foreground/40">{t("cui")}: </dt>
-              <dd className="inline">{company.cui}</dd>
-            </div>
-            <div>
-              <dt className="inline text-foreground/40">
-                {t("tradeRegister")}:{" "}
-              </dt>
-              <dd className="inline">{company.tradeRegister}</dd>
-            </div>
-            <div>
               <dt className="inline text-foreground/40">{t("address")}: </dt>
               <dd className="inline">{company.address}</dd>
             </div>
@@ -75,33 +69,6 @@ export async function SiteFooter() {
                 </a>
               </dd>
             </div>
-            {company.phone ? (
-              <div>
-                <dt className="inline text-foreground/40">{t("phone")}: </dt>
-                <dd className="inline">
-                  <a
-                    href={`tel:${company.phone}`}
-                    className="transition-colors hover:text-firefly"
-                  >
-                    {company.phone}
-                  </a>
-                </dd>
-              </div>
-            ) : null}
-            {company.caen ? (
-              <div>
-                <dt className="inline text-foreground/40">{t("caen")}: </dt>
-                <dd className="inline">{company.caen}</dd>
-              </div>
-            ) : null}
-            {company.authorizations ? (
-              <div>
-                <dt className="inline text-foreground/40">
-                  {t("authorizations")}:{" "}
-                </dt>
-                <dd className="inline">{company.authorizations}</dd>
-              </div>
-            ) : null}
           </dl>
         </div>
 

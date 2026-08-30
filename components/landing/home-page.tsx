@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { getTranslations } from "next-intl/server";
 import {
   ArrowRight,
   Calendar,
@@ -9,24 +10,11 @@ import {
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { BottomNav } from "@/components/BottomNav";
-import { EventCard } from "@/components/EventCard";
 import { FireflyField } from "@/components/FireflyField";
 import { Nav } from "@/components/Nav";
+import { PrelaunchLanding } from "@/components/landing/prelaunch-landing";
 import { landingImages } from "@/lib/landing/images";
-import type { EventListItem } from "@/types/events";
-
-type Props = {
-  featured: EventListItem[];
-};
-
-const mapMarkers = [
-  { top: "28%", left: "22%", size: 14 },
-  { top: "44%", left: "55%", size: 24, promoted: true },
-  { top: "62%", left: "38%", size: 12 },
-  { top: "33%", left: "72%", size: 16 },
-  { top: "70%", left: "66%", size: 14 },
-  { top: "52%", left: "18%", size: 12 },
-] as const;
+import { isPrelaunchActive } from "@/lib/launch/settings";
 
 const stats = [
   { n: "1,247", l: "parties this month" },
@@ -36,23 +24,8 @@ const stats = [
   { n: "live", l: "every weekend", hand: true },
 ] as const;
 
-const mapFeatures = [
-  {
-    icon: MapPin,
-    t: "Real venues, real promoters",
-    d: "Curated daily by people who actually go out.",
-  },
-  {
-    icon: Sparkles,
-    t: "Tonight glows brighter",
-    d: "Events happening now pulse with urgency.",
-  },
-  {
-    icon: Heart,
-    t: "Save your jar of nights",
-    d: "A private collection only you can see.",
-  },
-] as const;
+const mapFeatureIcons = [MapPin, Sparkles, Heart] as const;
+const mapFeatureKeys = ["pin1", "pin2", "pin3"] as const;
 
 const steps = [
   {
@@ -81,7 +54,18 @@ const steps = [
   },
 ] as const;
 
-export function HomePage({ featured }: Props) {
+export async function HomePage() {
+  if (await isPrelaunchActive()) {
+    return <PrelaunchLanding />;
+  }
+
+  const t = await getTranslations("landing");
+  const mapFeatures = mapFeatureKeys.map((key, i) => ({
+    icon: mapFeatureIcons[i],
+    t: t(`${key}Title`),
+    d: t(`${key}Description`),
+  }));
+
   return (
     <main data-route="landing" className="relative overflow-x-clip pb-24 md:pb-0">
       <Nav />
@@ -108,7 +92,7 @@ export function HomePage({ featured }: Props) {
             </div>
 
             <h1
-              className="font-display tracking-tight-logo animate-fade-up text-balance leading-[0.88]"
+              className="font-heading font-bold tracking-tight-logo animate-fade-up text-balance leading-[0.88]"
               style={{ animationDelay: "0.1s" }}
             >
               <span className="block text-[14vw] sm:text-8xl md:text-[8.5rem]">
@@ -116,29 +100,19 @@ export function HomePage({ featured }: Props) {
               </span>
               <span className="-mt-2 block pl-[18%] text-[14vw] sm:-mt-3 sm:pl-[22%] sm:text-8xl md:text-[8.5rem]">
                 the{" "}
-                <span className="text-gradient-firefly text-glow italic">
+                <span className="bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow italic">
                   light.
                 </span>
               </span>
             </h1>
 
-            <div
-              className="mt-6 grid animate-fade-up grid-cols-12 items-start gap-4 sm:mt-10 sm:gap-6"
+            <p
+              className="mt-6 max-w-xl animate-fade-up text-pretty text-base leading-relaxed text-foreground/70 sm:mt-10 sm:text-lg"
               style={{ animationDelay: "0.3s" }}
             >
-              <p className="col-span-12 text-pretty text-base leading-relaxed text-foreground/70 sm:text-lg sm:col-span-7">
-                The city&apos;s nightlife, mapped in real time. Every glowing dot
-                is a party waiting to happen — open Firefly and let the night
-                find you.
-              </p>
-              <div className="col-span-12 flex sm:col-span-5 sm:justify-end">
-                <span className="font-hand -rotate-3 text-2xl leading-tight text-firefly/90 sm:text-3xl">
-                  no group chats.
-                  <br />
-                  <span className="pl-4 sm:pl-6">just go.</span>
-                </span>
-              </div>
-            </div>
+              The city&apos;s nightlife, mapped in real time. Every glowing dot
+              is a party waiting to happen.
+            </p>
 
             <div
               className="mt-6 flex flex-wrap animate-fade-up items-center gap-3 sm:mt-10 sm:gap-4"
@@ -189,7 +163,7 @@ export function HomePage({ featured }: Props) {
               <div className="relative aspect-[4/5] overflow-hidden">
                 <Image
                   src={landingImages.heroFrame}
-                  alt="Friends dancing at a night out"
+                  alt="Crowd dancing under club lights"
                   fill
                   sizes="240px"
                   className="object-cover"
@@ -270,13 +244,13 @@ export function HomePage({ featured }: Props) {
               ◦ Chapter 01 — The Living Map
             </div>
             <h2 className="text-balance font-heading text-5xl font-bold leading-[1.02] md:text-6xl">
-              The city breathes.
-              <br />
-              You just{" "}
-              <em className="font-display not-italic text-gradient-firefly">
-                listen
-              </em>
-              .
+              {t.rich("chapter01Headline", {
+                glow: (chunks) => (
+                  <em className="font-display not-italic bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow">
+                    {chunks}
+                  </em>
+                ),
+              })}
             </h2>
             <p className="mt-7 max-w-md text-lg leading-relaxed text-foreground/70">
               Pan across Bucharest and watch fireflies appear — each one a real
@@ -302,184 +276,18 @@ export function HomePage({ featured }: Props) {
             </div>
           </div>
 
-          <div className="relative lg:col-span-7">
+          <div className="relative flex items-center justify-center lg:col-span-7">
             <div
-              className="relative aspect-[5/4] overflow-hidden rounded-3xl border border-firefly/10"
-              style={{
-                boxShadow: "0 40px 100px rgba(0,0,0,0.55)",
-                transform: "rotate(-1deg)",
-              }}
-            >
-              <Image
-                src={landingImages.mapPreview}
-                alt="Nightlife map"
-                fill
-                sizes="(max-width: 1024px) 100vw, 55vw"
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-tr from-background/80 via-background/20 to-transparent" />
-
-              {mapMarkers.map((m, i) => (
-                <div
-                  key={i}
-                  className="absolute"
-                  style={{ top: m.top, left: m.left }}
-                >
-                  <div
-                    className="relative animate-firefly-pulse"
-                    style={{ animationDelay: `${i * 0.3}s` }}
-                  >
-                    <div
-                      className="rounded-full"
-                      style={{
-                        width: m.size,
-                        height: m.size,
-                        background:
-                          "promoted" in m && m.promoted
-                            ? "radial-gradient(circle, #FEF7A3 0%, #E89A5F 100%)"
-                            : "#FEF7A3",
-                        boxShadow: `0 0 ${m.size * 2}px #FEF7A3, 0 0 ${m.size * 5}px rgba(254,247,163,0.6)`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div
-              className="glass absolute -bottom-8 -left-4 max-w-xs rounded-2xl p-5 sm:left-10"
-              style={{
-                transform: "rotate(2deg)",
-                boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <span className="relative inline-flex h-2 w-2">
-                  <span className="absolute inset-0 rounded-full bg-firefly animate-firefly-pulse" />
-                </span>
-                <div className="font-mono text-[10px] uppercase tracking-wider-2 text-firefly">
-                  Tonight · 23:00 · Open now
-                </div>
-              </div>
-              <div className="mt-2 font-heading text-xl leading-tight">
-                Subterra: All Night Long
-              </div>
-              <div className="mt-1 text-xs text-foreground/60">
-                Control Club · Techno
-              </div>
-              <div className="mt-3 flex items-center justify-between">
-                <span className="rounded-full bg-amber-warm/15 px-2 py-0.5 text-[10px] font-medium text-amber-warm">
-                  From 35 lei
-                </span>
-                <span className="font-hand text-base text-firefly">tap me →</span>
-              </div>
-            </div>
-
-            <div
-              className="absolute -right-4 -top-10 hidden w-44 overflow-hidden rounded-xl border border-firefly/15 md:block"
-              style={{
-                transform: "rotate(6deg)",
-                boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
-              }}
+              className="w-full max-w-sm overflow-hidden rounded-xl border border-firefly/15 sm:max-w-md"
+              style={{ boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}
             >
               <Image
                 src={landingImages.mapInset}
                 alt="Martini Club cocktail"
-                width={176}
-                height={235}
+                width={480}
+                height={640}
                 className="aspect-[3/4] h-full w-full object-cover"
               />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="relative py-24">
-        <div className="mx-auto max-w-[1400px] px-6">
-          <div className="mb-12 grid items-end gap-6 lg:grid-cols-12">
-            <div className="lg:col-span-7">
-              <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-                ◦ Chapter 02 — This week
-              </div>
-              <h2 className="text-balance font-heading text-5xl font-bold leading-[0.98] md:text-7xl">
-                The parties everyone&apos;s
-                <span className="font-display italic text-gradient-firefly">
-                  {" "}
-                  whispering{" "}
-                </span>
-                about.
-              </h2>
-            </div>
-            <div className="flex lg:col-span-5 lg:justify-end">
-              <Link
-                href="/feed"
-                className="group inline-flex items-center gap-2 font-medium text-firefly transition-all hover:gap-3"
-              >
-                <span className="font-hand text-2xl">see them all</span>
-                <ArrowRight className="mt-1 h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-12 md:gap-6">
-            {featured[0] ? (
-              <div className="md:col-span-7 md:row-span-2">
-                <div className="h-full md:-rotate-[0.6deg]">
-                  <EventCard event={featured[0]} featured />
-                </div>
-              </div>
-            ) : null}
-            {featured.slice(1, 3).map((event, i) => (
-              <div
-                key={event.id}
-                className={`md:col-span-5${i === 1 ? " md:translate-y-6" : ""}`}
-              >
-                <EventCard event={event} />
-              </div>
-            ))}
-            {featured.slice(3, 5).map((event, i) => (
-              <div
-                key={event.id}
-                className={`md:col-span-6${i === 1 ? " md:translate-y-4" : ""}`}
-              >
-                <EventCard event={event} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="relative py-24">
-        <div className="mx-auto max-w-[1400px] px-6">
-          <div
-            className="relative aspect-[16/8] overflow-hidden rounded-3xl border border-firefly/10"
-            style={{ boxShadow: "0 40px 100px rgba(0,0,0,0.6)" }}
-          >
-            <Image
-              src={landingImages.editorialStreet}
-              alt="Bucharest nightlife through a rain-speckled window"
-              fill
-              sizes="100vw"
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-background/85 via-background/40 to-transparent" />
-            <FireflyField count={15} />
-
-            <div className="relative flex h-full items-center px-8 md:px-16">
-              <div className="max-w-xl">
-                <Quote className="-scale-x-100 mb-4 h-8 w-8 text-firefly/80" />
-                <p className="text-balance font-display text-3xl leading-[1.05] md:text-5xl">
-                  &ldquo;It&apos;s funny how the nights you never planned become
-                  the ones you never{" "}
-                  <span className="text-gradient-firefly">forget</span>.&rdquo;
-                </p>
-                <div className="mt-6 flex items-center gap-3">
-                  <div className="h-px w-12 bg-firefly/60" />
-                  <span className="font-mono text-[11px] uppercase tracking-wider-2 text-foreground/60">
-                    Maria, catching the first morning tram.
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -488,26 +296,17 @@ export function HomePage({ featured }: Props) {
       <section className="relative overflow-hidden py-32">
         <FireflyField count={18} />
         <div className="relative mx-auto max-w-[1200px] px-6">
-          <div className="mb-20 grid gap-6 lg:grid-cols-12">
-            <div className="lg:col-span-6">
-              <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-                ◦ Chapter 03 — How it works
-              </div>
-              <h2 className="font-heading text-5xl font-bold leading-[1.02] md:text-6xl">
-                Three steps from{" "}
-                <em className="font-display not-italic text-gradient-firefly">
-                  curiosity
-                </em>{" "}
-                to dance floor.
-              </h2>
+          <div className="mb-20">
+            <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
+              ◦ Chapter 02 — How it works
             </div>
-            <div className="lg:col-span-5 lg:col-start-8 lg:pt-8">
-              <p className="text-pretty text-foreground/65">
-                No accounts required to look. No paywalls to peek. Save what you
-                love when you&apos;re ready — everything else is the city, freely
-                on display.
-              </p>
-            </div>
+            <h2 className="max-w-3xl font-heading text-5xl font-bold leading-[1.02] md:text-6xl">
+              Three steps from{" "}
+              <em className="font-display not-italic bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow">
+                curiosity
+              </em>{" "}
+              to dance floor.
+            </h2>
           </div>
 
           <div className="space-y-16 md:space-y-8">
@@ -564,6 +363,71 @@ export function HomePage({ featured }: Props) {
       </section>
 
       <section className="relative py-24">
+        <div className="mx-auto max-w-[1400px] px-6">
+          <div
+            className="relative aspect-[16/8] overflow-hidden rounded-3xl border border-firefly/10"
+            style={{ boxShadow: "0 40px 100px rgba(0,0,0,0.6)" }}
+          >
+            <Image
+              src={landingImages.editorialStreet}
+              alt="Bucharest nightlife through a rain-speckled window"
+              fill
+              sizes="100vw"
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-background/85 via-background/40 to-transparent" />
+            <FireflyField count={15} />
+
+            <div className="relative flex h-full items-center px-8 md:px-16">
+              <div className="max-w-xl">
+                <Quote className="-scale-x-100 mb-4 h-8 w-8 text-firefly/80" />
+                <p className="text-balance font-display text-3xl leading-[1.05] md:text-5xl">
+                  &ldquo;It&apos;s funny how the nights you never planned become
+                  the ones you never{" "}
+                  <span className="text-gradient-firefly">forget</span>.&rdquo;
+                </p>
+                <div className="mt-6 flex items-center gap-3">
+                  <div className="h-px w-12 bg-firefly/60" />
+                  <span className="font-mono text-[11px] uppercase tracking-wider-2 text-foreground/60">
+                    Maria, catching the first morning tram.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative py-24">
+        <div className="mx-auto max-w-[1400px] px-6">
+          <div className="grid items-end gap-6 lg:grid-cols-12">
+            <div className="lg:col-span-7">
+              <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
+                ◦ Chapter 03 — This week
+              </div>
+              <h2 className="text-balance font-heading text-5xl font-bold leading-[0.98] md:text-7xl">
+                The parties everyone&apos;s
+                <span className="font-display italic bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow">
+                  {" "}
+                  whispering{" "}
+                </span>
+                about.
+              </h2>
+            </div>
+            <div className="flex lg:col-span-5 lg:justify-end">
+              <Link
+                href="/feed"
+                className="group inline-flex items-center gap-2 font-medium text-firefly transition-all hover:gap-3"
+              >
+                <span className="font-hand text-2xl">see them all</span>
+                <ArrowRight className="mt-1 h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative py-24">
         <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-6 lg:grid-cols-12">
           <div className="relative lg:col-span-5">
             <div
@@ -581,9 +445,6 @@ export function HomePage({ featured }: Props) {
                 className="aspect-[4/5] w-full object-cover"
               />
             </div>
-            <span className="absolute -bottom-4 -right-2 rotate-[-6deg] font-hand text-3xl text-firefly">
-              recorded sunday, 4am
-            </span>
           </div>
           <div className="lg:col-span-7 lg:pl-8">
             <div className="mb-4 font-mono text-xs uppercase tracking-wider-2 text-firefly">
@@ -595,7 +456,9 @@ export function HomePage({ featured }: Props) {
                 algorithmic suggestions
               </span>
               . It belongs in{" "}
-              <span className="text-gradient-firefly">people&apos;s hands</span>
+              <span className="bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent">
+                people&apos;s hands
+              </span>
               , in the city, in the moment a friend says
               <em className="font-display not-italic">
                 {" "}
@@ -603,8 +466,8 @@ export function HomePage({ featured }: Props) {
               </em>
             </p>
             <p className="mt-6 max-w-xl text-pretty text-foreground/65">
-              Firefly is built by people who would rather be at the party than
-              building the app — which is exactly why we built it.
+              Firefly was built by people who&apos;d rather be at the party than
+              looking for one.
             </p>
           </div>
         </div>
@@ -621,17 +484,15 @@ export function HomePage({ featured }: Props) {
         <FireflyField count={35} />
 
         <div className="relative mx-auto max-w-4xl px-6 text-center">
-          <span className="mb-4 inline-block rotate-[-2deg] font-hand text-3xl text-firefly">
-            it&apos;s already happening.
-          </span>
           <h2 className="text-balance font-display text-6xl leading-[0.95] md:text-8xl">
-            The night is <br />
-            <span className="text-gradient-firefly text-glow italic">
-              already glowing.
-            </span>
+            Your{" "}
+            <span className="bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow">
+              night
+            </span>{" "}
+            is out there.
           </h2>
           <p className="mx-auto mt-8 max-w-lg text-lg text-foreground/70">
-            Stop scrolling group chats. Open the map. Find the spark. Go.
+            Find it.
           </p>
           <Link
             href="/map"

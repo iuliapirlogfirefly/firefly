@@ -12,8 +12,10 @@ import NextTopLoader from "nextjs-toploader";
 import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
 import { SiteFooter } from "@/components/legal/site-footer";
 import { SessionProvider } from "@/components/session-provider";
+import { LaunchProvider } from "@/components/launch-provider";
 import { routing } from "@/i18n/routing";
 import { getSession } from "@/lib/auth/session";
+import { isPrelaunchActive } from "@/lib/launch/settings";
 import "../globals.css";
 
 const limelight = Limelight({
@@ -64,7 +66,11 @@ export default async function LocaleLayout({ children, params }: Props) {
   }
 
   setRequestLocale(locale);
-  const [messages, session] = await Promise.all([getMessages(), getSession()]);
+  const [messages, session, isPrelaunch] = await Promise.all([
+    getMessages(),
+    getSession(),
+    isPrelaunchActive(),
+  ]);
 
   return (
     <html
@@ -80,11 +86,13 @@ export default async function LocaleLayout({ children, params }: Props) {
           easing="ease"
         />
         <NextIntlClientProvider messages={messages}>
-          <SessionProvider initialSession={session}>
-            {children}
-            <SiteFooter />
-            <CookieConsentBanner />
-          </SessionProvider>
+          <LaunchProvider isPrelaunch={isPrelaunch}>
+            <SessionProvider initialSession={session}>
+              {children}
+              <SiteFooter />
+              <CookieConsentBanner />
+            </SessionProvider>
+          </LaunchProvider>
         </NextIntlClientProvider>
       </body>
     </html>

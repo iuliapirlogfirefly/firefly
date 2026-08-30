@@ -3,6 +3,38 @@
     "appName": "Firefly",
     "loading": "Loading..."
   },
+  "landing": {
+    "chapter01Headline": "The city <glow>glows</glow> when you know where to look.",
+    "pin1Title": "Nothing made up. Nothing random.",
+    "pin1Description": "Real venues. Real promoters. Nights worth leaving home for.",
+    "pin2Title": "Tonight is glowing",
+    "pin2Description": "Events happening now burn brighter, pulling you closer to the action.",
+    "pin3Title": "Save your jar of nights",
+    "pin3Description": "A private collection only you can see."
+  },
+  "prelaunch": {
+    "badge": "Bucharest · launching soon",
+    "headlineFollow": "Follow",
+    "headlineThe": "the",
+    "headlineLight": "light.",
+    "promise": "The city's nightlife, mapped in real time. Create an account so you're ready when the map lights up.",
+    "createAccount": "Create account",
+    "signIn": "Sign in",
+    "youreIn": "You're in. The map opens when the lights go up.",
+    "opensOn": "Opens {date}",
+    "days": "Days",
+    "hours": "Hours",
+    "minutes": "Minutes",
+    "seconds": "Seconds",
+    "launchesOn": "Launches on {date}",
+    "metaTitle": "Firefly is launching soon",
+    "metaDescription": "Bucharest nightlife, mapped in real time. Create an account — the map opens soon.",
+    "polaroidCaption": "soon · bucharest",
+    "soonChip": "soon",
+    "soonChipLine": "Bucharest · launch night",
+    "heroCrowdAlt": "DJ booth and crowd in a Bucharest club",
+    "heroFrameAlt": "Crowd dancing under club lights"
+  },
   "newsletter": {
     "sectionLabel": "Newsletter",
     "title": "Weekly Firefly newsletter",
@@ -64,7 +96,7 @@
   },
   "premium": {
     "cardTitle": "Premium Subscription (one month only)",
-    "included": "4 promoted events, 4 feed posts, 2 newsletters, 2 social posts this month.",
+    "included": "4 promoted events, 4 feed posts, 1 newsletter, 2 social posts this month.",
     "autoRenew": "I want to automatically renew the subscription every month",
     "autoRenewDetails": "Payment renews automatically every month. You can cancel anytime; cancellation stops the next charge.",
     "continueToCheckout": "Continue to Stripe Checkout",

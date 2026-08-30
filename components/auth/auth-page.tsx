@@ -14,6 +14,7 @@ import {
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
+import { usePrelaunch } from "@/components/launch-provider";
 import {
   AccountTypeSwitch,
   BusinessTypeSwitch,
@@ -22,6 +23,7 @@ import { AuthField } from "@/components/auth/auth-field";
 import { FireflyField } from "@/components/FireflyField";
 import { PendingButton } from "@/components/ui/pending-button";
 import { signInWithEmail, signUpWithEmail } from "@/lib/actions/auth";
+import { isPrelaunchLockedPath } from "@/lib/launch/config";
 import { landingImages } from "@/lib/landing/images";
 import type { AccountType, BusinessType, Locale } from "@/types";
 
@@ -45,9 +47,14 @@ export function AuthPage({
   initialAccountType = "person",
 }: Props) {
   const tAuth = useTranslations("auth");
+  const isPrelaunch = usePrelaunch();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnTo = safeReturnPath(searchParams.get("next"));
+  const returnToRaw = safeReturnPath(searchParams.get("next"));
+  const returnTo =
+    isPrelaunch && returnToRaw && isPrelaunchLockedPath(returnToRaw)
+      ? null
+      : returnToRaw;
   const [mode, setMode] = useState<Mode>(initialMode);
   const [accountType, setAccountType] = useState<AccountType>(initialAccountType);
   const [businessType, setBusinessType] = useState<BusinessType>("venue");
@@ -234,16 +241,19 @@ export function AuthPage({
               <p className="mb-3 font-mono text-xs tracking-wider-2 text-firefly/80">
                 {mode === "signin" ? "WELCOME BACK" : "NEW HERE"}
               </p>
-              <h1 className="font-display text-5xl leading-[1.05] text-foreground text-glow sm:text-6xl">
+              <h1 className="font-heading text-5xl font-bold leading-[0.95] tracking-tight-logo text-foreground sm:text-6xl">
                 {mode === "signin" ? (
                   <>
                     Step back <br />
-                    <span className="text-gradient-firefly">into the night</span>
+                    into the{" "}
+                    <span className="bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow italic">
+                      night
+                    </span>
                   </>
                 ) : (
                   <>
                     Open the <br />
-                    <span className="text-gradient-firefly underline-squiggle">
+                    <span className="underline-squiggle bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow italic">
                       jar
                     </span>
                   </>

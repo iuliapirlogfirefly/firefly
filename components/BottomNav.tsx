@@ -9,6 +9,7 @@ import {
   User,
 } from "lucide-react";
 import { Link, usePathname } from "@/i18n/navigation";
+import { usePrelaunch } from "@/components/launch-provider";
 
 const items = [
   { href: "/", label: "Home", icon: Home },
@@ -26,11 +27,15 @@ function isActive(pathname: string, href: string) {
 
 export function BottomNav() {
   const pathname = usePathname();
+  const isPrelaunch = usePrelaunch();
+  const visibleItems = isPrelaunch
+    ? items.filter((item) => item.href === "/" || item.href === "/profile")
+    : items;
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-firefly/10 bg-background/90 backdrop-blur-xl md:hidden">
       <div className="mx-auto flex max-w-lg items-stretch justify-around px-0.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
-        {items.map(({ href, label, icon: Icon }) => {
+        {visibleItems.map(({ href, label, icon: Icon }) => {
           const active = isActive(pathname, href);
 
           return (

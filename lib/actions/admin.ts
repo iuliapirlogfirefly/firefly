@@ -409,3 +409,111 @@ export async function archiveContactMessage(
     );
   }
 }
+
+export type PromotionDeliveryInput = {
+  url?: string;
+  notes?: string;
+};
+
+function normalizeDeliveryFields(input: PromotionDeliveryInput) {
+  const url = input.url?.trim() || null;
+  const notes = input.notes?.trim() || null;
+  return { url, notes };
+}
+
+export async function markPromotionDelivered(
+  promotionId: string,
+  input: PromotionDeliveryInput = {}
+): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const { url, notes } = normalizeDeliveryFields(input);
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("promotions")
+      .update({
+        fulfilled_at: new Date().toISOString(),
+        fulfilled_by: session.userId,
+        delivery_url: url,
+        delivery_notes: notes,
+      })
+      .eq("id", promotionId)
+      .in("type", ["social_media", "newsletter"])
+      .is("fulfilled_at", null);
+
+    if (error) return failure(error.message);
+    return success(undefined);
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to mark promotion as delivered"
+    );
+  }
+}
+
+export async function updatePromotionDelivery(
+  promotionId: string,
+  input: PromotionDeliveryInput
+): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const { url, notes } = normalizeDeliveryFields(input);
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("promotions")
+      .update({
+        delivery_url: url,
+        delivery_notes: notes,
+      })
+      .eq("id", promotionId)
+      .in("type", ["social_media", "newsletter"])
+      .not("fulfilled_at", "is", null);
+
+    if (error) return failure(error.message);
+    return success(undefined);
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to update delivery details"
+    );
+  }
+}
+
+export async function unmarkPromotionDelivered(
+  promotionId: string
+): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("promotions")
+      .update({
+        fulfilled_at: null,
+        fulfilled_by: null,
+        delivery_url: null,
+        delivery_notes: null,
+      })
+      .eq("id", promotionId)
+      .in("type", ["social_media", "newsletter"]);
+
+    if (error) return failure(error.message);
+    return success(undefined);
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to unmark promotion delivery"
+    );
+  }
+}

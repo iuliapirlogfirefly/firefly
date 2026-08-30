@@ -22,7 +22,7 @@ export type LegalCompany = {
 };
 
 const DEFAULT_ADDRESS =
-  "Municipiul Pitești, Jud. Argeș, Strada Constructorilor, Nr. 11, Bl. C, Scara B, Etaj PARTER, Ap. 3";
+  "Municipiul Pitești, Jud. Argeș, Strada Constructorilor, Nr. 11";
 
 export function getLegalCompany(): LegalCompany {
   return {

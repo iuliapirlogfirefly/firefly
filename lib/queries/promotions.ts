@@ -16,6 +16,20 @@ export type AdminPromotionRow = {
   isActive: boolean;
 };
 
+export type AdminDeliveryRow = {
+  id: string;
+  businessName: string;
+  type: Extract<PromotionType, "social_media" | "newsletter">;
+  createdAt: string;
+  expiresAt: string;
+  isActive: boolean;
+  fulfilledAt: string | null;
+  deliveryUrl: string | null;
+  deliveryNotes: string | null;
+};
+
+const DELIVERY_TYPES = ["social_media", "newsletter"] as const;
+
 export type AdminSubscriptionRow = {
   id: string;
   businessName: string;
@@ -303,8 +317,8 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
         promotedQuota: 4,
         postsUsed: 1,
         postsQuota: 4,
-        newslettersUsed: 1,
-        newslettersQuota: 2,
+        newslettersUsed: 0,
+        newslettersQuota: 1,
         socialUsed: 0,
         socialQuota: 2,
       },
@@ -350,4 +364,106 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
     socialUsed: s.used_social_posts,
     socialQuota: s.quota_social_posts,
   })).filter((s) => s.entitled || s.paymentFailed);
+}
+
+function sortDeliveries(rows: AdminDeliveryRow[]): AdminDeliveryRow[] {
+  return [...rows].sort((a, b) => {
+    const aPending = a.fulfilledAt ? 1 : 0;
+    const bPending = b.fulfilledAt ? 1 : 0;
+    if (aPending !== bPending) return aPending - bPending;
+    return b.createdAt.localeCompare(a.createdAt);
+  });
+}
+
+export async function getAdminDeliveries(): Promise<AdminDeliveryRow[]> {
+  const { shouldUseMockData, isSupabaseConfigured } = await import(
+    "@/lib/supabase/config"
+  );
+  if (shouldUseMockData()) {
+    const { getMockPromotions } = await import("@/lib/mocks/data");
+    return sortDeliveries(
+      getMockPromotions()
+        .filter(
+          (p): p is (typeof p) & {
+            type: "social_media" | "newsletter";
+          } =>
+            p.type === "social_media" || p.type === "newsletter"
+        )
+        .map((p) => ({
+          id: p.id,
+          businessName: p.venue,
+          type: p.type,
+          createdAt: p.createdAt,
+          expiresAt: p.expiresAt,
+          isActive: p.status === "active" || p.status === "scheduled",
+          fulfilledAt: p.fulfilledAt,
+          deliveryUrl: p.deliveryUrl,
+          deliveryNotes: p.deliveryNotes,
+        }))
+    );
+  }
+
+  if (!isSupabaseConfigured()) return [];
+
+  const { createClient } = await import("@/lib/supabase/server");
+  const supabase = await createClient();
+
+  const [{ data: promotions, error }, { data: businesses }] = await Promise.all([
+    supabase
+      .from("promotions")
+      .select(
+        "id, type, expires_at, is_active, created_at, business_account_id, fulfilled_at, delivery_url, delivery_notes"
+      )
+      .in("type", [...DELIVERY_TYPES])
+      .order("created_at", { ascending: false }),
+    supabase.from("business_accounts").select("id, name"),
+  ]);
+
+  if (error) throw error;
+
+  const businessMap = new Map(
+    (businesses ?? []).map((b) => [b.id, b.name])
+  );
+
+  return sortDeliveries(
+    (promotions ?? []).map((p) => ({
+      id: p.id,
+      businessName: businessMap.get(p.business_account_id) ?? "Unknown",
+      type: p.type as AdminDeliveryRow["type"],
+      createdAt: p.created_at,
+      expiresAt: p.expires_at?.slice(0, 10) ?? "",
+      isActive: p.is_active,
+      fulfilledAt: p.fulfilled_at,
+      deliveryUrl: p.delivery_url,
+      deliveryNotes: p.delivery_notes,
+    }))
+  );
+}
+
+export async function getPendingDeliveryCount(): Promise<number> {
+  const { shouldUseMockData, isSupabaseConfigured } = await import(
+    "@/lib/supabase/config"
+  );
+  if (shouldUseMockData()) {
+    const { getMockPromotions } = await import("@/lib/mocks/data");
+    return getMockPromotions().filter(
+      (p) =>
+        (p.type === "social_media" || p.type === "newsletter") &&
+        !p.fulfilledAt
+    ).length;
+  }
+
+  if (!isSupabaseConfigured()) return 0;
+
+  const { createClient } = await import("@/lib/supabase/server");
+  const supabase = await createClient();
+
+  const { count, error } = await supabase
+    .from("promotions")
+    .select("id", { count: "exact", head: true })
+    .in("type", [...DELIVERY_TYPES])
+    .is("fulfilled_at", null);
+
+  if (error) throw error;
+  return count ?? 0;
 }

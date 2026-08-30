@@ -74,6 +74,7 @@ export type Genre =
   | "hip_hop_rnb"
   | "commercial"
   | "latin"
+  | "manele"
   | "pop"
   | "edm"
   | "live_music"

@@ -2,23 +2,23 @@
 export const landingImages = {
   mapPreview: "/images/map-preview.png",
   editorialCrowd: "/images/editorial-crowd.png",
-  editorialDj: "/images/editorial-dj.png",
-  editorialStreet: "/images/editorial-street.png",
+  editorialDj: "/images/editorial-dj.jpg",
+  editorialStreet: "/images/editorial-street.jpg",
   editorialFriends: "/images/editorial-friends.png",
   editorialSign: "/images/editorial-sign.png",
   authJar: "/images/auth-jar.png",
   /** Landing hero — polaroid frame */
-  heroFrame: "/images/hero-frame.jpeg",
+  heroFrame: "/images/hero-frame-club.jpg",
   /** Landing hero — back photo */
-  heroCrowd: "/images/hero-crowd.jpeg",
+  heroCrowd: "/images/hero-crowd-dj.jpg",
   /** Map section inset (top-right) */
   mapInset: "/images/map-inset.jpeg",
   /** How it works — step 01 */
-  stepMap: "/images/step-map.jpg",
+  stepMap: "/images/step-city.jpg",
   /** How it works — step 03 */
-  stepSave: "/images/step-save.jpeg",
+  stepSave: "/images/step-save.jpg",
   /** Manifesto section */
-  manifestoDj: "/images/manifesto-dj.jpeg",
+  manifestoDj: "/images/manifesto-dj.jpg",
 } as const;
 
 export const eventImages = {

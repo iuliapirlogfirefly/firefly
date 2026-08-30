@@ -76,11 +76,12 @@ export function updateCalendarSearchParams(
   patch: {
     month?: number;
     year?: number;
-    search?: string | undefined;
     eventType?: EventType | undefined;
   }
 ): URLSearchParams {
   const next = new URLSearchParams(current);
+
+  next.delete("search");
 
   if ("month" in patch) {
     if (patch.month == null) next.delete("month");
@@ -90,11 +91,6 @@ export function updateCalendarSearchParams(
   if ("year" in patch) {
     if (patch.year == null) next.delete("year");
     else next.set("year", String(patch.year));
-  }
-
-  if ("search" in patch) {
-    if (!patch.search) next.delete("search");
-    else next.set("search", patch.search);
   }
 
   if ("eventType" in patch) {

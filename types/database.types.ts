@@ -398,6 +398,10 @@ export type Database = {
           stripe_payment_id: string | null;
           is_active: boolean;
           created_at: string;
+          fulfilled_at: string | null;
+          fulfilled_by: string | null;
+          delivery_url: string | null;
+          delivery_notes: string | null;
         };
         Insert: {
           id?: string;
@@ -408,6 +412,10 @@ export type Database = {
           stripe_payment_id?: string | null;
           is_active?: boolean;
           created_at?: string;
+          fulfilled_at?: string | null;
+          fulfilled_by?: string | null;
+          delivery_url?: string | null;
+          delivery_notes?: string | null;
         };
         Update: {
           id?: string;
@@ -418,6 +426,10 @@ export type Database = {
           stripe_payment_id?: string | null;
           is_active?: boolean;
           created_at?: string;
+          fulfilled_at?: string | null;
+          fulfilled_by?: string | null;
+          delivery_url?: string | null;
+          delivery_notes?: string | null;
         };
         Relationships: [];
       };
@@ -607,6 +619,27 @@ export type Database = {
           paid_at?: string;
           metadata?: Json;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      site_settings: {
+        Row: {
+          id: number;
+          prelaunch_active: boolean;
+          prelaunch_ends_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          prelaunch_active?: boolean;
+          prelaunch_ends_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: number;
+          prelaunch_active?: boolean;
+          prelaunch_ends_at?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };

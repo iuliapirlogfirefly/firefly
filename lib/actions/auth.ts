@@ -3,6 +3,10 @@
 import { redirect } from "next/navigation";
 import { createAuthClient, createClient } from "@/lib/supabase/server";
 import { createBusinessAccountForProfile } from "@/lib/actions/business";
+import {
+  getAuthenticatedHomePath,
+  getSignOutRedirect,
+} from "@/lib/launch/settings";
 import { success, failure } from "@/lib/utils/action-result";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
 import type { AccountType, ActionResult, BusinessType, UserRole } from "@/types";
@@ -78,7 +82,7 @@ export async function signInWithEmail(
   }
 
   return success({
-    redirectTo: accountType === "business" ? "/business" : "/",
+    redirectTo: await getAuthenticatedHomePath(accountType === "business"),
   });
 }
 
@@ -159,10 +163,12 @@ export async function signUpWithEmail(
       return failure(businessResult.error);
     }
 
-    return success({ redirectTo: "/business" });
+    return success({
+      redirectTo: await getAuthenticatedHomePath(true),
+    });
   }
 
-  return success({ redirectTo: "/" });
+  return success({ redirectTo: await getAuthenticatedHomePath(false) });
 }
 
 export async function signInWithOAuth(
@@ -226,7 +232,7 @@ export async function signOut(locale: string): Promise<void> {
     const supabase = await createClient();
     await supabase.auth.signOut();
   }
-  redirect(`/${locale}/map`);
+  redirect(await getSignOutRedirect(locale));
 }
 
 export async function updateProfile(data: {

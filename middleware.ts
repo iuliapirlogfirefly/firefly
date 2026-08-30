@@ -63,11 +63,31 @@ export async function middleware(request: NextRequest) {
         isSuspended = business?.status === "suspended";
       }
     }
-    const access = canAccessPath(pathname, role, isSuspended);
+    let prelaunchActive = false;
+    try {
+      const { data: launchRow } = await supabase
+        .from("site_settings")
+        .select("prelaunch_active, prelaunch_ends_at")
+        .eq("id", 1)
+        .maybeSingle();
+      const { isPrelaunchActiveFromSettings, settingsFromRow } = await import(
+        "@/lib/launch/config"
+      );
+      prelaunchActive = isPrelaunchActiveFromSettings(settingsFromRow(launchRow));
+    } catch {
+      const { isPrelaunchActiveFromSettings, envLaunchSettings } = await import(
+        "@/lib/launch/config"
+      );
+      prelaunchActive = isPrelaunchActiveFromSettings(envLaunchSettings());
+    }
+    const access = canAccessPath(pathname, role, isSuspended, prelaunchActive);
     if (!access.allowed && access.redirect) {
       const locale = pathname.match(/^\/(en|ro)/)?.[1] ?? "en";
       const url = request.nextUrl.clone();
       url.pathname = `/${locale}${stripLocale(access.redirect)}`;
+      if (access.redirect === "/") {
+        url.search = "";
+      }
       // Guests hitting protected routes (e.g. returning from Stripe) keep a
       // return path so auth can send them back instead of dropping query-only.
       if (role === "guest" && access.redirect === "/login") {

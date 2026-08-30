@@ -79,8 +79,8 @@ function whenValueLabel(
 
 export type DiscoveryFilterBarProps = {
   locale: Locale;
-  searchDraft: string;
-  onSearchDraftChange: (value: string) => void;
+  searchDraft?: string;
+  onSearchDraftChange?: (value: string) => void;
   eventType?: EventType;
   onEventTypeChange: (value: EventType | undefined) => void;
   datePreset?: DatePreset;
@@ -121,6 +121,7 @@ export function DiscoveryFilterBar({
   hasActiveFilters,
   onReset,
 }: DiscoveryFilterBarProps) {
+  const showSearch = searchDraft != null && onSearchDraftChange != null;
   const showWhen = Boolean(onDateChange);
   const showGenre = Boolean(onGenreChange);
   const showDistance = Boolean(onDistanceChange);
@@ -138,18 +139,22 @@ export function DiscoveryFilterBar({
 
   return (
     <div>
-      <FilterSearch
-        value={searchDraft}
-        onChange={onSearchDraftChange}
-        placeholder={
-          locale === "ro"
-            ? "Caută locații, petreceri…"
-            : "Search venues, parties…"
-        }
-      />
+      {showSearch ? (
+        <FilterSearch
+          value={searchDraft}
+          onChange={onSearchDraftChange}
+          placeholder={
+            locale === "ro"
+              ? "Caută locații, petreceri…"
+              : "Search venues, parties…"
+          }
+        />
+      ) : null}
 
       <FilterMenuProvider>
-        <div className="mt-3 -mx-1 overflow-x-auto scrollbar-none">
+        <div
+          className={`${showSearch ? "mt-3" : ""} -mx-1 overflow-x-auto scrollbar-none`}
+        >
           <div className="flex w-max items-center gap-2 px-1 py-0.5">
             {showWhen ? (
               <FilterDropdown
