@@ -47,7 +47,7 @@ const ONE_TIME_PLANS: {
   },
   {
     type: "feed_post",
-    description: "Pin your post to the top of the nightlife feed.",
+    description: "Pin your post to the top of the nightlife feed for 48h.",
   },
   {
     type: "newsletter",

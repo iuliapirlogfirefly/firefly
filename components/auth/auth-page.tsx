@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useState, useTransition, type FormEvent } from "react";
 import {
   ArrowRight,
@@ -21,10 +20,10 @@ import {
 } from "@/components/auth/account-type-switch";
 import { AuthField } from "@/components/auth/auth-field";
 import { FireflyField } from "@/components/FireflyField";
+import { HeroPin } from "@/components/landing/hero-pin";
 import { PendingButton } from "@/components/ui/pending-button";
 import { signInWithEmail, signUpWithEmail } from "@/lib/actions/auth";
 import { isPrelaunchLockedPath } from "@/lib/launch/config";
-import { landingImages } from "@/lib/landing/images";
 import type { AccountType, BusinessType, Locale } from "@/types";
 
 type Mode = "signin" | "signup";
@@ -183,24 +182,9 @@ export function AuthPage({
       </Link>
 
       <div className="relative z-10 mx-auto grid min-h-screen max-w-7xl grid-cols-1 gap-0 lg:grid-cols-[1.1fr_1fr]">
-        <aside className="relative hidden items-center justify-center overflow-hidden p-12 lg:flex">
-          <div className="relative">
-            <div className="polaroid" style={{ transform: "rotate(-4deg)" }}>
-              <Image
-                src={landingImages.authJar}
-                alt="A glowing firefly jar against a warm nightclub background"
-                width={360}
-                height={440}
-                priority
-                className="h-[440px] w-[360px] object-cover"
-              />
-              <p className="mt-3 text-center font-hand text-[1.6rem] leading-none text-stone-800">
-                tonight, we collect light
-              </p>
-            </div>
-
-            <div className="tape -top-3 left-10 h-6 w-20 rotate-[-8deg]" />
-            <div className="tape -bottom-2 right-8 h-5 w-16 rotate-[6deg]" />
+        <aside className="relative hidden items-center justify-center p-12 lg:flex">
+          <div className="relative flex h-[min(70vh,520px)] items-center justify-center">
+            <HeroPin className="h-full" />
 
             <div
               className="glass absolute -right-16 top-10 rounded-lg p-3 firefly-glow"

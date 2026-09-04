@@ -5,7 +5,6 @@ import {
   Calendar,
   Heart,
   MapPin,
-  Quote,
   Sparkles,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
@@ -13,6 +12,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { FireflyField } from "@/components/FireflyField";
 import { Nav } from "@/components/Nav";
 import { PrelaunchLanding } from "@/components/landing/prelaunch-landing";
+import { HeroPin } from "@/components/landing/hero-pin";
+import { QuoteRotator } from "@/components/landing/quote-rotator";
 import { landingImages } from "@/lib/landing/images";
 import { isPrelaunchActive } from "@/lib/launch/settings";
 
@@ -26,6 +27,18 @@ const stats = [
 
 const mapFeatureIcons = [MapPin, Sparkles, Heart] as const;
 const mapFeatureKeys = ["pin1", "pin2", "pin3"] as const;
+
+const marqueeItems = [
+  "Party",
+  "Concert",
+  "Festival",
+  "Rooftop",
+  "Brunch / Day Party",
+  "Social Gathering",
+  "Club Night",
+  "Live Performance",
+  "Private Event",
+] as const;
 
 const steps = [
   {
@@ -135,48 +148,13 @@ export async function HomePage() {
           </div>
 
           <div
-            className="relative h-[340px] animate-fade-up sm:h-[460px] md:h-[560px] lg:col-span-5"
+            className="relative hidden h-[560px] animate-fade-up items-center justify-center lg:col-span-5 lg:flex"
             style={{ animationDelay: "0.4s" }}
           >
-            <div
-              className="absolute right-0 top-0 h-[78%] w-[78%] overflow-hidden rounded-2xl border border-firefly/15"
-              style={{
-                transform: "rotate(2deg)",
-                boxShadow: "0 30px 80px rgba(0,0,0,0.55)",
-              }}
-            >
-              <Image
-                src={landingImages.heroCrowd}
-                alt="DJ booth and crowd in a Bucharest club"
-                fill
-                priority
-                sizes="(max-width: 1024px) 80vw, 35vw"
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/40 to-transparent" />
-            </div>
+            <HeroPin className="h-[78%]" />
 
             <div
-              className="polaroid absolute bottom-0 left-0 w-[58%] rounded-sm"
-              style={{ transform: "rotate(-5deg)" }}
-            >
-              <div className="relative aspect-[4/5] overflow-hidden">
-                <Image
-                  src={landingImages.heroFrame}
-                  alt="Crowd dancing under club lights"
-                  fill
-                  sizes="240px"
-                  className="object-cover"
-                />
-              </div>
-              <div className="tape absolute -top-3 left-1/2 h-5 w-20 -translate-x-1/2 rounded-sm" />
-              <div className="mt-2 text-center font-hand text-lg leading-none text-primary-foreground sm:mt-3 sm:text-2xl">
-                saturday · 02:14am
-              </div>
-            </div>
-
-            <div
-              className="glass absolute -left-2 top-[10%] hidden rounded-xl px-3 py-2 sm:block"
+              className="glass absolute left-[8%] top-[14%] hidden rounded-xl px-3 py-2 sm:block"
               style={{ transform: "rotate(-8deg)" }}
             >
               <div className="font-mono text-[10px] uppercase tracking-wider-2 text-firefly">
@@ -213,25 +191,23 @@ export async function HomePage() {
       </section>
 
       <section className="relative overflow-hidden border-y border-firefly/10 bg-surface-1/40 py-10">
-        <div
-          className="flex animate-marquee-scroll gap-12 whitespace-nowrap font-display text-3xl text-foreground/30 md:text-5xl"
-        >
+        <div className="flex animate-marquee-scroll gap-12 whitespace-nowrap font-heading text-3xl font-bold tracking-tight-logo md:text-5xl">
           {Array.from({ length: 2 }).map((_, k) => (
-            <div key={k} className="flex shrink-0 gap-12">
-              <span>techno</span>
-              <span className="text-firefly/60">·</span>
-              <span className="italic">disco edits</span>
-              <span className="text-firefly/60">·</span>
-              <span>warehouse</span>
-              <span className="text-firefly/60">·</span>
-              <span className="italic text-firefly/80">after hours</span>
-              <span className="text-firefly/60">·</span>
-              <span>jazz cellar</span>
-              <span className="text-firefly/60">·</span>
-              <span className="italic">rooftop</span>
-              <span className="text-firefly/60">·</span>
-              <span>secret set</span>
-              <span className="text-firefly/60">·</span>
+            <div key={k} className="flex shrink-0 items-baseline gap-12">
+              {marqueeItems.map((label, i) => (
+                <span key={`${k}-${label}`} className="flex items-baseline gap-12">
+                  <span
+                    className={
+                      i % 2 === 1
+                        ? "bg-gradient-to-r from-white to-firefly bg-clip-text italic text-transparent text-glow"
+                        : undefined
+                    }
+                  >
+                    {label}
+                  </span>
+                  <span className="text-firefly/60">·</span>
+                </span>
+              ))}
             </div>
           ))}
         </div>
@@ -252,10 +228,6 @@ export async function HomePage() {
                 ),
               })}
             </h2>
-            <p className="mt-7 max-w-md text-lg leading-relaxed text-foreground/70">
-              Pan across Bucharest and watch fireflies appear — each one a real
-              event, pulsing faster the closer it gets to doors open.
-            </p>
 
             <div className="mt-10 space-y-5">
               {mapFeatures.map((f, i) => (
@@ -362,10 +334,10 @@ export async function HomePage() {
         </div>
       </section>
 
-      <section className="relative py-24">
+      <section className="relative py-10 sm:py-24">
         <div className="mx-auto max-w-[1400px] px-6">
           <div
-            className="relative aspect-[16/8] overflow-hidden rounded-3xl border border-firefly/10"
+            className="relative aspect-[4/3] w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-firefly/10 sm:aspect-[16/8]"
             style={{ boxShadow: "0 40px 100px rgba(0,0,0,0.6)" }}
           >
             <Image
@@ -375,24 +347,11 @@ export async function HomePage() {
               sizes="100vw"
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-background/85 via-background/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-background/85 via-background/50 to-background/20 sm:via-background/40 sm:to-transparent" />
             <FireflyField count={15} />
 
-            <div className="relative flex h-full items-center px-8 md:px-16">
-              <div className="max-w-xl">
-                <Quote className="-scale-x-100 mb-4 h-8 w-8 text-firefly/80" />
-                <p className="text-balance font-display text-3xl leading-[1.05] md:text-5xl">
-                  &ldquo;It&apos;s funny how the nights you never planned become
-                  the ones you never{" "}
-                  <span className="text-gradient-firefly">forget</span>.&rdquo;
-                </p>
-                <div className="mt-6 flex items-center gap-3">
-                  <div className="h-px w-12 bg-firefly/60" />
-                  <span className="font-mono text-[11px] uppercase tracking-wider-2 text-foreground/60">
-                    Maria, catching the first morning tram.
-                  </span>
-                </div>
-              </div>
+            <div className="absolute inset-0 flex items-center px-5 py-6 sm:px-8 md:px-16">
+              <QuoteRotator />
             </div>
           </div>
         </div>
@@ -484,12 +443,16 @@ export async function HomePage() {
         <FireflyField count={35} />
 
         <div className="relative mx-auto max-w-4xl px-6 text-center">
-          <h2 className="text-balance font-display text-6xl leading-[0.95] md:text-8xl">
-            Your{" "}
-            <span className="bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow">
-              night
-            </span>{" "}
-            is out there.
+          <h2 className="mx-auto w-fit text-left font-heading font-bold tracking-tight-logo leading-[0.88]">
+            <span className="block text-[14vw] sm:text-8xl md:text-[8.5rem]">
+              Your night
+            </span>
+            <span className="-mt-2 block pl-[18%] text-[14vw] sm:-mt-3 sm:pl-[22%] sm:text-8xl md:text-[8.5rem]">
+              is out{" "}
+              <span className="bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow italic">
+                there.
+              </span>
+            </span>
           </h2>
           <p className="mx-auto mt-8 max-w-lg text-lg text-foreground/70">
             Find it.

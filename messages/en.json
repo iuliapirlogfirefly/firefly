@@ -59,7 +59,6 @@
     "operatorHeading": "Operator",
     "cui": "CUI",
     "tradeRegister": "Trade Register",
-    "address": "Address",
     "email": "Email",
     "phone": "Phone",
     "caen": "CAEN",
@@ -72,6 +71,8 @@
     "anpc": "ANPC",
     "anpcSal": "ANPC SAL",
     "euSol": "EU Online Dispute Resolution",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
     "copyright": "© {year} {legalName}. All rights reserved."
   },
   "cookiesBanner": {

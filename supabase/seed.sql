@@ -42,3 +42,29 @@ INSERT INTO events (
   44.4412, 26.0898,
   'Calea Victoriei 155, Bucharest', 'Sky Lounge'
 );
+
+-- Recent "What you did missed" posts (party updates + chaos, last 48h)
+INSERT INTO feed_posts (
+  category, status, translations, media_url, published_at
+) VALUES
+(
+  'party_updates',
+  'published',
+  '{"en": {"title": "Afterhours moved to Guesthouse", "description": "Doors closes at 5am. Continue on Academiei — list until 5:30."}, "ro": {"title": "Afterhours mutat la Guesthouse", "description": "Doors se închide la 05:00. Continui pe Academiei — listă până la 05:30."}}',
+  '/images/hero-crowd-dj.jpg',
+  now() - interval '90 minutes'
+),
+(
+  'nightlife_chaos',
+  'published',
+  '{"en": {"title": "Rain vs rooftop: who won?", "description": "Sky Lounge stayed open. The crowd danced wet, nobody left."}, "ro": {"title": "Ploaia vs rooftop: cine a câștigat?", "description": "Sky Lounge a ținut deschis. Crowd-ul a dansat ud, nimeni nu a plecat."}}',
+  '/images/editorial-street.jpg',
+  now() - interval '7 hours'
+),
+(
+  'party_updates',
+  'published',
+  '{"en": {"title": "Unannounced B2B at Expirat", "description": "Two headliners on the same decks after 3. No announcement, no encore — just the mix."}, "ro": {"title": "B2B neanunțat la Expirat", "description": "Doi headlineri pe aceeași masă după 3. Fără anunț, fără encore — doar mix."}}',
+  '/images/editorial-dj.jpg',
+  now() - interval '11 hours'
+);

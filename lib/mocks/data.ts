@@ -551,6 +551,39 @@ export function getMockFeedPosts(locale: Locale): FeedPostItem[] {
       publishedAt: new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString(),
       isPromoted: false,
     },
+    {
+      id: "mock-post-9",
+      category: "party_updates",
+      title: ro ? "Afterhours mutat la Guesthouse" : "Afterhours moved to Guesthouse",
+      description: ro
+        ? "Doors se închide la 05:00. Continui pe Academiei — listă până la 05:30."
+        : "Doors closes at 5am. Continue on Academiei — list until 5:30.",
+      mediaUrl: landingImages.heroCrowd,
+      publishedAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
+      isPromoted: false,
+    },
+    {
+      id: "mock-post-10",
+      category: "nightlife_chaos",
+      title: ro ? "Ploaia vs rooftop: cine a câștigat?" : "Rain vs rooftop: who won?",
+      description: ro
+        ? "Sky Lounge a ținut deschis. Crowd-ul a dansat ud, nimeni nu a plecat."
+        : "Sky Lounge stayed open. The crowd danced wet, nobody left.",
+      mediaUrl: landingImages.editorialStreet,
+      publishedAt: new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString(),
+      isPromoted: false,
+    },
+    {
+      id: "mock-post-11",
+      category: "party_updates",
+      title: ro ? "B2B neanunțat la Expirat" : "Unannounced B2B at Expirat",
+      description: ro
+        ? "Doi headlineri pe aceeași masă după 3. Fără anunț, fără encore — doar mix."
+        : "Two headliners on the same decks after 3. No announcement, no encore — just the mix.",
+      mediaUrl: landingImages.editorialDj,
+      publishedAt: new Date(Date.now() - 11 * 60 * 60 * 1000).toISOString(),
+      isPromoted: false,
+    },
   ];
 }
 

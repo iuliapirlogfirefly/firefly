@@ -52,4 +52,10 @@ export const CONSUMER_PROTECTION_LINKS = {
   euSol: "https://ec.europa.eu/consumers/odr",
 } as const;
 
+/** Official Firefly social profiles. TikTok is a placeholder until the account is live. */
+export const SOCIAL_LINKS = {
+  instagram: "https://www.instagram.com/firefly_bucharest/",
+  tiktok: "https://www.tiktok.com/@firefly_bucharest",
+} as const;
+
 export const STRIPE_PRIVACY_URL = "https://stripe.com/privacy";

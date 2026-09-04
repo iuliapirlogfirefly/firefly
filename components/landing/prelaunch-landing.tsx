@@ -1,12 +1,11 @@
-import Image from "next/image";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ArrowRight } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { FireflyField } from "@/components/FireflyField";
 import { Nav } from "@/components/Nav";
 import { Countdown } from "@/components/landing/countdown";
+import { HeroPin } from "@/components/landing/hero-pin";
 import { getSession } from "@/lib/auth/session";
-import { landingImages } from "@/lib/landing/images";
 import { formatLaunchAt, remainingUntil } from "@/lib/launch/config";
 import { getLaunchAt } from "@/lib/launch/settings";
 
@@ -120,48 +119,13 @@ export async function PrelaunchLanding() {
           </div>
 
           <div
-            className="relative mx-auto h-[280px] w-full max-w-md animate-fade-up sm:h-[400px] md:h-[520px] lg:col-span-5 lg:max-w-none"
+            className="relative hidden h-[520px] animate-fade-up items-center justify-center lg:col-span-5 lg:flex"
             style={{ animationDelay: "0.35s" }}
           >
-            <div
-              className="absolute right-0 top-0 h-[78%] w-[78%] overflow-hidden rounded-2xl border border-firefly/15"
-              style={{
-                transform: "rotate(2deg)",
-                boxShadow: "0 30px 80px rgba(0,0,0,0.55)",
-              }}
-            >
-              <Image
-                src={landingImages.heroCrowd}
-                alt={t("heroCrowdAlt")}
-                fill
-                priority
-                sizes="(max-width: 1024px) 80vw, 35vw"
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/40 to-transparent" />
-            </div>
+            <HeroPin className="h-[78%]" />
 
             <div
-              className="polaroid absolute bottom-0 left-0 w-[58%] rounded-sm"
-              style={{ transform: "rotate(-5deg)" }}
-            >
-              <div className="relative aspect-[4/5] overflow-hidden">
-                <Image
-                  src={landingImages.heroFrame}
-                  alt={t("heroFrameAlt")}
-                  fill
-                  sizes="240px"
-                  className="object-cover"
-                />
-              </div>
-              <div className="tape absolute -top-3 left-1/2 h-5 w-20 -translate-x-1/2 rounded-sm" />
-              <div className="mt-2 text-center font-hand text-lg leading-none text-primary-foreground sm:mt-3 sm:text-2xl">
-                {t("polaroidCaption")}
-              </div>
-            </div>
-
-            <div
-              className="glass absolute -left-2 top-[10%] hidden rounded-xl px-3 py-2 sm:block"
+              className="glass absolute left-[8%] top-[14%] hidden rounded-xl px-3 py-2 sm:block"
               style={{ transform: "rotate(-8deg)" }}
             >
               <div className="font-mono text-[10px] uppercase tracking-wider-2 text-firefly">

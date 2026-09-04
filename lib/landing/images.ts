@@ -6,7 +6,7 @@ export const landingImages = {
   editorialStreet: "/images/editorial-street.jpg",
   editorialFriends: "/images/editorial-friends.png",
   editorialSign: "/images/editorial-sign.png",
-  authJar: "/images/auth-jar.png",
+  authCity: "/images/auth-city.png",
   /** Landing hero — polaroid frame */
   heroFrame: "/images/hero-frame-club.jpg",
   /** Landing hero — back photo */

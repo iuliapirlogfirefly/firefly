@@ -59,7 +59,6 @@
     "operatorHeading": "Operator",
     "cui": "CUI",
     "tradeRegister": "Reg. Com.",
-    "address": "Adresă",
     "email": "Email",
     "phone": "Telefon",
     "caen": "CAEN",
@@ -72,6 +71,8 @@
     "anpc": "ANPC",
     "anpcSal": "ANPC SAL",
     "euSol": "SOL — soluționare online a litigiilor",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
     "copyright": "© {year} {legalName}. Toate drepturile rezervate."
   },
   "cookiesBanner": {

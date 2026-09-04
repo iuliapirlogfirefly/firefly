@@ -71,6 +71,10 @@ function todayPlus(days, hour = 22, minute = 0) {
   return d.toISOString();
 }
 
+function hoursAgo(hours) {
+  return new Date(Date.now() - hours * 3_600_000).toISOString();
+}
+
 async function findUserIdByEmail(email) {
   // admin.auth.admin.listUsers() errors with a generic "Database error
   // finding users" on some projects, so avoid it entirely. generateLink with
@@ -529,21 +533,33 @@ async function main() {
     const feedPostDefs = [
       {
         business_account_id: controlClub.businessId, category: "party_updates", status: "published",
-        published_at: todayPlus(-1, 12, 0),
+        published_at: hoursAgo(4),
         translations: tr("Control Club sold out for Friday", "Grab the last tables before they're gone.", "Control Club sold out vineri", "Prinde ultimele mese cât mai sunt."),
         media_url: IMG.event1,
       },
       {
         business_account_id: kulturhaus.businessId, category: "party_updates", status: "published",
-        published_at: todayPlus(-2, 15, 0),
+        published_at: hoursAgo(16),
         translations: tr("Lineup change at Kulturhaus", "A surprise guest joins Friday's lineup.", "Schimbare de lineup la Kulturhaus", "Un invitat surpriză se alătură lineup-ului de vineri."),
         media_url: IMG.event2,
       },
       {
         business_account_id: null, category: "party_updates", status: "published",
-        published_at: todayPlus(-3, 18, 0),
+        published_at: hoursAgo(22),
         translations: tr("Sky Lounge already crowded tonight", "Rooftop is filling up fast — get there early.", "Sky Lounge deja aglomerat diseară", "Terasa se umple repede — ajungi devreme."),
         media_url: IMG.event3,
+      },
+      {
+        business_account_id: null, category: "party_updates", status: "published",
+        published_at: hoursAgo(1.5),
+        translations: tr("Afterhours moved to Guesthouse", "Doors closes at 5am. Continue on Academiei — list until 5:30.", "Afterhours mutat la Guesthouse", "Doors se închide la 05:00. Continui pe Academiei — listă până la 05:30."),
+        media_url: "/images/hero-crowd-dj.jpg",
+      },
+      {
+        business_account_id: null, category: "party_updates", status: "published",
+        published_at: hoursAgo(11),
+        translations: tr("Unannounced B2B at Expirat", "Two headliners on the same decks after 3. No announcement, no encore — just the mix.", "B2B neanunțat la Expirat", "Doi headlineri pe aceeași masă după 3. Fără anunț, fără encore — doar mix."),
+        media_url: "/images/editorial-dj.jpg",
       },
       {
         business_account_id: null, category: "nightlife_news", status: "published",
@@ -565,15 +581,21 @@ async function main() {
       },
       {
         business_account_id: null, category: "nightlife_chaos", status: "published",
-        published_at: todayPlus(-2, 20, 0),
+        published_at: hoursAgo(9),
         translations: tr("Poll: best queue story of the month?", "Vote for the wildest door story you've heard.", "Sondaj: cea mai tare poveste de la coadă?", "Votează cea mai nebună poveste de la intrare."),
         media_url: IMG.sign,
       },
       {
         business_account_id: null, category: "nightlife_chaos", status: "published",
-        published_at: todayPlus(-5, 22, 0),
+        published_at: hoursAgo(30),
         translations: tr("Hot take: door policy edition", "Crowd reactions to this week's door policy debates.", "Părere fierbinte: politica la intrare", "Reacțiile publicului la dezbaterile despre accesul la intrare."),
         media_url: IMG.crowd,
+      },
+      {
+        business_account_id: null, category: "nightlife_chaos", status: "published",
+        published_at: hoursAgo(7),
+        translations: tr("Rain vs rooftop: who won?", "Sky Lounge stayed open. The crowd danced wet, nobody left.", "Ploaia vs rooftop: cine a câștigat?", "Sky Lounge a ținut deschis. Crowd-ul a dansat ud, nimeni nu a plecat."),
+        media_url: "/images/editorial-street.jpg",
       },
       {
         business_account_id: controlClub.businessId, category: "club_moments", status: "pending",
