@@ -12,7 +12,7 @@ export const landingImages = {
   /** Landing hero — back photo */
   heroCrowd: "/images/hero-crowd-dj.jpg",
   /** Map section inset (top-right) */
-  mapInset: "/images/map-inset.jpeg",
+  mapInset: "/images/map-inset.jpg",
   /** How it works — step 01 */
   stepMap: "/images/step-city.jpg",
   /** How it works — step 03 */
