@@ -660,7 +660,7 @@ export function getMockAdminAnalytics() {
     activePromotions: 5,
     activeSubscriptions: 12,
     totalRevenueCents: 284500,
-    currency: "eur",
+    currency: "ron",
     revenueBreakdown: [
       { key: "subscription", label: "Premium Monthly", amountCents: 120000 },
       { key: "event_boost", label: "Promoted Event", amountCents: 90000 },

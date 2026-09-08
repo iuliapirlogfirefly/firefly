@@ -198,8 +198,8 @@ export async function getAdminBusinessDetails(
         {
           id: "pay-1",
           productType: "subscription",
-          amountCents: 10000,
-          currency: "eur",
+          amountCents: 50000,
+          currency: "ron",
           paidAt: "2026-03-15",
         },
       ],

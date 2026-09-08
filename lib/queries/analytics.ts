@@ -512,7 +512,7 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
       activePromotions: 0,
       activeSubscriptions: 0,
       totalRevenueCents: 0,
-      currency: "eur",
+      currency: SUBSCRIPTION_PRICE.currency,
       revenueBreakdown: [],
       deltas: emptyDeltas,
     };
@@ -585,7 +585,11 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
     (sum, row) => sum + (row.amount_cents ?? 0),
     0
   );
-  const currency = paymentRows[0]?.currency ?? "eur";
+  const currency =
+    paymentRows.find((row) => row.currency?.toLowerCase() === "ron")
+      ?.currency ??
+    paymentRows[0]?.currency ??
+    SUBSCRIPTION_PRICE.currency;
 
   return {
     totalUsers: totalUsers ?? 0,

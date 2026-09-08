@@ -3,6 +3,7 @@ import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminStatCard } from "@/components/admin/ui/admin-stat-card";
 import type { AdminAnalytics } from "@/lib/queries/analytics";
 import type { AdminPendingCounts } from "@/lib/queries/admin";
+import { formatMoney } from "@/lib/utils/money";
 
 type UnreadNotification = {
   id: string;
@@ -16,13 +17,6 @@ type Props = {
   counts: AdminPendingCounts;
   unreadMessages: UnreadNotification[];
 };
-
-function formatMoney(cents: number, currency: string) {
-  return new Intl.NumberFormat("en", {
-    style: "currency",
-    currency: currency.toUpperCase(),
-  }).format(cents / 100);
-}
 
 export function AdminDashboard({
   analytics,
@@ -163,10 +157,7 @@ export function AdminDashboard({
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <AdminStatCard
           label="Total revenue"
-          value={formatMoney(
-            analytics.totalRevenueCents,
-            analytics.currency
-          )}
+          value={formatMoney(analytics.totalRevenueCents, "ron")}
           delta={analytics.deltas.totalRevenueCents}
           hint="Promotions + subscriptions"
         />
@@ -189,7 +180,7 @@ export function AdminDashboard({
               >
                 <span className="text-muted-foreground">{item.label}</span>
                 <span className="font-medium text-foreground">
-                  {formatMoney(item.amountCents, analytics.currency)}
+                  {formatMoney(item.amountCents, "ron")}
                 </span>
               </li>
             ))}

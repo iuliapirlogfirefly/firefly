@@ -11,17 +11,12 @@ import { ActionFeedback } from "@/components/admin/ui/action-feedback";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import type { AdminBusinessDetails } from "@/lib/queries/business";
 import type { BusinessBillingInfo } from "@/types";
+import { SUBSCRIPTION_PRICE } from "@/lib/stripe/products";
+import { formatMoney, isSubscriptionProduct } from "@/lib/utils/money";
 
 type Props = {
   details: AdminBusinessDetails;
 };
-
-function formatMoney(cents: number, currency: string) {
-  return new Intl.NumberFormat("en", {
-    style: "currency",
-    currency: currency.toUpperCase(),
-  }).format(cents / 100);
-}
 
 export function AdminBusinessDetailsPage({ details }: Props) {
   const router = useRouter();
@@ -141,6 +136,16 @@ export function AdminBusinessDetailsPage({ details }: Props) {
           <>
             <dl className="grid gap-2 text-sm sm:grid-cols-2">
               <div>
+                <dt className="text-muted-foreground">Price</dt>
+                <dd className="font-medium">
+                  {formatMoney(
+                    SUBSCRIPTION_PRICE.amount,
+                    SUBSCRIPTION_PRICE.currency
+                  )}
+                  {sub.billingType === "one_time" ? " (one month)" : " / month"}
+                </dd>
+              </div>
+              <div>
                 <dt className="text-muted-foreground">Billing</dt>
                 <dd className="font-medium">
                   {sub.billingType === "one_time" ? "One-time" : "Recurring"}
@@ -228,7 +233,12 @@ export function AdminBusinessDetailsPage({ details }: Props) {
                   {payment.productType.replace(/_/g, " ")} · {payment.paidAt}
                 </span>
                 <span className="font-medium">
-                  {formatMoney(payment.amountCents, payment.currency)}
+                  {formatMoney(
+                    payment.amountCents,
+                    isSubscriptionProduct(payment.productType)
+                      ? "ron"
+                      : payment.currency
+                  )}
                 </span>
               </li>
             ))}

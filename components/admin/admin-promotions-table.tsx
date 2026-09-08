@@ -4,6 +4,8 @@ import type {
   AdminPromotionRow,
   AdminSubscriptionRow,
 } from "@/lib/queries/promotions";
+import { SUBSCRIPTION_PRICE } from "@/lib/stripe/products";
+import { formatMoney } from "@/lib/utils/money";
 
 type Props = {
   promotions: AdminPromotionRow[];
@@ -89,10 +91,11 @@ export function AdminPromotionsTable({
           </AdminCard>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-[880px] text-left text-sm">
+            <table className="w-full min-w-[960px] text-left text-sm">
               <thead className="border-b border-border bg-surface-1 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 font-medium">Business</th>
+                  <th className="px-4 py-3 font-medium">Price</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Renews</th>
                   <th className="px-4 py-3 font-medium">Promoted</th>
@@ -109,6 +112,13 @@ export function AdminPromotionsTable({
                   >
                     <td className="px-4 py-3 font-medium">
                       {sub.businessName}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {formatMoney(
+                        SUBSCRIPTION_PRICE.amount,
+                        SUBSCRIPTION_PRICE.currency
+                      )}
+                      {sub.billingType === "one_time" ? "" : " / month"}
                     </td>
                     <td className="px-4 py-3">
                       <AdminBadge
