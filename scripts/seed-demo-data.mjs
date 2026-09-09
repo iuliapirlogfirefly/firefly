@@ -7,42 +7,32 @@
  * Usage:
  *   npm run db:seed-demo
  *
- * Loads NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from .env.local
- * or .env.vercel, same as scripts/create-admin-user.mjs. Safe to run more than
+ * Loads NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from
+ * .env.staging.local, .env.local, or .env.vercel. Safe to run more than
  * once — users/business accounts/venues/events are upserted by a stable key,
  * and the "volatile" tables (posts, promotions, subscriptions, payments,
  * saves, reminders, analytics) are only seeded the first time (skipped if
  * Control Club already has payment rows).
+ *
+ * Refuses to run against the production project.
  */
 
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync, existsSync } from "fs";
-import { resolve } from "path";
+import {
+  isProductionSupabaseUrl,
+  loadScriptEnv,
+  requireSupabaseKeys,
+} from "./load-env.mjs";
 
-function loadEnvFile(filename) {
-  const path = resolve(process.cwd(), filename);
-  if (!existsSync(path)) return;
-  for (const line of readFileSync(path, "utf8").split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq);
-    const value = trimmed.slice(eq + 1);
-    if (!process.env[key]) process.env[key] = value;
-  }
-}
+loadScriptEnv();
 
-loadEnvFile(".env.local");
-loadEnvFile(".env.vercel");
-
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const { url, serviceKey } = requireSupabaseKeys();
 const PASSWORD = process.env.DEMO_PASSWORD ?? "FireflyDemo2026!";
 
-if (!url || !serviceKey) {
+if (isProductionSupabaseUrl(url)) {
   console.error(
-    "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local / .env.vercel"
+    "Refusing to seed demo data into production (llpwwvlvxdqpbcrvwvgs).",
+    "Point NEXT_PUBLIC_SUPABASE_URL at the staging project, e.g. via .env.staging.local."
   );
   process.exit(1);
 }

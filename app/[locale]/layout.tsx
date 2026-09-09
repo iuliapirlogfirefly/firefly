@@ -10,6 +10,7 @@ import {
 import { notFound } from "next/navigation";
 import NextTopLoader from "nextjs-toploader";
 import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
+import { StagingBanner } from "@/components/staging-banner";
 import { SiteFooter } from "@/components/legal/site-footer";
 import { SessionProvider } from "@/components/session-provider";
 import { LaunchProvider } from "@/components/launch-provider";
@@ -88,6 +89,7 @@ export default async function LocaleLayout({ children, params }: Props) {
         <NextIntlClientProvider messages={messages}>
           <LaunchProvider isPrelaunch={isPrelaunch}>
             <SessionProvider initialSession={session}>
+              <StagingBanner />
               {children}
               <SiteFooter />
               <CookieConsentBanner />
