@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured, shouldUseMockData } from "@/lib/supabase/config";
 import { MOCK_BUSINESS_ACCOUNT_ID } from "@/lib/mocks/data";
+import { BUCHAREST_CENTER } from "@/lib/utils/map-coords";
 import {
   isPaymentFailedStatus,
   isPremiumEntitled,
@@ -99,16 +100,20 @@ export async function getBusinessAccountInfo(
       .from("venues")
       .select("name, address, lat, lng")
       .eq("business_account_id", businessAccountId)
-      .single();
+      .maybeSingle();
 
-    if (venueRow) {
-      venue = {
-        name: venueRow.name,
-        address: venueRow.address,
-        lat: venueRow.lat,
-        lng: venueRow.lng,
-      };
-    }
+    venue = {
+      name: venueRow?.name || business.name,
+      address: venueRow?.address ?? "",
+      lat:
+        venueRow?.lat != null && Number.isFinite(venueRow.lat)
+          ? venueRow.lat
+          : BUCHAREST_CENTER.lat,
+      lng:
+        venueRow?.lng != null && Number.isFinite(venueRow.lng)
+          ? venueRow.lng
+          : BUCHAREST_CENTER.lng,
+    };
   }
 
   return {

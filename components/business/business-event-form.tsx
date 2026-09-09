@@ -364,12 +364,14 @@ export function BusinessEventForm({
                 value={venueName}
                 onChange={(e) => setVenueName(e.target.value)}
                 required
-                readOnly={businessType === "venue"}
+                placeholder={
+                  businessType === "venue" ? "Your venue name" : "Venue name"
+                }
               />
               {businessType === "venue" ? (
                 <p className="mt-1.5 text-xs text-foreground/40">
-                  Defaults to your venue. You can still adjust the pin for this
-                  event.
+                  Pre-filled from your venue when available. You can change it
+                  for this event and still adjust the pin.
                 </p>
               ) : null}
             </div>

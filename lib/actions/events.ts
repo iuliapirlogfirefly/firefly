@@ -83,16 +83,35 @@ export async function createEvent(
         .from("venues")
         .select("*")
         .eq("business_account_id", business.id)
-        .single();
+        .maybeSingle();
 
-      if (!venue) return failure("Venue profile required for venue accounts");
+      if (venue) {
+        venueId = venue.id;
+        // Prefer form pin/address; fall back to venue profile defaults.
+        lat = lat ?? venue.lat;
+        lng = lng ?? venue.lng;
+        address = address || venue.address;
+        venueName = venueName || venue.name;
+      } else if (venueName && address && lat != null && lng != null) {
+        const { data: createdVenue, error: venueError } = await supabase
+          .from("venues")
+          .insert({
+            business_account_id: business.id,
+            name: venueName,
+            address,
+            lat,
+            lng,
+          })
+          .select("id")
+          .single();
 
-      venueId = venue.id;
-      // Prefer form pin/address; fall back to venue profile defaults.
-      lat = lat ?? venue.lat;
-      lng = lng ?? venue.lng;
-      address = address || venue.address;
-      venueName = venueName || venue.name;
+        if (venueError || !createdVenue) {
+          return failure(
+            venueError?.message ?? "Failed to create venue profile"
+          );
+        }
+        venueId = createdVenue.id;
+      }
     }
 
     if (!lat || !lng || !address || !venueName) {
