@@ -7,7 +7,7 @@ export type LaunchSettings = {
 
 export const LAUNCH_TIME_ZONE = "Europe/Bucharest";
 
-const LOCKED_EXACT = ["/map", "/calendar", "/feed", "/missed", "/events", "/saved", "/business"];
+const LOCKED_EXACT = ["/map", "/calendar", "/feed", "/missed", "/events", "/saved"];
 const LOCKED_PREFIXES = [
   "/map/",
   "/calendar/",
@@ -15,7 +15,6 @@ const LOCKED_PREFIXES = [
   "/missed/",
   "/events/",
   "/saved/",
-  "/business/",
 ];
 
 function trimEnv(value: string | undefined): string | undefined {

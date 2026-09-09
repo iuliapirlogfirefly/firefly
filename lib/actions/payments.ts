@@ -12,10 +12,21 @@ import {
 import { PREMIUM_PRODUCT, PROMOTION_PRICES, SUBSCRIPTION_PRICE } from "@/lib/stripe/products";
 import { activatePromotion } from "@/lib/stripe/activate-promotion";
 import { hasActivePromotion } from "@/lib/stripe/promotions";
+import { isPrelaunchActive } from "@/lib/launch/settings";
 import { success, failure } from "@/lib/utils/action-result";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
 import type { ActionResult, PromotionType } from "@/types";
 import type Stripe from "stripe";
+
+const PROMOTIONS_LOCKED_MESSAGE =
+  "Promotions unlock when Firefly launches.";
+
+async function rejectIfPromotionsLocked<T = void>(): Promise<ActionResult<T> | null> {
+  if (await isPrelaunchActive()) {
+    return failure(PROMOTIONS_LOCKED_MESSAGE);
+  }
+  return null;
+}
 
 const QUOTA_MAP: Record<
   PromotionType,
@@ -120,6 +131,8 @@ export async function createCheckoutSession(
 ): Promise<ActionResult<{ url: string }>> {
   const disabled = supabaseDisabled<{ url: string }>();
   if (disabled) return disabled;
+  const locked = await rejectIfPromotionsLocked<{ url: string }>();
+  if (locked) return locked;
 
   try {
     const session = await getSession();
@@ -190,6 +203,8 @@ export async function createSubscriptionCheckout(options: {
 }): Promise<ActionResult<{ url: string }>> {
   const disabled = supabaseDisabled<{ url: string }>();
   if (disabled) return disabled;
+  const locked = await rejectIfPromotionsLocked<{ url: string }>();
+  if (locked) return locked;
 
   try {
     if (!options.acceptedTerms) {
@@ -365,6 +380,8 @@ export async function useSubscriptionQuota(
 ): Promise<ActionResult> {
   const disabled = supabaseDisabled();
   if (disabled) return disabled;
+  const locked = await rejectIfPromotionsLocked<void>();
+  if (locked) return locked;
 
   try {
     const session = await getSession();
@@ -440,6 +457,11 @@ export async function purchasePromotion(
 ): Promise<ActionResult<{ url?: string; usedQuota?: boolean }>> {
   const disabled = supabaseDisabled<{ url?: string; usedQuota?: boolean }>();
   if (disabled) return disabled;
+  const locked = await rejectIfPromotionsLocked<{
+    url?: string;
+    usedQuota?: boolean;
+  }>();
+  if (locked) return locked;
 
   try {
     const session = await getSession();

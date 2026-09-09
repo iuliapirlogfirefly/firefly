@@ -91,7 +91,7 @@ export function Nav() {
                 </Link>
               ) : null}
 
-              {isBusiness && !isPrelaunch ? (
+              {isBusiness ? (
                 <Link
                   href="/business"
                   className="flex h-9 w-9 items-center justify-center rounded-full border border-firefly/30 text-firefly transition-colors hover:bg-firefly/10"
@@ -129,7 +129,7 @@ export function Nav() {
                     >
                       Account
                     </Link>
-                    {isBusiness && !isPrelaunch ? (
+                    {isBusiness ? (
                       <Link
                         href="/business"
                         role="menuitem"

@@ -5,7 +5,7 @@ import { FireflyField } from "@/components/FireflyField";
 import { Nav } from "@/components/Nav";
 import { Countdown } from "@/components/landing/countdown";
 import { HeroPin } from "@/components/landing/hero-pin";
-import { getSession } from "@/lib/auth/session";
+import { getSession, isBusinessRole } from "@/lib/auth/session";
 import { formatLaunchAt, remainingUntil } from "@/lib/launch/config";
 import { getLaunchAt } from "@/lib/launch/settings";
 
@@ -17,6 +17,7 @@ export async function PrelaunchLanding() {
   ]);
   const launchAt = await getLaunchAt();
   const isLoggedIn = Boolean(session.userId);
+  const isBusiness = isBusinessRole(session.role);
   const formattedLaunch = launchAt ? formatLaunchAt(launchAt, locale) : null;
   const launchesOnLabel = formattedLaunch
     ? t("launchesOn", { date: formattedLaunch })
@@ -94,6 +95,15 @@ export async function PrelaunchLanding() {
                   <p className="mt-2 font-mono text-[11px] uppercase tracking-wider-2 text-firefly/80">
                     {t("opensOn", { date: formattedLaunch })}
                   </p>
+                ) : null}
+                {isBusiness ? (
+                  <Link
+                    href="/business"
+                    className="group mt-6 inline-flex items-center gap-2 rounded-full bg-firefly px-7 py-4 font-medium text-primary-foreground transition-all hover:scale-[1.03] hover:firefly-glow"
+                  >
+                    {t("openDashboard")}
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
                 ) : null}
               </div>
             ) : (

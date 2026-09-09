@@ -1,6 +1,7 @@
 "use client";
 
 import { Link, usePathname } from "@/i18n/navigation";
+import { usePrelaunch } from "@/components/launch-provider";
 import {
   CalendarDays,
   LayoutDashboard,
@@ -11,6 +12,7 @@ import {
   Settings,
   X,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 const navItems = [
@@ -28,6 +30,8 @@ type Props = {
 
 export function BusinessSidebar({ venueName }: Props) {
   const pathname = usePathname();
+  const isPrelaunch = usePrelaunch();
+  const t = useTranslations("prelaunch");
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (href: string) => {
@@ -63,7 +67,12 @@ export function BusinessSidebar({ venueName }: Props) {
               }`}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {label}
+              <span className="flex-1">{label}</span>
+              {href === "/business/promotions" && isPrelaunch ? (
+                <span className="rounded-full bg-firefly/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider-2 text-firefly">
+                  {t("promotionsSoon")}
+                </span>
+              ) : null}
             </Link>
           );
         })}

@@ -71,8 +71,9 @@ export function AdminLaunchSettingsForm({
               Countdown is active
             </span>
             <span className="mt-0.5 block text-xs text-muted-foreground">
-              When on, guests and signed-in users stay on the countdown landing
-              until the end date. Admins can still open the full product.
+              When on, visitors stay on the countdown landing until the end
+              date. Businesses can still open their dashboard; Promotions shows
+              Coming soon. Admins can open the full product.
             </span>
           </span>
         </label>

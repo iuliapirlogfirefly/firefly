@@ -33,7 +33,11 @@
     "soonChip": "soon",
     "soonChipLine": "Bucharest · launch night",
     "heroCrowdAlt": "DJ booth and crowd in a Bucharest club",
-    "heroFrameAlt": "Crowd dancing under club lights"
+    "heroFrameAlt": "Crowd dancing under club lights",
+    "openDashboard": "Open dashboard",
+    "promotionsSoon": "Soon",
+    "promotionsComingSoonTitle": "Coming soon",
+    "promotionsComingSoonBody": "Boosts and Premium unlock when the map goes live. You can still prepare events and feed posts in the meantime."
   },
   "newsletter": {
     "sectionLabel": "Newsletter",

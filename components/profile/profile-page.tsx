@@ -8,7 +8,6 @@ import { BottomNav } from "@/components/BottomNav";
 import { EventCard } from "@/components/EventCard";
 import { Nav } from "@/components/Nav";
 import { useSession } from "@/components/session-provider";
-import { usePrelaunch } from "@/components/launch-provider";
 import { useSavedEvents } from "@/hooks/use-saved-events";
 import { SignOutButton } from "@/components/ui/sign-out-button";
 import { signOut } from "@/lib/actions/auth";
@@ -33,7 +32,6 @@ export function ProfilePageClient({
   newsletterOptIn,
 }: Props) {
   const clientSession = useSession();
-  const isPrelaunch = usePrelaunch();
   const params = useParams();
   const locale = (params?.locale as string) ?? "en";
   const { ids } = useSavedEvents(serverSavedIds);
@@ -75,7 +73,7 @@ export function ProfilePageClient({
                 ) : null}
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                {isBusiness && !isPrelaunch ? (
+                {isBusiness ? (
                   <Link
                     href="/business"
                     className="inline-flex items-center gap-2 rounded-full border border-firefly/30 px-4 py-2 font-mono text-[11px] uppercase tracking-wider-2 text-firefly transition-colors hover:bg-firefly/10"

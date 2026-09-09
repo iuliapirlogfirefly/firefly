@@ -33,7 +33,11 @@
     "soonChip": "curând",
     "soonChipLine": "București · noaptea lansării",
     "heroCrowdAlt": "DJ și public într-un club din București",
-    "heroFrameAlt": "Public dansând sub luminile clubului"
+    "heroFrameAlt": "Public dansând sub luminile clubului",
+    "openDashboard": "Deschide dashboard-ul",
+    "promotionsSoon": "Curând",
+    "promotionsComingSoonTitle": "În curând",
+    "promotionsComingSoonBody": "Boost-urile și Premium se deblochează când harta se aprinde. Până atunci poți pregăti evenimente și postări în feed."
   },
   "newsletter": {
     "sectionLabel": "Newsletter",

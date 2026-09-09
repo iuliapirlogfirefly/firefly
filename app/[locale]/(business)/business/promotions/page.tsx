@@ -1,8 +1,10 @@
 import { setRequestLocale } from "next-intl/server";
 import { Suspense } from "react";
+import { BusinessPromotionsComingSoon } from "@/components/business/business-promotions-coming-soon";
 import { BusinessPromotionsPage } from "@/components/business/business-promotions-page";
 import { MOCK_BUSINESS_ACCOUNT_ID } from "@/lib/mocks/data";
 import { getSession } from "@/lib/auth/session";
+import { isPrelaunchActive } from "@/lib/launch/settings";
 import { getBusinessEvents } from "@/lib/queries/events";
 import { getBusinessFeedPosts } from "@/lib/queries/feed";
 import {
@@ -77,6 +79,10 @@ async function PromotionsContent({
 export default async function PromotionsPage({ params, searchParams }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
+
+  if (await isPrelaunchActive()) {
+    return <BusinessPromotionsComingSoon />;
+  }
 
   return (
     <Suspense
