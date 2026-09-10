@@ -38,6 +38,7 @@ const createEventSchema = z.object({
   address: z.string().optional(),
   lat: z.number().optional(),
   lng: z.number().optional(),
+  submitForApproval: z.boolean().optional(),
 });
 
 async function getBusinessContext() {
@@ -126,7 +127,7 @@ export async function createEvent(
         business_account_id: business.id,
         venue_id: venueId ?? null,
         slug,
-        status: "draft",
+        status: data.submitForApproval ? "pending" : "draft",
         source: "business",
         starts_at: data.startsAt,
         ends_at: data.endsAt ?? null,
@@ -204,6 +205,9 @@ export async function updateEvent(
         ...(data.lng !== undefined && { lng: data.lng }),
         ...(data.address !== undefined && { address: data.address }),
         ...(data.venueName !== undefined && { venue_name: data.venueName }),
+        ...(data.submitForApproval
+          ? { status: "pending", rejection_reason: null }
+          : {}),
       })
       .eq("id", id);
     if (error) return failure(error.message);

@@ -1,12 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
-import {
-  createEvent,
-  updateEvent,
-  submitEventForApproval,
-} from "@/lib/actions/events";
+import { createEvent, updateEvent } from "@/lib/actions/events";
 import { GENRES, formatGenreLabel } from "@/lib/constants/genres";
 import { EVENT_TYPES, formatEventTypeLabel } from "@/lib/constants/event-types";
 import { ImageUploader } from "@/components/events/image-uploader";
@@ -78,11 +74,14 @@ export function BusinessEventForm({
   initial,
 }: Props) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [saving, setSaving] = useState(false);
+  const [submitIntent, setSubmitIntent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const savingRef = useRef(false);
 
   const editable =
     mode === "create" || !initial?.status || ["draft", "rejected"].includes(initial.status);
+  const locked = !editable || saving;
 
   const [titleEn, setTitleEn] = useState(initial?.translations?.en?.title ?? "");
   const [descEn, setDescEn] = useState(initial?.translations?.en?.description ?? "");
@@ -151,7 +150,8 @@ export function BusinessEventForm({
     lng,
   });
 
-  const save = (thenSubmit: boolean) => {
+  const save = async (thenSubmit: boolean) => {
+    if (savingRef.current) return;
     setError(null);
 
     if (!venueName || !address) {
@@ -163,43 +163,39 @@ export function BusinessEventForm({
       return;
     }
 
-    startTransition(async () => {
-      const payload = buildPayload();
+    savingRef.current = true;
+    setSubmitIntent(thenSubmit);
+    setSaving(true);
 
-      let id: string;
+    try {
+      const payload: CreateEventInput = {
+        ...buildPayload(),
+        submitForApproval: thenSubmit,
+      };
 
-      if (mode === "create") {
-        const result = await createEvent(payload);
-        if (!result.success) {
-          setError(result.error);
-          return;
-        }
-        id = result.data.id;
-      } else {
-        const result = await updateEvent(eventId!, payload);
-        if (!result.success) {
-          setError(result.error);
-          return;
-        }
-        id = eventId!;
-      }
+      const result =
+        mode === "create"
+          ? await createEvent(payload)
+          : await updateEvent(eventId!, payload);
 
-      if (thenSubmit) {
-        const submitResult = await submitEventForApproval(id);
-        if (!submitResult.success) {
-          setError(submitResult.error);
-          return;
-        }
+      if (!result.success) {
+        savingRef.current = false;
+        setError(result.error);
+        setSaving(false);
+        return;
       }
 
       router.push("/business/events");
-      router.refresh();
-    });
+    } catch {
+      savingRef.current = false;
+      setError("Failed to save event");
+      setSaving(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    save(false);
+    void save(false);
   };
 
   return (
@@ -207,7 +203,7 @@ export function BusinessEventForm({
       <div className="glass space-y-6 rounded-3xl p-6">
         <StatusNote status={initial?.status} />
 
-        <fieldset disabled={!editable} className="space-y-6 disabled:opacity-60">
+        <fieldset disabled={locked} className="space-y-6 disabled:opacity-60">
           <div>
             <label className={labelClass}>Cover image</label>
             <ImageUploader value={coverImageUrl} onChange={setCoverImageUrl} />
@@ -384,7 +380,7 @@ export function BusinessEventForm({
                 setLat(nextLat);
                 setLng(nextLng);
               }}
-              disabled={!editable}
+              disabled={locked}
               inputClassName={inputClass}
               labelClassName={labelClass}
             />
@@ -397,23 +393,24 @@ export function BusinessEventForm({
           <div className="flex flex-wrap gap-3">
             <button
               type="submit"
-              disabled={pending}
+              disabled={saving}
               className="rounded-full border border-firefly/30 px-5 py-2.5 text-sm font-medium text-firefly transition-all hover:bg-firefly/10 disabled:opacity-50"
             >
-              {pending ? "Saving…" : "Save draft"}
+              {saving && !submitIntent ? "Saving…" : "Save draft"}
             </button>
             <button
               type="button"
-              disabled={pending}
-              onClick={() => save(true)}
+              disabled={saving}
+              onClick={() => void save(true)}
               className="rounded-full bg-firefly px-5 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:firefly-glow disabled:opacity-50"
             >
-              {pending ? "Submitting…" : "Save & submit for approval"}
+              {saving && submitIntent ? "Submitting…" : "Save & submit for approval"}
             </button>
             <button
               type="button"
+              disabled={saving}
               onClick={() => router.push("/business/events")}
-              className="rounded-full px-5 py-2.5 text-sm text-foreground/60 hover:text-foreground"
+              className="rounded-full px-5 py-2.5 text-sm text-foreground/60 hover:text-foreground disabled:opacity-50"
             >
               Cancel
             </button>

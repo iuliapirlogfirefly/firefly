@@ -93,6 +93,7 @@ export type CreateEventInput = {
   address?: string;
   lat?: number;
   lng?: number;
+  submitForApproval?: boolean;
 };
 
 export type UpdateEventInput = Partial<CreateEventInput>;
