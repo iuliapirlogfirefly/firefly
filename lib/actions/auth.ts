@@ -201,10 +201,16 @@ export async function requestPasswordReset(
   if (disabled) return disabled;
 
   const supabase = await createClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  ).replace(/\/$/, "");
+  const origin = appUrl.replace(
+    "://fireflyapp.ro",
+    "://www.fireflyapp.ro"
+  );
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${appUrl}/auth/callback?locale=${locale}&next=/auth/reset-password`,
+    redirectTo: `${origin}/auth/callback?locale=${locale}&next=/auth/reset-password`,
   });
 
   if (error) return failure(error.message);

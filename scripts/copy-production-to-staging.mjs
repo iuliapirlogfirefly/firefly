@@ -3,7 +3,8 @@
  * Copy production app data into the staging project using the Management API
  * (no Docker/pg_dump). Auth password hashes are preserved via SQL.
  *
- * Requires .env.local (production) and .env.staging.local (staging).
+ * Requires production keys (.env.production.local or .env.local)
+ * and staging keys (.env.staging.local).
  */
 import { spawnSync } from "child_process";
 import { createClient } from "@supabase/supabase-js";
@@ -148,10 +149,13 @@ async function main() {
     process.exit(1);
   }
 
-  const prodEnv = parseEnvFile(".env.local");
+  const prodEnvFile = existsSync(resolve(".env.production.local"))
+    ? ".env.production.local"
+    : ".env.local";
+  const prodEnv = parseEnvFile(prodEnvFile);
   const stagingEnv = parseEnvFile(".env.staging.local");
   if (!prodEnv.NEXT_PUBLIC_SUPABASE_URL?.includes(PRODUCTION_PROJECT_REF)) {
-    console.error(".env.local is not the production project");
+    console.error(`${prodEnvFile} is not the production project`);
     process.exit(1);
   }
   if (!stagingEnv.NEXT_PUBLIC_SUPABASE_URL?.includes(STAGING_PROJECT_REF)) {

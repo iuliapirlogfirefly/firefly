@@ -277,6 +277,18 @@
   }
 }
 
+@keyframes firefly-pulse-promoted {
+  0%,
+  100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.22);
+  }
+}
+
 @keyframes firefly-float {
   0%,
   100% {
@@ -353,6 +365,10 @@
 
 .animate-firefly-pulse {
   animation: firefly-pulse 3s ease-in-out infinite;
+}
+
+.animate-firefly-pulse-promoted {
+  animation: firefly-pulse-promoted 2.4s ease-in-out infinite;
 }
 
 .animate-firefly-float {

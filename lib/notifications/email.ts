@@ -41,7 +41,7 @@ export async function sendEmail({
   }
 
   const from =
-    process.env.RESEND_FROM_EMAIL ?? "Firefly <noreply@firefly.app>";
+    process.env.RESEND_FROM_EMAIL ?? "Firefly <noreply@fireflyapp.ro>";
 
   await getResend().emails.send({
     from,

@@ -186,16 +186,33 @@ function styleFireflyPin(
   index: number,
   isActive: boolean
 ) {
-  const size = event.isPromoted ? 22 : 14;
+  const size = event.isPromoted ? 26 : 14;
   span.style.width = `${size}px`;
   span.style.height = `${size}px`;
+  span.style.overflow = "visible";
   span.style.animationDelay = `${index * 0.2}s`;
   span.style.background = event.isPromoted
     ? "radial-gradient(circle, #FEF7A3 0%, #E89A5F 100%)"
     : "#FEF7A3";
-  span.style.boxShadow = `0 0 ${size * 1.6}px #FEF7A3, 0 0 ${size * 4}px rgba(254,247,163,${event.isPromoted ? 0.7 : 0.5})`;
+  span.style.boxShadow = event.isPromoted
+    ? "0 0 12px #FEF7A3, 0 0 42px rgba(254,247,163,0.85), 0 0 90px rgba(254,247,163,0.35)"
+    : `0 0 ${size * 1.6}px #FEF7A3, 0 0 ${size * 4}px rgba(254,247,163,0.5)`;
   span.style.outline = isActive ? "2px solid rgba(254,247,163,0.9)" : "none";
   span.style.outlineOffset = "4px";
+  span.className = event.isPromoted
+    ? "firefly-pin block animate-firefly-pulse-promoted rounded-full"
+    : "firefly-pin block animate-firefly-pulse rounded-full";
+
+  const hit = span.parentElement;
+  if (hit instanceof HTMLElement) {
+    hit.style.overflow = "visible";
+  }
+
+  const markerRoot = span.closest("button");
+  if (markerRoot instanceof HTMLElement) {
+    markerRoot.style.overflow = "visible";
+    markerRoot.style.zIndex = isActive ? "3" : event.isPromoted ? "2" : "1";
+  }
 }
 
 function MapCanvas({
@@ -289,9 +306,11 @@ function MapCanvas({
 
           const hit = document.createElement("span");
           hit.className = "block transition-transform hover:scale-125";
+          hit.style.overflow = "visible";
 
           const span = document.createElement("span");
           span.className = "firefly-pin block animate-firefly-pulse rounded-full";
+          span.style.overflow = "visible";
           hit.appendChild(span);
           button.appendChild(hit);
 

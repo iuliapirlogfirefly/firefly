@@ -7,7 +7,11 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 type Props = {
   params: Promise<{ locale: "en" | "ro" }>;
-  searchParams: Promise<{ code?: string }>;
+  searchParams: Promise<{
+    code?: string;
+    token_hash?: string;
+    type?: string;
+  }>;
 };
 
 export async function generateMetadata({ params }: Props) {
@@ -25,8 +29,14 @@ export default async function ResetPasswordRoute({
   searchParams,
 }: Props) {
   const { locale } = await params;
-  const { code } = await searchParams;
+  const { code, token_hash, type } = await searchParams;
   setRequestLocale(locale);
+
+  if (token_hash && type) {
+    redirect(
+      `/auth/callback?token_hash=${encodeURIComponent(token_hash)}&type=${encodeURIComponent(type)}&locale=${locale}&next=/auth/reset-password`
+    );
+  }
 
   if (code) {
     redirect(

@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { ArrowRight, Eye, EyeOff, Lock } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { AuthField } from "@/components/auth/auth-field";
 import { FireflyField } from "@/components/FireflyField";
 import { PendingButton } from "@/components/ui/pending-button";
 import { updatePassword } from "@/lib/actions/auth";
+import { createClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 type Props = {
   authenticated: boolean;
@@ -19,6 +21,28 @@ export function ResetPasswordPage({ authenticated }: Props) {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
+  const [ready, setReady] = useState(authenticated);
+  const [hasSession, setHasSession] = useState(authenticated);
+
+  useEffect(() => {
+    if (authenticated || !isSupabaseConfigured()) {
+      setHasSession(authenticated);
+      setReady(true);
+      return;
+    }
+
+    let cancelled = false;
+    const supabase = createClient();
+    void supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return;
+      setHasSession(!!data.session);
+      setReady(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authenticated]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -42,7 +66,19 @@ export function ResetPasswordPage({ authenticated }: Props) {
     });
   };
 
-  if (!authenticated) {
+  if (!ready) {
+    return (
+      <div className="relative min-h-screen w-full overflow-hidden bg-background">
+        <div className="pointer-events-none absolute -top-40 left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-firefly/10 blur-3xl" />
+        <FireflyField count={24} />
+        <section className="relative z-10 flex min-h-screen items-center justify-center px-6 py-24">
+          <p className="text-sm text-foreground/60">Confirming reset link…</p>
+        </section>
+      </div>
+    );
+  }
+
+  if (!hasSession) {
     return (
       <div className="relative min-h-screen w-full overflow-hidden bg-background">
         <div className="pointer-events-none absolute -top-40 left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-firefly/10 blur-3xl" />
