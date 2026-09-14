@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Firefly">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="30%" r="48%">
+      <stop offset="0%" stop-color="#FEF7A3" stop-opacity="0.8" />
+      <stop offset="45%" stop-color="#FEF7A3" stop-opacity="0.22" />
+      <stop offset="100%" stop-color="#FEF7A3" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="#141416" />
+  <circle cx="16.5" cy="10" r="9" fill="url(#glow)" />
+  <path
+    fill="#FEF7A3"
+    transform="translate(8 28.1) scale(0.01675 -0.01675) translate(-4 0)"
+    d="M821 991 714 995H603V0H173L174 995H158L63 991Q4 991 4 1031.5Q4 1072 58 1072L177 1068Q198 1249 338 1345Q466 1433 673 1433Q867 1433 940 1356Q960 1335 960 1316Q960 1272 915 1272Q893 1272 872 1287L836 1312Q778 1355 711 1359Q693 1360 673.5 1360Q654 1360 637 1358Q620 1356 603 1354V1068H690L824 1072Q878 1072 878 1031.5Q878 991 821 991Z"
+  />
+</svg>
