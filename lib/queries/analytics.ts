@@ -28,6 +28,7 @@ export type EventAnalyticsRow = AnalyticsCounts & {
   startsAt: string;
   status: string;
   isPromoted: boolean;
+  rejectionReason: string | null;
 };
 
 export type MetricDeltas = {
@@ -347,7 +348,9 @@ export async function getBusinessAnalytics(
 
     const { data: events, error: eventsError } = await supabase
       .from("events")
-      .select("id, is_promoted, status, starts_at, translations, created_at")
+      .select(
+        "id, is_promoted, status, starts_at, translations, created_at, rejection_reason"
+      )
       .eq("business_account_id", businessAccountId);
 
     if (eventsError) {
@@ -374,6 +377,7 @@ export async function getBusinessAnalytics(
         startsAt: event.starts_at,
         status: event.status,
         isPromoted: event.is_promoted,
+        rejectionReason: event.rejection_reason,
         ...counts,
       };
     });
@@ -483,6 +487,7 @@ export async function getAdminEventAnalytics(
       startsAt: event.starts_at,
       status: event.status,
       isPromoted: event.is_promoted,
+      rejectionReason: null,
       ...counts,
     };
   });

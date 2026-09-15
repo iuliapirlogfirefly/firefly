@@ -4,7 +4,9 @@ import { z } from "zod";
 import { updateTag } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession, requireAuth } from "@/lib/auth/session";
+import { deactivatePromotionsForTarget } from "@/lib/stripe/promotions";
 import { success, failure } from "@/lib/utils/action-result";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
 import type { ActionResult, BusinessBillingInfo, BusinessType } from "@/types";
@@ -196,7 +198,7 @@ export async function submitFeedPost(
     if (error) return failure(error.message);
     return success({ id: post.id });
   } catch (e) {
-    return failure(e instanceof Error ? e.message : "Failed to submit feed post");
+    return failure(e instanceof Error ? e.message : "Failed to submit What Did You Miss post");
   }
 }
 
@@ -227,7 +229,7 @@ export async function updateFeedPost(
 
     const wasPublished = existing.status === "published";
 
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from("feed_posts")
       .update({
         category: data.category,
@@ -238,9 +240,12 @@ export async function updateFeedPost(
         published_at: null,
       })
       .eq("id", id)
-      .eq("business_account_id", session.businessAccountId);
+      .eq("business_account_id", session.businessAccountId)
+      .select("id")
+      .maybeSingle();
 
     if (error) return failure(error.message);
+    if (!updated) return failure("Post could not be updated");
 
     if (wasPublished) {
       updateTag("feed");
@@ -248,7 +253,43 @@ export async function updateFeedPost(
 
     return success(undefined);
   } catch (e) {
-    return failure(e instanceof Error ? e.message : "Failed to update feed post");
+    return failure(e instanceof Error ? e.message : "Failed to update What Did You Miss post");
+  }
+}
+
+export async function deleteBusinessFeedPost(id: string): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    if (!session.businessAccountId) {
+      return failure("Business account required");
+    }
+
+    const supabase = await createClient();
+    const { data: existing } = await supabase
+      .from("feed_posts")
+      .select("id, business_account_id")
+      .eq("id", id)
+      .single();
+
+    if (!existing || existing.business_account_id !== session.businessAccountId) {
+      return failure("Post not found");
+    }
+
+    const admin = createAdminClient();
+    await deactivatePromotionsForTarget(admin, session.businessAccountId, id);
+
+    const { error } = await supabase.from("feed_posts").delete().eq("id", id);
+    if (error) return failure(error.message);
+
+    updateTag("feed");
+    return success(undefined);
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to delete What Did You Miss post"
+    );
   }
 }
 

@@ -1,14 +1,34 @@
 import type { PromotionType } from "@/types";
 
 export const PROMOTION_PRICES: Record<
-  Exclude<PromotionType, "newsletter" | "social_media"> | "newsletter" | "social_media",
-  { amount: number; currency: string; label: string }
+  PromotionType,
+  { amount: number; currency: "ron"; label: string }
 > = {
-  event_boost: { amount: 3000, currency: "eur", label: "Promoted Event" },
-  feed_post: { amount: 2000, currency: "eur", label: "What did you missed post" },
-  newsletter: { amount: 3000, currency: "eur", label: "Newsletter Inclusion" },
-  social_media: { amount: 3000, currency: "eur", label: "Social Media Post" },
+  event_boost: { amount: 15000, currency: "ron", label: "Promoted Event" },
+  feed_post: {
+    amount: 10000,
+    currency: "ron",
+    label: "What Did You Miss? Post",
+  },
+  newsletter: { amount: 15000, currency: "ron", label: "Newsletter Inclusion" },
+  social_media: {
+    amount: 15000,
+    currency: "ron",
+    label: "Social Media Content",
+  },
 };
+
+export const PROMOTION_PRICE_ENV: Record<PromotionType, string> = {
+  event_boost: "STRIPE_EVENT_BOOST_PRICE_ID",
+  feed_post: "STRIPE_FEED_POST_PRICE_ID",
+  newsletter: "STRIPE_NEWSLETTER_PRICE_ID",
+  social_media: "STRIPE_SOCIAL_MEDIA_PRICE_ID",
+};
+
+export function getPromotionPriceId(type: PromotionType): string | undefined {
+  const value = process.env[PROMOTION_PRICE_ENV[type]]?.trim();
+  return value || undefined;
+}
 
 export const SUBSCRIPTION_QUOTAS = {
   quota_promoted_events: 4,

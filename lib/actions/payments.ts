@@ -9,7 +9,12 @@ import {
   hasBlockingPremium,
   isPremiumEntitled,
 } from "@/lib/stripe/entitlement";
-import { PREMIUM_PRODUCT, PROMOTION_PRICES, SUBSCRIPTION_PRICE } from "@/lib/stripe/products";
+import {
+  PREMIUM_PRODUCT,
+  PROMOTION_PRICES,
+  SUBSCRIPTION_PRICE,
+  getPromotionPriceId,
+} from "@/lib/stripe/products";
 import { activatePromotion } from "@/lib/stripe/activate-promotion";
 import { hasActivePromotion } from "@/lib/stripe/promotions";
 import { isPrelaunchActive } from "@/lib/launch/settings";
@@ -20,6 +25,8 @@ import type Stripe from "stripe";
 
 const PROMOTIONS_LOCKED_MESSAGE =
   "Promotions unlock when Firefly launches.";
+const TERMS_REQUIRED_MESSAGE =
+  "You must accept the Terms and Privacy Policy";
 
 async function rejectIfPromotionsLocked<T = void>(): Promise<ActionResult<T> | null> {
   if (await isPrelaunchActive()) {
@@ -86,7 +93,7 @@ async function validatePromotionTarget(
       .eq("status", "published")
       .maybeSingle();
 
-    if (!data) return failure("Published feed post not found");
+    if (!data) return failure("Published What Did You Miss post not found");
   } else {
     return success(undefined);
   }
@@ -127,12 +134,14 @@ function hasQuotaRemaining(sub: SubscriptionRow, type: PromotionType): boolean {
 
 export async function createCheckoutSession(
   type: PromotionType,
-  targetId?: string
+  targetId?: string,
+  options?: { acceptedTerms?: boolean }
 ): Promise<ActionResult<{ url: string }>> {
   const disabled = supabaseDisabled<{ url: string }>();
   if (disabled) return disabled;
   const locked = await rejectIfPromotionsLocked<{ url: string }>();
   if (locked) return locked;
+  if (!options?.acceptedTerms) return failure(TERMS_REQUIRED_MESSAGE);
 
   try {
     const session = await getSession();
@@ -166,23 +175,37 @@ export async function createCheckoutSession(
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
     const locale = session.preferredLocale ?? "en";
     const promotionsPath = `${appUrl}/${locale}/business/promotions`;
+    const customerId = await getOrCreateStripeCustomer({
+      businessAccountId: session.businessAccountId,
+      email: session.email,
+    });
+    const priceId = getPromotionPriceId(type);
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = priceId
+      ? [{ price: priceId, quantity: 1 }]
+      : [
+          {
+            price_data: {
+              currency: price.currency,
+              unit_amount: price.amount,
+              product_data: { name: price.label },
+            },
+            quantity: 1,
+          },
+        ];
+    const acceptedAt = new Date().toISOString();
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "payment",
-      line_items: [
-        {
-          price_data: {
-            currency: price.currency,
-            unit_amount: price.amount,
-            product_data: { name: price.label },
-          },
-          quantity: 1,
-        },
-      ],
+      customer: customerId,
+      customer_update: { address: "auto", name: "auto" },
+      locale: checkoutLocale(locale),
+      line_items: lineItems,
       metadata: {
         business_account_id: session.businessAccountId,
         promotion_type: type,
         target_id: resolvedTargetId ?? "",
+        accepted_terms: "true",
+        terms_accepted_at: acceptedAt,
       },
       success_url: `${promotionsPath}?success=true`,
       cancel_url: `${promotionsPath}?canceled=true`,
@@ -208,7 +231,7 @@ export async function createSubscriptionCheckout(options: {
 
   try {
     if (!options.acceptedTerms) {
-      return failure("You must accept the Terms and Privacy Policy");
+      return failure(TERMS_REQUIRED_MESSAGE);
     }
 
     const session = await getSession();
@@ -376,12 +399,14 @@ export async function createBillingPortalSession(): Promise<
 
 export async function useSubscriptionQuota(
   type: PromotionType,
-  targetId?: string
+  targetId?: string,
+  options?: { acceptedTerms?: boolean }
 ): Promise<ActionResult> {
   const disabled = supabaseDisabled();
   if (disabled) return disabled;
   const locked = await rejectIfPromotionsLocked<void>();
   if (locked) return locked;
+  if (!options?.acceptedTerms) return failure(TERMS_REQUIRED_MESSAGE);
 
   try {
     const session = await getSession();
@@ -453,7 +478,7 @@ export async function useSubscriptionQuota(
 export async function purchasePromotion(
   type: PromotionType,
   targetId?: string,
-  options?: { forceCheckout?: boolean }
+  options?: { forceCheckout?: boolean; acceptedTerms?: boolean }
 ): Promise<ActionResult<{ url?: string; usedQuota?: boolean }>> {
   const disabled = supabaseDisabled<{ url?: string; usedQuota?: boolean }>();
   if (disabled) return disabled;
@@ -462,6 +487,9 @@ export async function purchasePromotion(
     usedQuota?: boolean;
   }>();
   if (locked) return locked;
+  if (!options?.acceptedTerms) {
+    return failure(TERMS_REQUIRED_MESSAGE);
+  }
 
   try {
     const session = await getSession();
@@ -482,7 +510,9 @@ export async function purchasePromotion(
     if (!options?.forceCheckout) {
       const sub = await getActiveSubscription(session.businessAccountId);
       if (sub && hasQuotaRemaining(sub, type)) {
-        const quotaResult = await useSubscriptionQuota(type, resolvedTargetId);
+        const quotaResult = await useSubscriptionQuota(type, resolvedTargetId, {
+          acceptedTerms: true,
+        });
         if (quotaResult.success) {
           return success({ usedQuota: true });
         }
@@ -490,7 +520,9 @@ export async function purchasePromotion(
       }
     }
 
-    const checkout = await createCheckoutSession(type, resolvedTargetId);
+    const checkout = await createCheckoutSession(type, resolvedTargetId, {
+      acceptedTerms: true,
+    });
     if (!checkout.success) return checkout;
     return success({ url: checkout.data.url });
   } catch (e) {

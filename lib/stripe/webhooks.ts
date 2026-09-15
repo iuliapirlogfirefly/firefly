@@ -225,7 +225,7 @@ export async function handleCheckoutCompleted(
       type: "one_time",
       productType: promotionType ?? "promotion",
       amountCents: session.amount_total,
-      currency: session.currency ?? "eur",
+      currency: session.currency ?? "ron",
       metadata,
     });
   }

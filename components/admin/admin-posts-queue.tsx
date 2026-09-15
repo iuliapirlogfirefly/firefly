@@ -21,7 +21,7 @@ export function AdminPostsQueue({ posts, locale }: Props) {
   return (
     <div data-route="admin-posts">
       <h1 className="font-heading text-2xl font-semibold md:text-3xl">
-        Feed posts
+        What Did You Miss posts
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
         {posts.length} post{posts.length === 1 ? "" : "s"} waiting for review.
@@ -31,7 +31,7 @@ export function AdminPostsQueue({ posts, locale }: Props) {
         {posts.length === 0 ? (
           <AdminEmptyState
             title="All caught up"
-            description="No feed posts waiting for review."
+            description="No What Did You Miss posts waiting for review."
           />
         ) : (
           posts.map((post) => {

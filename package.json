@@ -16,7 +16,8 @@
     "db:seed": "supabase db seed",
     "db:create-admin": "node scripts/create-admin-user.mjs",
     "db:seed-demo": "node scripts/seed-demo-data.mjs",
-    "db:types": "supabase gen types typescript --linked > types/database.types.ts"
+    "db:types": "supabase gen types typescript --linked > types/database.types.ts",
+    "stripe:sync-promotions": "node scripts/stripe-sync-promotion-products.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

@@ -11,6 +11,7 @@ import {
   sendEventRejectedEmail,
 } from "@/lib/notifications/email";
 import { generateEventSlug } from "@/lib/utils/slug";
+import { deactivatePromotionsForTarget } from "@/lib/stripe/promotions";
 import { success, failure } from "@/lib/utils/action-result";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
 import type { ActionResult } from "@/types";
@@ -360,6 +361,36 @@ export async function rejectEvent(
     return success(undefined);
   } catch (e) {
     return failure(e instanceof Error ? e.message : "Failed to reject event");
+  }
+}
+
+export async function deleteBusinessEvent(id: string): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const { business, supabase } = await getBusinessContext();
+
+    const { data: existing } = await supabase
+      .from("events")
+      .select("id, business_account_id")
+      .eq("id", id)
+      .single();
+
+    if (!existing || existing.business_account_id !== business.id) {
+      return failure("Event not found");
+    }
+
+    const admin = createAdminClient();
+    await deactivatePromotionsForTarget(admin, business.id, id);
+
+    const { error } = await supabase.from("events").delete().eq("id", id);
+    if (error) return failure(error.message);
+
+    updateTag("events");
+    return success(undefined);
+  } catch (e) {
+    return failure(e instanceof Error ? e.message : "Failed to delete event");
   }
 }
 

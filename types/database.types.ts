@@ -402,6 +402,8 @@ export type Database = {
           fulfilled_by: string | null;
           delivery_url: string | null;
           delivery_notes: string | null;
+          invoiced_at: string | null;
+          invoiced_by: string | null;
         };
         Insert: {
           id?: string;
@@ -416,6 +418,8 @@ export type Database = {
           fulfilled_by?: string | null;
           delivery_url?: string | null;
           delivery_notes?: string | null;
+          invoiced_at?: string | null;
+          invoiced_by?: string | null;
         };
         Update: {
           id?: string;
@@ -430,6 +434,8 @@ export type Database = {
           fulfilled_by?: string | null;
           delivery_url?: string | null;
           delivery_notes?: string | null;
+          invoiced_at?: string | null;
+          invoiced_by?: string | null;
         };
         Relationships: [];
       };
@@ -455,6 +461,8 @@ export type Database = {
           used_social_posts: number;
           created_at: string;
           updated_at: string;
+          invoiced_at: string | null;
+          invoiced_by: string | null;
         };
         Insert: {
           id?: string;
@@ -477,6 +485,8 @@ export type Database = {
           used_social_posts?: number;
           created_at?: string;
           updated_at?: string;
+          invoiced_at?: string | null;
+          invoiced_by?: string | null;
         };
         Update: {
           id?: string;
@@ -499,6 +509,8 @@ export type Database = {
           used_social_posts?: number;
           created_at?: string;
           updated_at?: string;
+          invoiced_at?: string | null;
+          invoiced_by?: string | null;
         };
         Relationships: [];
       };

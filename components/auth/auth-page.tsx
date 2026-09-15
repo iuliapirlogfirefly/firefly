@@ -185,26 +185,6 @@ export function AuthPage({
         <aside className="relative hidden items-center justify-center p-12 lg:flex">
           <div className="relative flex h-[min(70vh,520px)] items-center justify-center">
             <HeroPin className="h-full" />
-
-            <div
-              className="glass absolute -right-16 top-10 rounded-lg p-3 firefly-glow"
-              style={{ transform: "rotate(6deg)" }}
-            >
-              <div className="font-mono text-[10px] tracking-wider-2 text-firefly">
-                ADMIT ONE
-              </div>
-              <div className="mt-0.5 font-display text-sm">The Night</div>
-              <div className="mt-1 text-[10px] text-foreground/50">
-                No cover · all year
-              </div>
-            </div>
-
-            <div
-              className="absolute -left-14 bottom-16 rounded-full border-2 border-firefly/60 px-3 py-2 font-mono text-[10px] tracking-wider-2 text-firefly"
-              style={{ transform: "rotate(-14deg)" }}
-            >
-              ✦ MEMBER ✦
-            </div>
           </div>
 
           <div className="absolute bottom-12 left-12 right-12">

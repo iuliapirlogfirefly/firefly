@@ -1,7 +1,7 @@
 "use client";
 
 import { Link } from "@/i18n/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { PendingButton } from "@/components/ui/pending-button";
@@ -47,7 +47,7 @@ const ONE_TIME_PLANS: {
   },
   {
     type: "feed_post",
-    description: "Pin your post to the top of the nightlife feed for 48h.",
+    description: "Pin your post to the top of What Did You Miss for 48h.",
   },
   {
     type: "newsletter",
@@ -83,7 +83,51 @@ function getQuotaForType(
 }
 
 function formatPromotionType(type: PromotionType) {
-  return type.replace(/_/g, " ");
+  return PROMOTION_PRICES[type].label;
+}
+
+const TERMS_STORAGE_KEY = "firefly-promotions-accepted-terms";
+const CHECKOUT_LEAVE_KEY = "firefly-promotions-checkout-leave";
+
+function readAcceptedTerms(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return sessionStorage.getItem(TERMS_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeAcceptedTerms(accepted: boolean) {
+  try {
+    if (accepted) sessionStorage.setItem(TERMS_STORAGE_KEY, "1");
+    else sessionStorage.removeItem(TERMS_STORAGE_KEY);
+  } catch {
+    /* private mode / blocked storage */
+  }
+}
+
+function markLeavingForCheckout() {
+  try {
+    sessionStorage.setItem(CHECKOUT_LEAVE_KEY, "1");
+  } catch {
+    /* private mode / blocked storage */
+  }
+}
+
+function consumeLeavingForCheckout(): boolean {
+  try {
+    if (sessionStorage.getItem(CHECKOUT_LEAVE_KEY) !== "1") return false;
+    sessionStorage.removeItem(CHECKOUT_LEAVE_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function goToStripeCheckout(url: string) {
+  markLeavingForCheckout();
+  window.location.href = url;
 }
 
 export function BusinessPromotionsPage({
@@ -100,27 +144,69 @@ export function BusinessPromotionsPage({
   const tAuth = useTranslations("auth");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [pending, startTransition] = useTransition();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [autoRenew, setAutoRenew] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-
-  const isPending = (action: string) => pending && pendingAction === action;
-
-  const [pickerOpen, setPickerOpen] = useState(
-    Boolean(
-      initialBoost &&
-        initialTarget &&
-        (initialBoost === "event_boost" || initialBoost === "feed_post")
-    )
-  );
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerType, setPickerType] = useState<PromotionType | null>(
     initialBoost ?? null
   );
   const [selectedTarget, setSelectedTarget] = useState(initialTarget ?? "");
   const [forceCheckout, setForceCheckout] = useState(false);
+
+  const resetCheckoutUi = () => {
+    setPendingAction(null);
+    setPickerOpen(false);
+    setError(null);
+  };
+
+  useEffect(() => {
+    setAcceptedTerms(readAcceptedTerms());
+  }, []);
+
+  const checkoutCanceled = searchParams.get("canceled") === "true";
+
+  useEffect(() => {
+    if (!checkoutCanceled) return;
+    resetCheckoutUi();
+  }, [checkoutCanceled]);
+
+  useEffect(() => {
+    const handleReturnFromCheckout = () => {
+      if (!consumeLeavingForCheckout()) return;
+
+      const params = new URLSearchParams(window.location.search);
+      if (
+        params.get("success") === "true" ||
+        params.get("subscription") === "success"
+      ) {
+        resetCheckoutUi();
+        return;
+      }
+
+      // Always load a new document. setState cannot clear pending/picker
+      // restored from bfcache — especially a second Back onto ?canceled=true.
+      params.set("canceled", "true");
+      const next = `${window.location.pathname}?${params.toString()}`;
+      if (`${window.location.pathname}${window.location.search}` === next) {
+        window.location.reload();
+        return;
+      }
+      window.location.replace(next);
+    };
+
+    handleReturnFromCheckout();
+    window.addEventListener("pageshow", handleReturnFromCheckout);
+    window.addEventListener("popstate", handleReturnFromCheckout);
+    return () => {
+      window.removeEventListener("pageshow", handleReturnFromCheckout);
+      window.removeEventListener("popstate", handleReturnFromCheckout);
+    };
+  }, []);
+
+  const isPending = (action: string) => pendingAction === action;
 
   const publishedEvents = events.filter((e) => e.status === "published");
   const publishedPosts = feedPosts.filter((p) => p.status === "published");
@@ -149,19 +235,26 @@ export function BusinessPromotionsPage({
     setPickerOpen(true);
   };
 
-  const runPurchase = (
+  const canPurchase = purchasesEnabled && acceptedTerms;
+
+  const runPurchase = async (
     type: PromotionType,
     targetId?: string,
     checkout = false,
     actionKey = `purchase:${type}:${checkout ? "pay" : "quota"}`
   ) => {
+    if (!acceptedTerms) {
+      setError(t("mustAcceptLegal"));
+      return;
+    }
     setError(null);
     setSuccessMessage(null);
     setPendingAction(actionKey);
 
-    startTransition(async () => {
+    try {
       const result = await purchasePromotion(type, targetId, {
         forceCheckout: checkout,
+        acceptedTerms: true,
       });
 
       if (!result.success) {
@@ -171,7 +264,7 @@ export function BusinessPromotionsPage({
       }
 
       if (result.data.url) {
-        window.location.href = result.data.url;
+        goToStripeCheckout(result.data.url);
         return;
       }
 
@@ -181,25 +274,32 @@ export function BusinessPromotionsPage({
         setPendingAction(null);
         router.refresh();
       }
-    });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to purchase promotion");
+      setPendingAction(null);
+    }
   };
 
   const handlePlanClick = (type: PromotionType, checkout = false) => {
+    if (!acceptedTerms) {
+      setError(t("mustAcceptLegal"));
+      return;
+    }
     if (type === "event_boost" || type === "feed_post") {
       openPicker(type, checkout);
       return;
     }
-    runPurchase(type, undefined, checkout);
+    void runPurchase(type, undefined, checkout);
   };
 
-  const handleSubscribe = () => {
+  const handleSubscribe = async () => {
     if (!acceptedTerms) {
       setError(t("mustAcceptLegal"));
       return;
     }
     setError(null);
     setPendingAction("subscribe");
-    startTransition(async () => {
+    try {
       const result = await createSubscriptionCheckout({
         autoRenew,
         acceptedTerms: true,
@@ -209,14 +309,19 @@ export function BusinessPromotionsPage({
         setPendingAction(null);
         return;
       }
-      window.location.href = result.data.url;
-    });
+      goToStripeCheckout(result.data.url);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Failed to create subscription checkout"
+      );
+      setPendingAction(null);
+    }
   };
 
-  const handleManageBilling = () => {
+  const handleManageBilling = async () => {
     setError(null);
     setPendingAction("billing");
-    startTransition(async () => {
+    try {
       const result = await createBillingPortalSession();
       if (!result.success) {
         setError(result.error);
@@ -224,32 +329,32 @@ export function BusinessPromotionsPage({
         return;
       }
       window.location.href = result.data.url;
-    });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to open billing portal");
+      setPendingAction(null);
+    }
   };
 
-  const handleCancelSubscription = () => {
-    if (
-      !window.confirm(
-        t("cancelConfirm")
-      )
-    ) {
+  const handleCancelSubscription = async () => {
+    if (!window.confirm(t("cancelConfirm"))) {
       return;
     }
     setError(null);
     setPendingAction("cancel");
-    startTransition(async () => {
+    try {
       const result = await cancelSubscription();
       if (!result.success) {
         setError(result.error);
         setPendingAction(null);
         return;
       }
-      setSuccessMessage(
-        t("canceledSuccess")
-      );
+      setSuccessMessage(t("canceledSuccess"));
       setPendingAction(null);
       router.refresh();
-    });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to cancel subscription");
+      setPendingAction(null);
+    }
   };
 
   const pickerTargets =
@@ -373,7 +478,7 @@ export function BusinessPromotionsPage({
                   quota={subscription.promotedQuota}
                 />
                 <QuotaMeter
-                  label="Feed posts"
+                  label="What Did You Miss posts"
                   used={subscription.postsUsed}
                   quota={subscription.postsQuota}
                 />
@@ -400,7 +505,7 @@ export function BusinessPromotionsPage({
                   onClick={handleManageBilling}
                   pending={isPending("billing")}
                   pendingLabel={t("openingBilling")}
-                  disabled={!purchasesEnabled || (pending && !isPending("billing"))}
+                  disabled={!purchasesEnabled}
                   className="rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground"
                 >
                   {subscription.paymentFailed
@@ -414,7 +519,7 @@ export function BusinessPromotionsPage({
                   onClick={handleCancelSubscription}
                   pending={isPending("cancel")}
                   pendingLabel={t("canceling")}
-                  disabled={!purchasesEnabled || (pending && !isPending("cancel"))}
+                  disabled={!purchasesEnabled}
                   className="text-sm text-destructive/80 underline-offset-2 hover:underline"
                 >
                   {t("cancelRenewal")}
@@ -432,6 +537,8 @@ export function BusinessPromotionsPage({
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ONE_TIME_PLANS.map((plan) => {
+            const opensPicker =
+              plan.type === "event_boost" || plan.type === "feed_post";
             const price = PROMOTION_PRICES[plan.type];
             const quota = getQuotaForType(subscription, plan.type);
             const hasQuota =
@@ -454,9 +561,13 @@ export function BusinessPromotionsPage({
                   {hasQuota ? (
                     <PendingButton
                       type="button"
-                      pending={isPending(`purchase:${plan.type}:quota`)}
+                      pending={
+                        opensPicker
+                          ? false
+                          : isPending(`purchase:${plan.type}:quota`)
+                      }
                       pendingLabel="Applying…"
-                      disabled={!purchasesEnabled || pending}
+                      disabled={!canPurchase}
                       onClick={() => handlePlanClick(plan.type, false)}
                       className="w-full rounded-full bg-firefly py-2 text-sm font-medium text-primary-foreground"
                     >
@@ -465,9 +576,13 @@ export function BusinessPromotionsPage({
                   ) : null}
                   <PendingButton
                     type="button"
-                    pending={isPending(`purchase:${plan.type}:pay`)}
+                    pending={
+                      opensPicker
+                        ? false
+                        : isPending(`purchase:${plan.type}:pay`)
+                    }
                     pendingLabel="Redirecting to checkout…"
-                    disabled={!purchasesEnabled || pending}
+                    disabled={!canPurchase}
                     onClick={() => handlePlanClick(plan.type, true)}
                     className="w-full rounded-full border border-firefly/30 py-2 text-sm text-firefly hover:bg-firefly/10"
                   >
@@ -514,37 +629,11 @@ export function BusinessPromotionsPage({
                     {t("autoRenewDetails")}
                   </p>
                 ) : null}
-                <label className="mt-3 flex items-start gap-2 text-sm text-foreground/80">
-                  <input
-                    type="checkbox"
-                    checked={acceptedTerms}
-                    onChange={(event) => setAcceptedTerms(event.target.checked)}
-                    className="mt-0.5 accent-firefly"
-                    required
-                  />
-                  <span>
-                    {tAuth("agreeTermsPrefix")}{" "}
-                    <Link
-                      href="/terms"
-                      className="text-firefly/90 underline-offset-2 hover:underline"
-                    >
-                      {tAuth("termsLink")}
-                    </Link>{" "}
-                    {tAuth("agreeTermsMiddle")}{" "}
-                    <Link
-                      href="/privacy"
-                      className="text-firefly/90 underline-offset-2 hover:underline"
-                    >
-                      {tAuth("privacyLink")}
-                    </Link>
-                    .
-                  </span>
-                </label>
                 <PendingButton
                   type="button"
                   pending={isPending("subscribe")}
                   pendingLabel={t("redirecting")}
-                  disabled={!purchasesEnabled || pending}
+                  disabled={!canPurchase}
                   onClick={handleSubscribe}
                   className="mt-4 w-full rounded-full border border-firefly/30 py-2 text-sm text-firefly hover:bg-firefly/10"
                 >
@@ -554,6 +643,37 @@ export function BusinessPromotionsPage({
             )}
           </div>
         </div>
+
+        <label className="mt-6 flex items-start gap-2 text-sm text-foreground/80">
+          <input
+            type="checkbox"
+            checked={acceptedTerms}
+            onChange={(event) => {
+              const checked = event.target.checked;
+              setAcceptedTerms(checked);
+              writeAcceptedTerms(checked);
+            }}
+            className="mt-0.5 accent-firefly"
+            required
+          />
+          <span>
+            {tAuth("agreeTermsPrefix")}{" "}
+            <Link
+              href="/terms"
+              className="text-firefly/90 underline-offset-2 hover:underline"
+            >
+              {tAuth("termsLink")}
+            </Link>{" "}
+            {tAuth("agreeTermsMiddle")}{" "}
+            <Link
+              href="/privacy"
+              className="text-firefly/90 underline-offset-2 hover:underline"
+            >
+              {tAuth("privacyLink")}
+            </Link>
+            .
+          </span>
+        </label>
 
         {promotions.length > 0 ? (
           <div className="mt-12">
@@ -577,20 +697,25 @@ export function BusinessPromotionsPage({
         ) : null}
 
       {pickerOpen && pickerType ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="glass w-full max-w-md rounded-2xl p-6">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-surface-1 p-6 shadow-2xl">
             <h3 className="font-heading text-lg font-semibold capitalize">
               Select {formatPromotionType(pickerType)}
             </h3>
             <p className="mt-1 text-sm text-foreground/60">
               Choose a published{" "}
-              {pickerType === "event_boost" ? "event" : "feed post"} to promote.
+              {pickerType === "event_boost"
+                ? "event"
+                : "What Did You Miss post"}{" "}
+              to promote.
             </p>
 
             {pickerTargets.length === 0 ? (
               <p className="mt-4 text-sm text-foreground/50">
                 No published{" "}
-                {pickerType === "event_boost" ? "events" : "feed posts"}{" "}
+                {pickerType === "event_boost"
+                  ? "events"
+                  : "What Did You Miss posts"}{" "}
                 available to boost. Items with an active boost appear again
                 after it expires.
               </p>
@@ -598,7 +723,7 @@ export function BusinessPromotionsPage({
               <select
                 value={effectiveSelectedTarget}
                 onChange={(e) => setSelectedTarget(e.target.value)}
-                className="mt-4 w-full rounded-xl border border-firefly/20 bg-surface-1/50 px-3.5 py-2.5 text-sm"
+                className="mt-4 w-full rounded-xl border border-firefly/20 bg-surface-2 px-3.5 py-2.5 text-sm"
               >
                 <option value="">Select…</option>
                 {pickerTargets.map((t) => (
@@ -615,10 +740,8 @@ export function BusinessPromotionsPage({
                   type="button"
                   pending={isPending(`purchase:${pickerType}:quota`)}
                   pendingLabel="Applying…"
-                  disabled={!purchasesEnabled || !effectiveSelectedTarget || pending}
-                  onClick={() =>
-                    runPurchase(pickerType, effectiveSelectedTarget, false)
-                  }
+                  disabled={!canPurchase || !effectiveSelectedTarget}
+                  onClick={() => void runPurchase(pickerType, effectiveSelectedTarget, false)}
                   className="rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground"
                 >
                   Use slot ({pickerQuota.quota - pickerQuota.used} left)
@@ -628,10 +751,8 @@ export function BusinessPromotionsPage({
                   type="button"
                   pending={isPending(`purchase:${pickerType}:pay`)}
                   pendingLabel="Redirecting to checkout…"
-                  disabled={!purchasesEnabled || !effectiveSelectedTarget || pending}
-                  onClick={() =>
-                    runPurchase(pickerType, effectiveSelectedTarget, true)
-                  }
+                  disabled={!canPurchase || !effectiveSelectedTarget}
+                  onClick={() => void runPurchase(pickerType, effectiveSelectedTarget, true)}
                   className="rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground"
                 >
                   Purchase
@@ -644,10 +765,8 @@ export function BusinessPromotionsPage({
                   type="button"
                   pending={isPending(`purchase:${pickerType}:pay`)}
                   pendingLabel="Redirecting to checkout…"
-                  disabled={!purchasesEnabled || !effectiveSelectedTarget || pending}
-                  onClick={() =>
-                    runPurchase(pickerType, effectiveSelectedTarget, true)
-                  }
+                  disabled={!canPurchase || !effectiveSelectedTarget}
+                  onClick={() => void runPurchase(pickerType, effectiveSelectedTarget, true)}
                   className="rounded-full border border-firefly/30 px-4 py-2 text-sm text-firefly"
                 >
                   Pay instead

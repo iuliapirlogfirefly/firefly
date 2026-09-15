@@ -17,6 +17,7 @@ type Props = {
 function statusClass(status: string) {
   if (status === "published") return "bg-firefly/10 text-firefly";
   if (status === "draft") return "bg-foreground/10 text-foreground/50";
+  if (status === "rejected") return "bg-destructive/15 text-destructive";
   return "bg-amber-warm/15 text-amber-warm";
 }
 
@@ -137,6 +138,11 @@ export function BusinessDashboard({ analytics, venueName }: Props) {
                   <h3 className="mt-1 truncate font-heading text-lg font-semibold">
                     {event.title}
                   </h3>
+                  {event.status === "rejected" && event.rejectionReason ? (
+                    <p className="mt-1 text-xs text-destructive">
+                      Reason: {event.rejectionReason}
+                    </p>
+                  ) : null}
                 </div>
                 <dl className="grid grid-cols-5 gap-3 font-mono text-[10px] uppercase tracking-wider-2 text-foreground/50 sm:shrink-0">
                   <div>
@@ -187,7 +193,7 @@ export function BusinessDashboard({ analytics, venueName }: Props) {
           href="/business/posts"
           className="rounded-full border border-firefly/30 px-5 py-2.5 text-sm text-firefly hover:bg-firefly/10"
         >
-          Feed posts
+          What Did You Miss
         </Link>
         <Link
           href="/business/promotions"

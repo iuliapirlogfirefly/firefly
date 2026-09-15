@@ -262,7 +262,7 @@ export async function getSavedEvents(
 export async function getBusinessEvents(
   businessAccountId: string,
   locale: Locale
-): Promise<(EventListItem & { status: string })[]> {
+): Promise<(EventListItem & { status: string; rejectionReason: string | null })[]> {
   if (shouldUseMockData()) return getMockBusinessEvents(locale);
 
   if (!isSupabaseConfigured()) return [];
@@ -309,6 +309,7 @@ export async function getBusinessEvents(
       locale
     ),
     status: event.status,
+    rejectionReason: event.rejection_reason,
   }));
 }
 
@@ -316,7 +317,13 @@ export async function getBusinessEventForEdit(
   id: string,
   businessAccountId: string,
   locale: Locale
-): Promise<(CreateEventInput & { id: string; status: string }) | null> {
+): Promise<
+  (CreateEventInput & {
+    id: string;
+    status: string;
+    rejectionReason: string | null;
+  }) | null
+> {
   if (shouldUseMockData()) {
     const events = getMockBusinessEvents(locale);
     const event = events.find((e) => e.id === id);
@@ -325,6 +332,7 @@ export async function getBusinessEventForEdit(
     return {
       id: event.id,
       status: event.status,
+      rejectionReason: event.rejectionReason,
       translations: { en: { title: event.title, description: "" } },
       startsAt: event.startsAt,
       endsAt: event.endsAt ?? undefined,
@@ -356,6 +364,7 @@ export async function getBusinessEventForEdit(
   return {
     id: data.id,
     status: data.status,
+    rejectionReason: data.rejection_reason,
     translations,
     startsAt: data.starts_at,
     endsAt: data.ends_at ?? undefined,

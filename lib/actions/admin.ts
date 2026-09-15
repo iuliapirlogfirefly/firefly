@@ -253,7 +253,7 @@ export async function publishFeedPost(postId: string): Promise<ActionResult> {
     updateTag("feed");
     return success(undefined);
   } catch (e) {
-    return failure(e instanceof Error ? e.message : "Failed to publish feed post");
+    return failure(e instanceof Error ? e.message : "Failed to publish What Did You Miss post");
   }
 }
 
@@ -277,7 +277,7 @@ export async function rejectFeedPost(
     if (error) return failure(error.message);
     return success(undefined);
   } catch (e) {
-    return failure(e instanceof Error ? e.message : "Failed to reject feed post");
+    return failure(e instanceof Error ? e.message : "Failed to reject What Did You Miss post");
   }
 }
 
@@ -514,6 +514,71 @@ export async function unmarkPromotionDelivered(
   } catch (e) {
     return failure(
       e instanceof Error ? e.message : "Failed to unmark promotion delivery"
+    );
+  }
+}
+
+function invoicedFields(invoiced: boolean, userId: string | null) {
+  if (invoiced) {
+    return {
+      invoiced_at: new Date().toISOString(),
+      invoiced_by: userId,
+    };
+  }
+  return {
+    invoiced_at: null,
+    invoiced_by: null,
+  };
+}
+
+export async function setPromotionInvoiced(
+  promotionId: string,
+  invoiced: boolean
+): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("promotions")
+      .update(invoicedFields(invoiced, session.userId))
+      .eq("id", promotionId);
+
+    if (error) return failure(error.message);
+    return success(undefined);
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to update invoiced status"
+    );
+  }
+}
+
+export async function setSubscriptionInvoiced(
+  subscriptionId: string,
+  invoiced: boolean
+): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("subscriptions")
+      .update(invoicedFields(invoiced, session.userId))
+      .eq("id", subscriptionId);
+
+    if (error) return failure(error.message);
+    return success(undefined);
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to update invoiced status"
     );
   }
 }

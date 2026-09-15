@@ -35,7 +35,7 @@
     "openDashboard": "Deschide dashboard-ul",
     "promotionsSoon": "Curând",
     "promotionsComingSoonTitle": "În curând",
-    "promotionsComingSoonBody": "Boost-urile și Premium se deblochează când harta se aprinde. Până atunci poți pregăti evenimente și postări în feed."
+    "promotionsComingSoonBody": "Boost-urile și Premium se deblochează când harta se aprinde. Până atunci poți pregăti evenimente și postări What Did You Miss."
   },
   "newsletter": {
     "sectionLabel": "Newsletter",
@@ -99,7 +99,7 @@
   },
   "premium": {
     "cardTitle": "Premium Subscription (doar o lună)",
-    "included": "4 evenimente promovate, 4 postări feed, 1 newsletter, 2 postări social media în această lună.",
+    "included": "4 evenimente promovate, 4 postări What Did You Miss, 1 newsletter, 2 postări social media în această lună.",
     "autoRenew": "Doresc să reînnoiesc automat abonamentul în fiecare lună",
     "autoRenewDetails": "Plata se reînnoiește automat în fiecare lună. Poți anula abonamentul oricând, iar anularea va opri următoarea plată.",
     "continueToCheckout": "Continuă către Stripe Checkout",
@@ -122,5 +122,15 @@
     "updatePayment": "Actualizează metoda de plată",
     "openingBilling": "Se deschide facturarea…",
     "benefitsPaused": "Beneficiile Premium sunt suspendate până la o plată reușită."
+  },
+  "business": {
+    "delete": "Șterge",
+    "deleteEventTitle": "Șterge evenimentul",
+    "deletePostTitle": "Șterge postarea",
+    "deleteWarning": "Atenție! Această acțiune este iremediabilă.",
+    "deleteLiveWarning": "Va dispărea de pe harta și feed-ul public, iar orice boost activ se va opri.",
+    "deleteCancel": "Anulează",
+    "deleteConfirm": "Șterge",
+    "deleting": "Se șterge…"
   }
 }

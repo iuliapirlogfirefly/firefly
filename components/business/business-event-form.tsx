@@ -23,7 +23,10 @@ type Props = {
   eventId?: string;
   businessType: "venue" | "organizer";
   venue: BusinessVenue;
-  initial?: Partial<CreateEventInput> & { status?: string };
+  initial?: Partial<CreateEventInput> & {
+    status?: string;
+    rejectionReason?: string | null;
+  };
 };
 
 const inputClass =
@@ -31,7 +34,13 @@ const inputClass =
 
 const labelClass = "mb-1.5 block text-xs font-medium text-foreground/50";
 
-function StatusNote({ status }: { status?: string }) {
+function StatusNote({
+  status,
+  rejectionReason,
+}: {
+  status?: string;
+  rejectionReason?: string | null;
+}) {
   if (!status || status === "draft") {
     return (
       <p className="text-xs text-foreground/50">
@@ -51,7 +60,9 @@ function StatusNote({ status }: { status?: string }) {
   if (status === "rejected") {
     return (
       <p className="text-xs text-destructive">
-        This event was rejected. Update it and submit it again.
+        This event was rejected
+        {rejectionReason ? `: ${rejectionReason}` : "."} Update it and
+        submit it again.
       </p>
     );
   }
@@ -201,7 +212,10 @@ export function BusinessEventForm({
   return (
     <form onSubmit={handleSubmit}>
       <div className="glass space-y-6 rounded-3xl p-6">
-        <StatusNote status={initial?.status} />
+        <StatusNote
+          status={initial?.status}
+          rejectionReason={initial?.rejectionReason}
+        />
 
         <fieldset disabled={locked} className="space-y-6 disabled:opacity-60">
           <div>

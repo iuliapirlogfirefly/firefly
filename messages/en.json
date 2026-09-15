@@ -35,7 +35,7 @@
     "openDashboard": "Open dashboard",
     "promotionsSoon": "Soon",
     "promotionsComingSoonTitle": "Coming soon",
-    "promotionsComingSoonBody": "Boosts and Premium unlock when the map goes live. You can still prepare events and feed posts in the meantime."
+    "promotionsComingSoonBody": "Boosts and Premium unlock when the map goes live. You can still prepare events and What Did You Miss posts in the meantime."
   },
   "newsletter": {
     "sectionLabel": "Newsletter",
@@ -99,7 +99,7 @@
   },
   "premium": {
     "cardTitle": "Premium Subscription (one month only)",
-    "included": "4 promoted events, 4 feed posts, 1 newsletter, 2 social posts this month.",
+    "included": "4 promoted events, 4 What Did You Miss posts, 1 newsletter, 2 social posts this month.",
     "autoRenew": "I want to automatically renew the subscription every month",
     "autoRenewDetails": "Payment renews automatically every month. You can cancel anytime; cancellation stops the next charge.",
     "continueToCheckout": "Continue to Stripe Checkout",
@@ -122,5 +122,15 @@
     "updatePayment": "Update payment method",
     "openingBilling": "Opening billing…",
     "benefitsPaused": "Premium benefits are paused until payment succeeds."
+  },
+  "business": {
+    "delete": "Delete",
+    "deleteEventTitle": "Delete event",
+    "deletePostTitle": "Delete post",
+    "deleteWarning": "Attention! This action is irreversible.",
+    "deleteLiveWarning": "It will be removed from the public map and feed, and any active boost will stop.",
+    "deleteCancel": "Cancel",
+    "deleteConfirm": "Delete",
+    "deleting": "Deleting…"
   }
 }

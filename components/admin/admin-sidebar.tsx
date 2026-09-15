@@ -20,7 +20,7 @@ import type { AdminPendingCounts } from "@/lib/queries/admin";
 const navItems = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, countKey: null },
   { href: "/admin/events", label: "Events", icon: CalendarDays, countKey: "pendingEvents" as const },
-  { href: "/admin/posts", label: "Feed Posts", icon: Newspaper, countKey: "pendingPosts" as const },
+  { href: "/admin/posts", label: "What Did You Miss", icon: Newspaper, countKey: "pendingPosts" as const },
   { href: "/admin/users", label: "Users", icon: Users, countKey: "pendingBusinesses" as const },
   { href: "/admin/messages", label: "Messages", icon: MessageSquare, countKey: "unreadMessages" as const },
   { href: "/admin/promotions", label: "Promotions", icon: Megaphone, countKey: null },

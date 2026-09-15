@@ -176,7 +176,7 @@ export function AdminBusinessDetailsPage({ details }: Props) {
                 </dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Posts</dt>
+                <dt className="text-muted-foreground">What Did You Miss</dt>
                 <dd>
                   {sub.postsUsed}/{sub.postsQuota}
                 </dd>

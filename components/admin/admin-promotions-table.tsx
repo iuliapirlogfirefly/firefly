@@ -1,10 +1,12 @@
+import { AdminInvoicedCheckbox } from "@/components/admin/admin-invoiced-checkbox";
 import { AdminBadge } from "@/components/admin/ui/admin-badge";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import type {
   AdminPromotionRow,
   AdminSubscriptionRow,
 } from "@/lib/queries/promotions";
-import { SUBSCRIPTION_PRICE } from "@/lib/stripe/products";
+import { PROMOTION_PRICES, SUBSCRIPTION_PRICE } from "@/lib/stripe/products";
+import type { PromotionType } from "@/types";
 import { formatMoney } from "@/lib/utils/money";
 
 type Props = {
@@ -14,6 +16,9 @@ type Props = {
 };
 
 function formatPromotionType(type: string) {
+  if (type in PROMOTION_PRICES) {
+    return PROMOTION_PRICES[type as PromotionType].label;
+  }
   return type.replace(/_/g, " ");
 }
 
@@ -40,7 +45,7 @@ export function AdminPromotionsTable({
           </AdminCard>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-[640px] text-left text-sm">
+            <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="border-b border-border bg-surface-1 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 font-medium">Business</th>
@@ -48,6 +53,7 @@ export function AdminPromotionsTable({
                   <th className="px-4 py-3 font-medium">Target</th>
                   <th className="px-4 py-3 font-medium">Expires</th>
                   <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Invoiced</th>
                 </tr>
               </thead>
               <tbody>
@@ -73,6 +79,13 @@ export function AdminPromotionsTable({
                         {promo.isActive ? "active" : "inactive"}
                       </AdminBadge>
                     </td>
+                    <td className="px-4 py-3">
+                      <AdminInvoicedCheckbox
+                        kind="promotion"
+                        id={promo.id}
+                        invoiced={promo.invoiced}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -91,7 +104,7 @@ export function AdminPromotionsTable({
           </AdminCard>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-[960px] text-left text-sm">
+            <table className="w-full min-w-[1080px] text-left text-sm">
               <thead className="border-b border-border bg-surface-1 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 font-medium">Business</th>
@@ -99,9 +112,15 @@ export function AdminPromotionsTable({
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Renews</th>
                   <th className="px-4 py-3 font-medium">Promoted</th>
-                  <th className="px-4 py-3 font-medium">Posts</th>
+                  <th className="px-4 py-3 font-medium">What Did You Miss</th>
                   <th className="px-4 py-3 font-medium">Newsletters</th>
                   <th className="px-4 py-3 font-medium">Social</th>
+                  <th className="px-4 py-3 font-medium">
+                    Invoiced
+                    <span className="mt-0.5 block font-normal normal-case tracking-normal text-muted-foreground">
+                      this period
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -153,6 +172,14 @@ export function AdminPromotionsTable({
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {sub.socialUsed}/{sub.socialQuota}
+                    </td>
+                    <td className="px-4 py-3">
+                      <AdminInvoicedCheckbox
+                        kind="subscription"
+                        id={sub.id}
+                        invoiced={sub.invoiced}
+                        label="Invoiced this period"
+                      />
                     </td>
                   </tr>
                 ))}

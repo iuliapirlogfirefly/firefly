@@ -330,6 +330,30 @@ const MOCK_BUSINESS_EVENT_ROWS: EventRow[] = [
       },
     },
   }),
+  row({
+    id: "mock-biz-rejected",
+    slug: "rejected-warehouse-night",
+    business_account_id: MOCK_BUSINESS_ACCOUNT_ID,
+    status: "rejected",
+    genre: "techno",
+    event_type: "party",
+    venue_name: "Control Club",
+    price: 40,
+    cover_image_url: eventImages.event4,
+    starts_at: new Date(weekend.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+    rejection_reason:
+      "Cover image is too dark and the description is missing the start time.",
+    translations: {
+      en: {
+        title: "Warehouse Night (rejected)",
+        description: "Needs a clearer poster and schedule.",
+      },
+      ro: {
+        title: "Noapte warehouse (respins)",
+        description: "Are nevoie de un poster mai clar și de program.",
+      },
+    },
+  }),
 ];
 
 function mapRowToListItem(event: EventRow, locale: Locale): EventListItem {
@@ -606,6 +630,7 @@ export function getMockBusinessEvents(locale: Locale) {
   return MOCK_BUSINESS_EVENT_ROWS.map((e) => ({
     ...mapRowToListItem(e, locale),
     status: e.status,
+    rejectionReason: e.rejection_reason,
   }));
 }
 
@@ -703,6 +728,7 @@ export function getMockBusinessAnalytics(locale: Locale = "en") {
       startsAt: event.startsAt,
       status: event.status,
       isPromoted: event.isPromoted,
+      rejectionReason: event.rejectionReason,
       ...counts,
     };
   });
@@ -837,6 +863,7 @@ export function getMockPromotions() {
       fulfilledAt: null as string | null,
       deliveryUrl: null as string | null,
       deliveryNotes: null as string | null,
+      invoicedAt: "2026-04-08T12:00:00.000Z" as string | null,
     },
     {
       id: "promo-2",
@@ -849,6 +876,7 @@ export function getMockPromotions() {
       fulfilledAt: null as string | null,
       deliveryUrl: null as string | null,
       deliveryNotes: null as string | null,
+      invoicedAt: null as string | null,
     },
     {
       id: "promo-3",
@@ -861,6 +889,7 @@ export function getMockPromotions() {
       fulfilledAt: null as string | null,
       deliveryUrl: null as string | null,
       deliveryNotes: null as string | null,
+      invoicedAt: null as string | null,
     },
     {
       id: "promo-4",
@@ -873,6 +902,7 @@ export function getMockPromotions() {
       fulfilledAt: null as string | null,
       deliveryUrl: null as string | null,
       deliveryNotes: null as string | null,
+      invoicedAt: null as string | null,
     },
     {
       id: "promo-5",
@@ -885,6 +915,7 @@ export function getMockPromotions() {
       fulfilledAt: "2026-03-30T14:00:00.000Z",
       deliveryUrl: "https://instagram.com/p/example",
       deliveryNotes: "Posted to IG Stories + feed",
+      invoicedAt: "2026-03-30T15:00:00.000Z" as string | null,
     },
   ];
 }

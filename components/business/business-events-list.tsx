@@ -1,10 +1,14 @@
 import Image from "next/image";
 import { Link } from "@/i18n/navigation";
+import { BusinessDeleteButton } from "@/components/business/business-delete-button";
 import { formatDateBadge } from "@/lib/utils/event-format";
 import { landingImages } from "@/lib/landing/images";
 import type { EventListItem } from "@/types/events";
 
-type BusinessEvent = EventListItem & { status: string };
+type BusinessEvent = EventListItem & {
+  status: string;
+  rejectionReason: string | null;
+};
 
 type Props = {
   events: BusinessEvent[];
@@ -56,7 +60,9 @@ export function BusinessEventsList({ events }: Props) {
                         ? "bg-firefly/10 text-firefly"
                         : event.status === "draft"
                           ? "bg-foreground/10 text-foreground/50"
-                          : "bg-amber-warm/15 text-amber-warm"
+                          : event.status === "rejected"
+                            ? "bg-destructive/15 text-destructive"
+                            : "bg-amber-warm/15 text-amber-warm"
                     }`}
                   >
                     {event.status}
@@ -69,6 +75,11 @@ export function BusinessEventsList({ events }: Props) {
                   {event.title}
                 </h2>
                 <p className="text-sm text-foreground/60">{event.venueName}</p>
+                {event.status === "rejected" && event.rejectionReason ? (
+                  <p className="mt-2 text-xs text-destructive">
+                    Reason: {event.rejectionReason}
+                  </p>
+                ) : null}
               </div>
               <div className="flex shrink-0 flex-col gap-2 self-start">
                 {event.status === "published" && !event.isPromoted ? (
@@ -85,6 +96,11 @@ export function BusinessEventsList({ events }: Props) {
                 >
                   Edit
                 </Link>
+                <BusinessDeleteButton
+                  kind="event"
+                  id={event.id}
+                  isLive={event.status === "published" || event.isPromoted}
+                />
               </div>
             </li>
           ))}

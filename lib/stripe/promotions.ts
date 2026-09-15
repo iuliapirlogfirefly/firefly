@@ -45,3 +45,18 @@ export async function getActivePromotionTargetIds(
   const { data } = await query;
   return new Set((data ?? []).map((row) => row.target_id));
 }
+
+export async function deactivatePromotionsForTarget(
+  client: DbClient,
+  businessAccountId: string,
+  targetId: string
+): Promise<void> {
+  const { error } = await client
+    .from("promotions")
+    .update({ is_active: false })
+    .eq("business_account_id", businessAccountId)
+    .eq("target_id", targetId)
+    .eq("is_active", true);
+
+  if (error) throw error;
+}

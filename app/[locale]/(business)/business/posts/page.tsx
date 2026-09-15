@@ -27,7 +27,7 @@ export default async function BusinessPostsPage({ params }: Props) {
   return (
     <div data-route="business-posts">
         <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-          ◦ Business · Feed posts
+          ◦ Business · What Did You Miss posts
         </div>
         <h1 className="font-heading text-4xl font-bold">
           Your <span className="text-gradient-firefly">stories</span>
@@ -41,8 +41,8 @@ export default async function BusinessPostsPage({ params }: Props) {
         ) : (
           <div className="glass mt-8 rounded-2xl p-8 text-center">
             <p className="text-sm text-foreground/60">
-              Register and get your business account approved to submit feed
-              posts.
+              Register and get your business account approved to submit What
+              Did You Miss posts.
             </p>
             <Link
               href="/business"

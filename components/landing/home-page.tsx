@@ -152,16 +152,6 @@ export async function HomePage() {
             style={{ animationDelay: "0.4s" }}
           >
             <HeroPin className="h-[78%]" />
-
-            <div
-              className="glass absolute left-[8%] top-[14%] hidden rounded-xl px-3 py-2 sm:block"
-              style={{ transform: "rotate(-8deg)" }}
-            >
-              <div className="font-mono text-[10px] uppercase tracking-wider-2 text-firefly">
-                live
-              </div>
-              <div className="mt-0.5 font-heading text-sm">Subterra · 23:00</div>
-            </div>
           </div>
         </div>
 

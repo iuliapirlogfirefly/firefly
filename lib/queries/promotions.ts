@@ -1,5 +1,5 @@
 import type { PromotionType } from "@/types";
-import { SUBSCRIPTION_QUOTAS } from "@/lib/stripe/products";
+import { PROMOTION_PRICES, SUBSCRIPTION_QUOTAS } from "@/lib/stripe/products";
 import {
   isPaymentFailedStatus,
   isPremiumEntitled,
@@ -14,6 +14,7 @@ export type AdminPromotionRow = {
   targetLabel: string;
   expiresAt: string;
   isActive: boolean;
+  invoiced: boolean;
 };
 
 export type AdminDeliveryRow = {
@@ -47,6 +48,7 @@ export type AdminSubscriptionRow = {
   newslettersQuota: number;
   socialUsed: number;
   socialQuota: number;
+  invoiced: boolean;
 };
 
 export type BusinessPromotionRow = {
@@ -76,6 +78,14 @@ export type BusinessSubscriptionInfo = {
   socialUsed: number;
   socialQuota: number;
 } | null;
+
+function isInvoicedForCurrentPeriod(
+  invoicedAt: string | null | undefined,
+  currentPeriodStart: string | null | undefined
+): boolean {
+  if (!invoicedAt || !currentPeriodStart) return false;
+  return invoicedAt >= currentPeriodStart;
+}
 
 export async function getBusinessPromotions(
   businessAccountId: string,
@@ -165,7 +175,7 @@ export async function getBusinessPromotions(
       p.type === "event_boost"
         ? (eventMap.get(p.target_id) ?? "Event")
         : p.type === "feed_post"
-          ? (postMap.get(p.target_id) ?? "Feed post")
+          ? (postMap.get(p.target_id) ?? PROMOTION_PRICES.feed_post.label)
           : p.type === "newsletter"
             ? "Newsletter slot"
             : "Social media slot",
@@ -265,6 +275,7 @@ export async function getAdminPromotions(): Promise<AdminPromotionRow[]> {
       targetLabel: p.name,
       expiresAt: p.expiresAt,
       isActive: p.status === "active",
+      invoiced: Boolean(p.invoicedAt),
     }));
   }
 
@@ -276,7 +287,7 @@ export async function getAdminPromotions(): Promise<AdminPromotionRow[]> {
   const [{ data: promotions, error }, { data: businesses }] = await Promise.all([
     supabase
       .from("promotions")
-      .select("id, type, target_id, expires_at, is_active, business_account_id")
+      .select("id, type, target_id, expires_at, is_active, business_account_id, invoiced_at")
       .eq("is_active", true)
       .order("expires_at", { ascending: true }),
     supabase.from("business_accounts").select("id, name"),
@@ -295,6 +306,7 @@ export async function getAdminPromotions(): Promise<AdminPromotionRow[]> {
     targetLabel: p.target_id?.slice(0, 8) ?? "—",
     expiresAt: p.expires_at?.slice(0, 10) ?? "",
     isActive: p.is_active,
+    invoiced: Boolean(p.invoiced_at),
   }));
 }
 
@@ -321,6 +333,7 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
         newslettersQuota: 1,
         socialUsed: 0,
         socialQuota: 2,
+        invoiced: false,
       },
     ];
   }
@@ -335,7 +348,7 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
       supabase
         .from("subscriptions")
         .select(
-          "id, status, billing_type, current_period_end, cancel_at_period_end, used_promoted_events, quota_promoted_events, used_feed_posts, quota_feed_posts, used_newsletters, quota_newsletters, used_social_posts, quota_social_posts, business_account_id"
+          "id, status, billing_type, current_period_start, current_period_end, cancel_at_period_end, used_promoted_events, quota_promoted_events, used_feed_posts, quota_feed_posts, used_newsletters, quota_newsletters, used_social_posts, quota_social_posts, business_account_id, invoiced_at"
         ),
       supabase.from("business_accounts").select("id, name"),
     ]);
@@ -363,6 +376,7 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
     newslettersQuota: s.quota_newsletters,
     socialUsed: s.used_social_posts,
     socialQuota: s.quota_social_posts,
+    invoiced: isInvoicedForCurrentPeriod(s.invoiced_at, s.current_period_start),
   })).filter((s) => s.entitled || s.paymentFailed);
 }
 

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Link } from "@/i18n/navigation";
+import { BusinessDeleteButton } from "@/components/business/business-delete-button";
 import { getCategoryMeta } from "@/lib/constants/feed-categories";
 import { landingImages } from "@/lib/landing/images";
 import type { BusinessFeedPostItem } from "@/lib/queries/feed";
@@ -87,6 +88,11 @@ export function BusinessPostsList({ posts, locale }: Props) {
                 >
                   Edit
                 </Link>
+                <BusinessDeleteButton
+                  kind="post"
+                  id={post.id}
+                  isLive={post.status === "published" || post.isPromoted}
+                />
               </div>
             </div>
           </li>

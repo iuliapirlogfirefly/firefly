@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { submitFeedPost, updateFeedPost } from "@/lib/actions/business";
 import { FEED_CATEGORIES } from "@/lib/constants/feed-categories";
@@ -82,8 +82,9 @@ export function BusinessFeedPostForm({
   onCreated,
 }: Props) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const savingRef = useRef(false);
 
   const [category, setCategory] = useState<FeedPostCategory>(
     initial?.category ?? "party_updates"
@@ -104,7 +105,8 @@ export function BusinessFeedPostForm({
     initial?.mediaUrl ?? null
   );
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (savingRef.current) return;
     setError(null);
 
     if (!titleEn.trim() || !descEn.trim()) {
@@ -127,27 +129,37 @@ export function BusinessFeedPostForm({
       mediaUrl: mediaUrl ?? undefined,
     };
 
-    startTransition(async () => {
+    savingRef.current = true;
+    setSaving(true);
+
+    try {
       if (mode === "edit") {
         const result = await updateFeedPost(postId!, payload);
         if (!result.success) {
+          savingRef.current = false;
           setError(result.error);
+          setSaving(false);
           return;
         }
         router.push("/business/posts");
-        router.refresh();
         return;
       }
 
       const result = await submitFeedPost(payload);
       if (!result.success) {
+        savingRef.current = false;
         setError(result.error);
+        setSaving(false);
         return;
       }
 
       onCreated?.();
       router.refresh();
-    });
+    } catch {
+      savingRef.current = false;
+      setError("Failed to submit post");
+      setSaving(false);
+    }
   };
 
   return (
@@ -155,7 +167,7 @@ export function BusinessFeedPostForm({
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="space-y-2">
           <h2 className="font-heading text-lg font-semibold">
-            {mode === "edit" ? "Edit feed post" : "New feed post"}
+            {mode === "edit" ? "Edit What Did You Miss post" : "New What Did You Miss post"}
           </h2>
           <StatusNote
             mode={mode}
@@ -247,11 +259,11 @@ export function BusinessFeedPostForm({
 
         <button
           type="button"
-          disabled={pending}
-          onClick={handleSubmit}
+          disabled={saving}
+          onClick={() => void handleSubmit()}
           className="rounded-full bg-firefly px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
         >
-          {pending
+          {saving
             ? "Submitting…"
             : mode === "edit"
               ? "Save & submit for review"
