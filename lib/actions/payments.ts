@@ -19,6 +19,7 @@ import { activatePromotion } from "@/lib/stripe/activate-promotion";
 import { hasActivePromotion } from "@/lib/stripe/promotions";
 import { isPrelaunchActive } from "@/lib/launch/settings";
 import { success, failure } from "@/lib/utils/action-result";
+import { getPublicAppUrl } from "@/lib/utils/app-url";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
 import type { ActionResult, PromotionType } from "@/types";
 import type Stripe from "stripe";
@@ -164,7 +165,7 @@ export async function createCheckoutSession(
     }
 
     const stripe = getStripe();
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const appUrl = await getPublicAppUrl();
     const locale = session.preferredLocale ?? "en";
     const promotionsPath = `${appUrl}/${locale}/business/promotions`;
     const customerId = await getOrCreateStripeCustomer({
@@ -243,7 +244,7 @@ export async function createSubscriptionCheckout(options: {
       return failure("A Premium subscription is already active or pending payment");
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const appUrl = await getPublicAppUrl();
     const locale = session.preferredLocale ?? "en";
     const promotionsPath = `${appUrl}/${locale}/business/promotions`;
     const customerId = await getOrCreateStripeCustomer({
@@ -372,7 +373,7 @@ export async function createBillingPortalSession(): Promise<
       email: session.email,
     });
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const appUrl = await getPublicAppUrl();
     const locale = session.preferredLocale ?? "en";
     const promotionsPath = `${appUrl}/${locale}/business/promotions`;
 
