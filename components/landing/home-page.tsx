@@ -17,6 +17,7 @@ import { QuoteRotator } from "@/components/landing/quote-rotator";
 import { EVENT_TYPES } from "@/lib/constants/event-types";
 import { landingImages } from "@/lib/landing/images";
 import { isPrelaunchActive, isLandingStatsEnabled } from "@/lib/launch/settings";
+import { getMapPinCount } from "@/lib/queries/events";
 import {
   formatLandingCount,
   getLandingStats,
@@ -58,8 +59,11 @@ export async function HomePage() {
     return <PrelaunchLanding />;
   }
 
-  const t = await getTranslations("landing");
-  const tEventTypes = await getTranslations("eventTypes");
+  const [t, tEventTypes, mapPinCount] = await Promise.all([
+    getTranslations("landing"),
+    getTranslations("eventTypes"),
+    getMapPinCount(),
+  ]);
   const mapFeatures = mapFeatureKeys.map((key, i) => ({
     icon: mapFeatureIcons[i],
     t: t(`${key}Title`),
@@ -105,7 +109,7 @@ export async function HomePage() {
                 <span className="absolute inset-0 rounded-full bg-firefly animate-firefly-pulse" />
               </span>
               <span className="font-mono text-[11px] uppercase tracking-wider-2 text-foreground/80">
-                {t("liveBadge")}
+                {t("liveBadge", { count: mapPinCount })}
               </span>
             </div>
 
