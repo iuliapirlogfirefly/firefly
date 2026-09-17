@@ -110,6 +110,23 @@ export async function getEvents(
   return events.map((e) => mapEventToListItem(e, locale));
 }
 
+export async function getMapPinCount(): Promise<number> {
+  if (shouldUseMockData()) return getMockEvents("en").length;
+  if (!isSupabaseConfigured()) return 0;
+
+  try {
+    const supabase = await createClient();
+    const { count, error } = await supabase
+      .from("events")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "published");
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function getEventsGeoJSON(
   locale: Locale,
   filters: EventFilters = {}

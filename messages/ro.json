@@ -83,7 +83,7 @@
     "pin2Description": "Evenimentele de acum ard mai tare și te atrag mai aproape de acțiune.",
     "pin3Title": "Păstrează-ți borcanul de nopți",
     "pin3Description": "O colecție privată pe care o vezi doar tu.",
-    "liveBadge": "Diseară în București · 23 de locații aprinse",
+    "liveBadge": "Diseară în București · {count, plural, one {# locație aprinsă} few {# locații aprinse} other {# de locații aprinse}}",
     "heroFollow": "Follow",
     "heroThe": "the",
     "heroLight": "light.",

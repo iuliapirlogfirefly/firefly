@@ -83,7 +83,7 @@
     "pin2Description": "Events happening now burn brighter, pulling you closer to the action.",
     "pin3Title": "Save your jar of nights",
     "pin3Description": "A private collection only you can see.",
-    "liveBadge": "Tonight in Bucharest · 23 venues glowing",
+    "liveBadge": "Tonight in Bucharest · {count, plural, one {# venue glowing} other {# venues glowing}}",
     "heroFollow": "Follow",
     "heroThe": "the",
     "heroLight": "light.",
