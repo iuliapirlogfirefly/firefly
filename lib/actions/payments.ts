@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
-import { getStripe } from "@/lib/stripe/client";
+import { explainStripeError, getStripe } from "@/lib/stripe/client";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
 import {
   hasBlockingPremium,
@@ -209,9 +209,7 @@ export async function createCheckoutSession(
     if (!checkoutSession.url) return failure("Failed to create checkout session");
     return success({ url: checkoutSession.url });
   } catch (e) {
-    return failure(
-      e instanceof Error ? e.message : "Failed to create checkout session"
-    );
+    return failure(explainStripeError(e, "Failed to create checkout session"));
   }
 }
 
@@ -280,7 +278,7 @@ export async function createSubscriptionCheckout(options: {
     return success({ url: checkoutSession.url });
   } catch (e) {
     return failure(
-      e instanceof Error ? e.message : "Failed to create subscription checkout"
+      explainStripeError(e, "Failed to create subscription checkout")
     );
   }
 }
@@ -386,9 +384,7 @@ export async function createBillingPortalSession(): Promise<
     if (!portal.url) return failure("Failed to open billing portal");
     return success({ url: portal.url });
   } catch (e) {
-    return failure(
-      e instanceof Error ? e.message : "Failed to open billing portal"
-    );
+    return failure(explainStripeError(e, "Failed to open billing portal"));
   }
 }
 
@@ -593,8 +589,6 @@ export async function cancelSubscription(
     if (updateError) return failure(updateError.message);
     return success(undefined);
   } catch (e) {
-    return failure(
-      e instanceof Error ? e.message : "Failed to cancel subscription"
-    );
+    return failure(explainStripeError(e, "Failed to cancel subscription"));
   }
 }

@@ -28,6 +28,13 @@ if (!secret) {
   process.exit(1);
 }
 
+if (secret.startsWith("pk_")) {
+  console.error(
+    "STRIPE_SECRET_KEY is a publishable key (pk_). Use the Secret key (sk_ or rk_), not NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY."
+  );
+  process.exit(1);
+}
+
 if (secret.startsWith("sk_live_") || secret.startsWith("rk_live_")) {
   console.log("Mode: LIVE");
 } else if (secret.startsWith("sk_test_") || secret.startsWith("rk_test_")) {
