@@ -28,6 +28,7 @@ export async function EventDetailPage({ event, related }: Props) {
   const tGenres = await getTranslations("genres");
   const tTypes = await getTranslations("eventTypes");
   const image = event.coverImageUrl ?? landingImages.editorialCrowd;
+  const extraImages = event.images.filter((url) => url && url !== image);
 
   return (
     <main data-route="event-detail" className="relative min-h-screen pb-32 md:pb-16">
@@ -142,6 +143,30 @@ export async function EventDetailPage({ event, related }: Props) {
           websiteUrl={event.websiteUrl}
         />
       </section>
+
+      {extraImages.length > 0 ? (
+        <section className="mx-auto mt-20 max-w-7xl px-6">
+          <div className="mb-6 font-mono text-xs uppercase tracking-wider-2 text-firefly">
+            ◦ {t("gallery")}
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {extraImages.map((url) => (
+              <div
+                key={url}
+                className="relative aspect-square overflow-hidden rounded-2xl"
+              >
+                <Image
+                  src={url}
+                  alt=""
+                  fill
+                  sizes="(max-width: 640px) 50vw, 33vw"
+                  className="object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {related.length > 0 ? (
         <section className="mx-auto mt-20 max-w-7xl px-6">

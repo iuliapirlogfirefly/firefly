@@ -1,6 +1,7 @@
 "use server";
 
 import { updateTag } from "next/cache";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession, requireRole } from "@/lib/auth/session";
@@ -17,6 +18,30 @@ import {
   wrapNewsletterHtml,
 } from "@/lib/newsletter/unsubscribe-token";
 import type { ActionResult } from "@/types";
+import type { CreateFeedPostInput } from "@/types/events";
+import type { Json } from "@/types/database.types";
+
+const createAdminFeedPostSchema = z.object({
+  category: z.enum([
+    "party_updates",
+    "nightlife_news",
+    "nightlife_chaos",
+    "club_moments",
+  ]),
+  translations: z.object({
+    en: z.object({
+      title: z.string().min(1),
+      description: z.string().min(1),
+    }),
+    ro: z
+      .object({
+        title: z.string().optional(),
+        description: z.string().optional(),
+      })
+      .optional(),
+  }),
+  mediaUrl: z.string().optional(),
+});
 
 export async function approveBusinessAccount(
   businessAccountId: string
@@ -300,6 +325,44 @@ export async function rejectFeedPost(
     return success(undefined);
   } catch (e) {
     return failure(e instanceof Error ? e.message : "Failed to reject What Did You Miss post");
+  }
+}
+
+export async function createAdminFeedPost(
+  data: CreateFeedPostInput
+): Promise<ActionResult<{ id: string }>> {
+  const disabled = supabaseDisabled<{ id: string }>();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const parsed = createAdminFeedPostSchema.safeParse(data);
+    if (!parsed.success) return failure(parsed.error.message);
+
+    const admin = createAdminClient();
+    const now = new Date().toISOString();
+    const { data: post, error } = await admin
+      .from("feed_posts")
+      .insert({
+        business_account_id: null,
+        category: parsed.data.category,
+        status: "published",
+        translations: parsed.data.translations as Json,
+        media_url: parsed.data.mediaUrl ?? null,
+        published_at: now,
+      })
+      .select("id")
+      .single();
+
+    if (error) return failure(error.message);
+    updateTag("feed");
+    return success({ id: post.id });
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to create What Did You Miss post"
+    );
   }
 }
 

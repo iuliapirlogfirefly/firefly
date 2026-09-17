@@ -69,7 +69,9 @@ export function Nav() {
         ) : null}
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <LanguageSwitcher />
+          <div className="hidden md:block">
+            <LanguageSwitcher />
+          </div>
           {isLoggedIn ? (
             <>
               {!isPrelaunch ? (

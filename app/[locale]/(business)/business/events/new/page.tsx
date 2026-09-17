@@ -41,6 +41,7 @@ export default async function NewEventPage({ params }: Props) {
         <BusinessEventForm
           mode="create"
           businessType={business.type}
+          businessName={business.name}
           venue={business.venue}
         />
     </div>

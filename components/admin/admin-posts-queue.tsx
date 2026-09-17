@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getCategoryMeta } from "@/lib/constants/feed-categories";
 import { AdminPostActions } from "@/components/admin/admin-post-actions";
+import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminEmptyState } from "@/components/admin/ui/admin-empty-state";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { landingImages } from "@/lib/landing/images";
@@ -24,12 +25,19 @@ export async function AdminPostsQueue({ posts }: Props) {
 
   return (
     <div data-route="admin-posts">
-      <h1 className="font-heading text-2xl font-semibold md:text-3xl">
-        {t("postsTitle")}
-      </h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {t("postsSubtitle", { count: posts.length })}
-      </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-heading text-2xl font-semibold md:text-3xl">
+            {t("postsTitle")}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("postsSubtitle", { count: posts.length })}
+          </p>
+        </div>
+        <Link href="/admin/posts/new">
+          <AdminButton size="md">{t("createPost")}</AdminButton>
+        </Link>
+      </div>
 
       <div className="mt-6 space-y-4">
         {posts.length === 0 ? (

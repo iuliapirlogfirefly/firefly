@@ -86,6 +86,7 @@ export type CreateEventInput = {
   ticketUrl?: string;
   websiteUrl?: string;
   specialGuest?: string;
+  organizerName?: string;
   coverImageUrl?: string;
   images?: string[];
   venueId?: string;

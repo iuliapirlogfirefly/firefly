@@ -47,6 +47,7 @@ function row(
     ticket_url: "https://example.com/tickets",
     website_url: "https://example.com",
     special_guest: null,
+    organizer_name: null,
     cover_image_url: null,
     images: [],
     is_promoted: false,
@@ -74,6 +75,7 @@ const MOCK_EVENT_ROWS: EventRow[] = [
     is_promoted: true,
     promotion_intensity: 3,
     special_guest: "DJ Ion Popescu",
+    organizer_name: "Nightshift Collective",
     cover_image_url: eventImages.event1,
     translations: {
       en: {
@@ -460,7 +462,7 @@ export function getMockEventBySlug(
     websiteUrl: event.website_url,
     specialGuest: event.special_guest,
     images: event.images ?? [],
-    organizerName: null,
+    organizerName: event.organizer_name,
     isSaved: false,
     isReminded: false,
   };
