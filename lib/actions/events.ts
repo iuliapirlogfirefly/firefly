@@ -32,6 +32,7 @@ const createEventSchema = z.object({
   ticketUrl: z.string().url().optional().or(z.literal("")),
   websiteUrl: z.string().url().optional().or(z.literal("")),
   specialGuest: z.string().optional(),
+  organizerName: z.string().optional(),
   coverImageUrl: z.string().optional(),
   images: z.array(z.string()).optional(),
   venueId: z.string().uuid().optional(),
@@ -138,6 +139,7 @@ export async function createEvent(
         ticket_url: data.ticketUrl || null,
         website_url: data.websiteUrl || null,
         special_guest: data.specialGuest?.trim() || null,
+        organizer_name: data.organizerName?.trim() || null,
         cover_image_url: data.coverImageUrl ?? null,
         images: data.images ?? [],
         translations: data.translations,
@@ -197,6 +199,9 @@ export async function updateEvent(
         }),
         ...(data.specialGuest !== undefined && {
           special_guest: data.specialGuest?.trim() || null,
+        }),
+        ...(data.organizerName !== undefined && {
+          organizer_name: data.organizerName?.trim() || null,
         }),
         ...(data.coverImageUrl !== undefined && {
           cover_image_url: data.coverImageUrl,
@@ -500,6 +505,7 @@ export async function createAdminEvent(
         ticket_url: data.ticketUrl || null,
         website_url: data.websiteUrl || null,
         special_guest: data.specialGuest?.trim() || null,
+        organizer_name: data.organizerName?.trim() || null,
         cover_image_url: data.coverImageUrl ?? null,
         images: data.images ?? [],
         translations: data.translations,
@@ -557,6 +563,9 @@ export async function updateAdminEvent(
         }),
         ...(data.specialGuest !== undefined && {
           special_guest: data.specialGuest?.trim() || null,
+        }),
+        ...(data.organizerName !== undefined && {
+          organizer_name: data.organizerName?.trim() || null,
         }),
         ...(data.coverImageUrl !== undefined && {
           cover_image_url: data.coverImageUrl,

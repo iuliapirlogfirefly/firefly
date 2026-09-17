@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
-import { getStripe } from "@/lib/stripe/client";
+import { explainStripeError, getStripe } from "@/lib/stripe/client";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
 import {
   hasBlockingPremium,
@@ -19,6 +19,7 @@ import { activatePromotion } from "@/lib/stripe/activate-promotion";
 import { hasActivePromotion } from "@/lib/stripe/promotions";
 import { isPrelaunchActive } from "@/lib/launch/settings";
 import { success, failure } from "@/lib/utils/action-result";
+import { getPublicAppUrl } from "@/lib/utils/app-url";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
 import type { ActionResult, PromotionType } from "@/types";
 import type Stripe from "stripe";
@@ -164,7 +165,7 @@ export async function createCheckoutSession(
     }
 
     const stripe = getStripe();
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const appUrl = await getPublicAppUrl();
     const locale = session.preferredLocale ?? "en";
     const promotionsPath = `${appUrl}/${locale}/business/promotions`;
     const customerId = await getOrCreateStripeCustomer({
@@ -209,9 +210,7 @@ export async function createCheckoutSession(
     if (!checkoutSession.url) return failure("Failed to create checkout session");
     return success({ url: checkoutSession.url });
   } catch (e) {
-    return failure(
-      e instanceof Error ? e.message : "Failed to create checkout session"
-    );
+    return failure(explainStripeError(e, "Failed to create checkout session"));
   }
 }
 
@@ -245,7 +244,7 @@ export async function createSubscriptionCheckout(options: {
       return failure("A Premium subscription is already active or pending payment");
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const appUrl = await getPublicAppUrl();
     const locale = session.preferredLocale ?? "en";
     const promotionsPath = `${appUrl}/${locale}/business/promotions`;
     const customerId = await getOrCreateStripeCustomer({
@@ -280,7 +279,7 @@ export async function createSubscriptionCheckout(options: {
     return success({ url: checkoutSession.url });
   } catch (e) {
     return failure(
-      e instanceof Error ? e.message : "Failed to create subscription checkout"
+      explainStripeError(e, "Failed to create subscription checkout")
     );
   }
 }
@@ -374,7 +373,7 @@ export async function createBillingPortalSession(): Promise<
       email: session.email,
     });
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const appUrl = await getPublicAppUrl();
     const locale = session.preferredLocale ?? "en";
     const promotionsPath = `${appUrl}/${locale}/business/promotions`;
 
@@ -386,9 +385,7 @@ export async function createBillingPortalSession(): Promise<
     if (!portal.url) return failure("Failed to open billing portal");
     return success({ url: portal.url });
   } catch (e) {
-    return failure(
-      e instanceof Error ? e.message : "Failed to open billing portal"
-    );
+    return failure(explainStripeError(e, "Failed to open billing portal"));
   }
 }
 
@@ -593,8 +590,6 @@ export async function cancelSubscription(
     if (updateError) return failure(updateError.message);
     return success(undefined);
   } catch (e) {
-    return failure(
-      e instanceof Error ? e.message : "Failed to cancel subscription"
-    );
+    return failure(explainStripeError(e, "Failed to cancel subscription"));
   }
 }

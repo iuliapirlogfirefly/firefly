@@ -46,6 +46,7 @@ export default async function EditEventPage({ params }: Props) {
           mode="edit"
           eventId={id}
           businessType={business.type}
+          businessName={business.name}
           venue={business.venue}
           initial={event}
         />

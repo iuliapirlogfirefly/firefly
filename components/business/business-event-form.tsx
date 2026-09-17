@@ -23,6 +23,7 @@ type Props = {
   mode: "create" | "edit";
   eventId?: string;
   businessType: "venue" | "organizer";
+  businessName?: string;
   venue: BusinessVenue;
   initial?: Partial<CreateEventInput> & {
     status?: string;
@@ -69,6 +70,7 @@ export function BusinessEventForm({
   mode,
   eventId,
   businessType,
+  businessName,
   venue,
   initial,
 }: Props) {
@@ -111,6 +113,12 @@ export function BusinessEventForm({
   const [venueName, setVenueName] = useState(
     initial?.venueName ?? venue?.name ?? ""
   );
+  const [organizerName, setOrganizerName] = useState(
+    initial?.organizerName ??
+      (mode === "create" && businessType === "organizer"
+        ? (businessName ?? "")
+        : "")
+  );
   const [address, setAddress] = useState(
     initial?.address ?? venue?.address ?? ""
   );
@@ -148,6 +156,7 @@ export function BusinessEventForm({
     coverImageUrl: coverImageUrl ?? undefined,
     images,
     venueName: venueName || undefined,
+    organizerName: organizerName.trim() || undefined,
     address: address || undefined,
     lat,
     lng,
@@ -373,6 +382,15 @@ export function BusinessEventForm({
                   {t("venueNameHint")}
                 </p>
               ) : null}
+            </div>
+            <div>
+              <label className={labelClass}>{tEvent("organizer")}</label>
+              <input
+                className={inputClass}
+                value={organizerName}
+                onChange={(e) => setOrganizerName(e.target.value)}
+                placeholder={tEvent("organizerPlaceholder")}
+              />
             </div>
             <LocationMapPicker
               address={address}

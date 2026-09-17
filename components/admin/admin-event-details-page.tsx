@@ -146,6 +146,12 @@ export async function AdminEventDetailsPage({ event }: Props) {
         </p>
       ) : null}
 
+      {event.organizerName ? (
+        <p className="mt-4 text-sm">
+          {t("organizer", { name: event.organizerName })}
+        </p>
+      ) : null}
+
       {event.rejectionReason ? (
         <p className="mt-4 text-sm text-red-400">
           {t("rejectionReason", { reason: event.rejectionReason })}

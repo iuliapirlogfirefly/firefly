@@ -197,7 +197,7 @@ export async function getEventBySlug(
     websiteUrl: event.website_url,
     specialGuest: event.special_guest,
     images: event.images ?? [],
-    organizerName: null,
+    organizerName: event.organizer_name,
     isSaved,
     isReminded,
   };
@@ -392,6 +392,7 @@ export async function getBusinessEventForEdit(
     ticketUrl: data.ticket_url ?? undefined,
     websiteUrl: data.website_url ?? undefined,
     specialGuest: data.special_guest ?? undefined,
+    organizerName: data.organizer_name ?? undefined,
     coverImageUrl: data.cover_image_url ?? undefined,
     images: data.images ?? [],
     venueName: data.venue_name ?? undefined,
@@ -529,6 +530,7 @@ export async function getAdminEventForEdit(
     ticketUrl: data.ticket_url ?? undefined,
     websiteUrl: data.website_url ?? undefined,
     specialGuest: data.special_guest ?? undefined,
+    organizerName: data.organizer_name ?? undefined,
     coverImageUrl: data.cover_image_url ?? undefined,
     images: data.images ?? [],
     venueName: data.venue_name ?? undefined,
@@ -551,6 +553,7 @@ export type AdminEventDetail = {
   ticketUrl: string | null;
   websiteUrl: string | null;
   specialGuest: string | null;
+  organizerName: string | null;
   coverImageUrl: string | null;
   images: string[];
   venueName: string;
@@ -583,6 +586,7 @@ function mapEventToAdminDetail(
     ticketUrl: event.ticket_url,
     websiteUrl: event.website_url,
     specialGuest: event.special_guest,
+    organizerName: event.organizer_name,
     coverImageUrl: event.cover_image_url,
     images: event.images ?? [],
     venueName: event.venue_name ?? "",

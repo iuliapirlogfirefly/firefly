@@ -178,6 +178,7 @@ export type Database = {
           ticket_url: string | null;
           website_url: string | null;
           special_guest: string | null;
+          organizer_name: string | null;
           cover_image_url: string | null;
           images: string[];
           translations: Json;
@@ -208,6 +209,7 @@ export type Database = {
           ticket_url?: string | null;
           website_url?: string | null;
           special_guest?: string | null;
+          organizer_name?: string | null;
           cover_image_url?: string | null;
           images?: string[];
           translations?: Json;
@@ -237,6 +239,7 @@ export type Database = {
           ticket_url?: string | null;
           website_url?: string | null;
           special_guest?: string | null;
+          organizer_name?: string | null;
           cover_image_url?: string | null;
           images?: string[];
           translations?: Json;

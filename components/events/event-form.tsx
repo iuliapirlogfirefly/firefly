@@ -68,6 +68,9 @@ export function EventForm({ mode, eventId, initial }: Props) {
   );
   const [images, setImages] = useState<string[]>(initial?.images ?? []);
   const [venueName, setVenueName] = useState(initial?.venueName ?? "");
+  const [organizerName, setOrganizerName] = useState(
+    initial?.organizerName ?? ""
+  );
   const [address, setAddress] = useState(initial?.address ?? "");
   const [lat, setLat] = useState(
     initial?.lat != null && Number.isFinite(initial.lat)
@@ -112,6 +115,7 @@ export function EventForm({ mode, eventId, initial }: Props) {
       coverImageUrl: coverImageUrl ?? undefined,
       images,
       venueName: venueName || undefined,
+      organizerName: organizerName.trim() || undefined,
       address: address || undefined,
       lat,
       lng,
@@ -290,6 +294,15 @@ export function EventForm({ mode, eventId, initial }: Props) {
               value={venueName}
               onChange={(e) => setVenueName(e.target.value)}
               required
+            />
+          </div>
+          <div>
+            <label className={labelClass}>{t("organizer")}</label>
+            <input
+              className={inputClass}
+              value={organizerName}
+              onChange={(e) => setOrganizerName(e.target.value)}
+              placeholder={t("organizerPlaceholder")}
             />
           </div>
           <LocationMapPicker

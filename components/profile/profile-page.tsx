@@ -13,6 +13,7 @@ import { useSavedEvents } from "@/hooks/use-saved-events";
 import { SignOutButton } from "@/components/ui/sign-out-button";
 import { signOut } from "@/lib/actions/auth";
 import type { NearbyPreferences } from "@/lib/actions/profile";
+import { LanguageSettings } from "@/components/profile/language-settings";
 import { NearbyEventsSettings } from "@/components/profile/nearby-events-settings";
 import { NewsletterSettings } from "@/components/profile/newsletter-settings";
 import type { EventListItem, SessionInfo } from "@/types/events";
@@ -119,6 +120,8 @@ export function ProfilePageClient({
             </div>
           )}
         </div>
+
+        <LanguageSettings />
 
         {isLoggedIn ? (
           <>
