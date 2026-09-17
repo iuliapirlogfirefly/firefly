@@ -1,12 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { BottomNav } from "@/components/BottomNav";
 import { Nav } from "@/components/Nav";
-import {
-  FEED_CATEGORIES,
-  getCategoryMeta,
-} from "@/lib/constants/feed-categories";
+import { getCategoryMeta } from "@/lib/constants/feed-categories";
 import { landingImages } from "@/lib/landing/images";
 import { MISSED_WINDOW_HOURS } from "@/lib/utils/feed-filters";
 import type { FeedPostItem } from "@/lib/queries/feed";
@@ -23,18 +21,13 @@ const FALLBACK_IMAGES = [
   landingImages.editorialStreet,
 ] as const;
 
-const PAGE_TITLE = {
-  en: "What you did missed",
-  ro: "Ce ai ratat",
-} as const;
-
 function formatTimeAgo(iso: string, locale: Locale) {
   const diffMs = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diffMs / 60_000);
   const hours = Math.floor(diffMs / 3_600_000);
   const days = Math.floor(diffMs / 86_400_000);
 
-  const rtf = new Intl.RelativeTimeFormat(locale === "ro" ? "ro" : "en", {
+  const rtf = new Intl.RelativeTimeFormat(locale, {
     numeric: "auto",
   });
 
@@ -52,7 +45,8 @@ function MissedPostCard({
   locale: Locale;
   index: number;
 }) {
-  const category = getCategoryMeta(post.category, locale);
+  const tCategories = useTranslations("feedCategories");
+  const category = getCategoryMeta(post.category, tCategories);
   const image =
     post.mediaUrl ?? FALLBACK_IMAGES[index % FALLBACK_IMAGES.length];
 
@@ -70,16 +64,11 @@ function MissedPostCard({
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-background/20" />
         <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-transparent to-transparent" />
 
-        <div className="absolute inset-x-0 top-0 flex items-start justify-between p-5 pt-6 md:p-6">
+        <div className="absolute inset-x-0 top-0 flex items-start p-5 pt-6 md:p-6">
           <span className="glass inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider-2 text-firefly">
             <span aria-hidden>{category.icon}</span>
             {category.label}
           </span>
-          {post.isPromoted ? (
-            <span className="rounded-full bg-firefly px-2.5 py-1 font-mono text-[9px] uppercase tracking-wider-2 text-primary-foreground">
-              {locale === "ro" ? "Promovat" : "Promoted"}
-            </span>
-          ) : null}
         </div>
 
         <div className="absolute inset-x-0 bottom-0 p-5 pb-8 md:p-6 md:pb-10">
@@ -102,10 +91,7 @@ function MissedPostCard({
 }
 
 export function MissedPageClient({ posts, locale }: Props) {
-  const emptyMessage =
-    locale === "ro"
-      ? "Nicio postare recentă în ultimele 48h. Poate ai fost peste tot?"
-      : "No recent posts in the last 48h. Maybe you were everywhere?";
+  const t = useTranslations("discovery");
 
   return (
     <main data-route="missed" className="relative h-dvh overflow-hidden bg-background">
@@ -115,15 +101,13 @@ export function MissedPageClient({ posts, locale }: Props) {
         <div className="pointer-events-auto mx-auto max-w-lg">
           <div className="mb-3">
             <div className="font-mono text-[10px] uppercase tracking-wider-2 text-firefly">
-              ◦ {locale === "ro" ? "Postări" : "Posts"}
+              ◦ {t("missedEyebrow")}
             </div>
             <h1 className="font-heading text-xl font-bold leading-tight md:text-2xl">
-              {PAGE_TITLE[locale]}
+              {t("missedTitle")}
             </h1>
             <p className="mt-1 max-w-sm text-xs text-foreground/60">
-              {locale === "ro"
-                ? `Postări recente din ultimele ${MISSED_WINDOW_HOURS}h — ${FEED_CATEGORIES.party_updates.label.ro.toLowerCase()} & ${FEED_CATEGORIES.nightlife_chaos.label.ro.toLowerCase()}.`
-                : `Recent posts from the last ${MISSED_WINDOW_HOURS}h — party updates & chaos.`}
+              {t("missedSubtitle", { hours: MISSED_WINDOW_HOURS })}
             </p>
           </div>
         </div>
@@ -135,7 +119,7 @@ export function MissedPageClient({ posts, locale }: Props) {
             <div className="flex h-full items-center justify-center px-6 text-center">
               <div>
                 <div className="mb-4 inline-block h-12 w-12 animate-firefly-pulse rounded-full border border-firefly/30 bg-firefly/10" />
-                <p className="text-foreground/60">{emptyMessage}</p>
+                <p className="text-foreground/60">{t("missedEmpty")}</p>
               </div>
             </div>
           ) : (

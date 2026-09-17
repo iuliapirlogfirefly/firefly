@@ -4,6 +4,7 @@ import { updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession, requireRole } from "@/lib/auth/session";
+import { restoreFeedPostCredit } from "@/lib/stripe/feed-post-credits";
 import { success, failure } from "@/lib/utils/action-result";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
 import {
@@ -269,12 +270,33 @@ export async function rejectFeedPost(
     requireRole(session, ["admin"]);
 
     const supabase = await createClient();
+    const { data: existing, error: existingError } = await supabase
+      .from("feed_posts")
+      .select("id, business_account_id, status, published_at")
+      .eq("id", postId)
+      .maybeSingle();
+
+    if (existingError) return failure(existingError.message);
+    if (!existing) return failure("Post not found");
+    if (existing.status === "rejected") return success(undefined);
+
     const { error } = await supabase
       .from("feed_posts")
       .update({ status: "rejected", rejection_reason: reason })
-      .eq("id", postId);
+      .eq("id", postId)
+      .eq("status", existing.status);
 
     if (error) return failure(error.message);
+
+    if (
+      existing.business_account_id &&
+      !existing.published_at &&
+      (existing.status === "pending" || existing.status === "approved")
+    ) {
+      const admin = createAdminClient();
+      await restoreFeedPostCredit(admin, existing.business_account_id);
+    }
+
     return success(undefined);
   } catch (e) {
     return failure(e instanceof Error ? e.message : "Failed to reject What Did You Miss post");

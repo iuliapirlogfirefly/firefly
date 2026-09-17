@@ -159,6 +159,8 @@ export type AdminBusinessDetails = {
     currency: string;
     paidAt: string;
   }[];
+  packUsed: number;
+  packQuota: number;
 };
 
 export async function getAdminBusinessDetails(
@@ -199,6 +201,8 @@ export async function getAdminBusinessDetails(
         socialUsed: 0,
         socialQuota: 2,
       },
+      packUsed: 0,
+      packQuota: 4,
       recentPayments: [
         {
           id: "pay-1",
@@ -220,7 +224,7 @@ export async function getAdminBusinessDetails(
   const { data: business, error } = await supabase
     .from("business_accounts")
     .select(
-      "id, profile_id, type, name, status, created_at, legal_name, cui, billing_address, billing_city, billing_county, billing_postal_code, billing_country"
+      "id, profile_id, type, name, status, created_at, legal_name, cui, billing_address, billing_city, billing_county, billing_postal_code, billing_country, addon_feed_posts_quota, addon_feed_posts_used"
     )
     .eq("id", businessAccountId)
     .single();
@@ -281,6 +285,8 @@ export async function getAdminBusinessDetails(
           socialQuota: sub.quota_social_posts,
         }
       : null,
+    packUsed: business.addon_feed_posts_used,
+    packQuota: business.addon_feed_posts_quota,
     recentPayments: (payments ?? []).map((p) => ({
       id: p.id,
       productType: p.product_type,

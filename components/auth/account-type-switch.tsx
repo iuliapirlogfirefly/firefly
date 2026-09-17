@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { AccountType, BusinessType } from "@/types";
 
 type SegmentedOption<T extends string> = {
@@ -51,31 +52,26 @@ function SegmentedSwitch<T extends string>({
   );
 }
 
-const ACCOUNT_TYPE_OPTIONS: SegmentedOption<AccountType>[] = [
-  { value: "person", label: "Person" },
-  { value: "business", label: "Business" },
-];
-
 type AccountTypeSwitchProps = {
   value: AccountType;
   onChange: (value: AccountType) => void;
 };
 
 export function AccountTypeSwitch({ value, onChange }: AccountTypeSwitchProps) {
+  const t = useTranslations("auth");
+
   return (
     <SegmentedSwitch
       value={value}
       onChange={onChange}
-      options={ACCOUNT_TYPE_OPTIONS}
-      ariaLabel="Account type"
+      options={[
+        { value: "person", label: t("person") },
+        { value: "business", label: t("business") },
+      ]}
+      ariaLabel={t("accountType")}
     />
   );
 }
-
-const BUSINESS_TYPE_OPTIONS: SegmentedOption<BusinessType>[] = [
-  { value: "venue", label: "Venue" },
-  { value: "organizer", label: "Organizer" },
-];
 
 type BusinessTypeSwitchProps = {
   value: BusinessType;
@@ -83,12 +79,17 @@ type BusinessTypeSwitchProps = {
 };
 
 export function BusinessTypeSwitch({ value, onChange }: BusinessTypeSwitchProps) {
+  const t = useTranslations("auth");
+
   return (
     <SegmentedSwitch
       value={value}
       onChange={onChange}
-      options={BUSINESS_TYPE_OPTIONS}
-      ariaLabel="Business type"
+      options={[
+        { value: "venue", label: t("venue") },
+        { value: "organizer", label: t("organizer") },
+      ]}
+      ariaLabel={t("businessTypeAria")}
     />
   );
 }

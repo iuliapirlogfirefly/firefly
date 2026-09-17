@@ -1,31 +1,36 @@
+import { getLocale, getTranslations } from "next-intl/server";
 import { AdminMessageActions } from "@/components/admin/admin-message-actions";
 import { AdminEmptyState } from "@/components/admin/ui/admin-empty-state";
 import { AdminCard } from "@/components/admin/ui/admin-card";
+import { dateTimeLocale } from "@/lib/i18n/date-locale";
 import type { AdminContactMessage } from "@/lib/queries/contact";
 
 type Props = {
   messages: AdminContactMessage[];
 };
 
-export function AdminMessagesQueue({ messages }: Props) {
+export async function AdminMessagesQueue({ messages }: Props) {
+  const t = await getTranslations("admin");
+  const tStatus = await getTranslations("common.status");
+  const locale = await getLocale();
   const unreadCount = messages.filter((m) => m.status === "unread").length;
 
   return (
     <div data-route="admin-messages">
       <h1 className="font-heading text-2xl font-semibold md:text-3xl">
-        Messages
+        {t("messages")}
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
         {unreadCount > 0
-          ? `${unreadCount} unread message${unreadCount === 1 ? "" : "s"} from businesses.`
-          : "Support messages from business venues and organizers."}
+          ? t("messagesSubtitleUnread", { count: unreadCount })
+          : t("messagesSubtitle")}
       </p>
 
       <div className="mt-6 space-y-4">
         {messages.length === 0 ? (
           <AdminEmptyState
-            title="All caught up"
-            description="No support messages waiting for you."
+            title={t("allCaughtUp")}
+            description={t("noMessages")}
           />
         ) : (
           messages.map((message) => (
@@ -41,11 +46,11 @@ export function AdminMessagesQueue({ messages }: Props) {
                     <h2 className="font-medium">{message.businessName}</h2>
                     {message.status === "unread" ? (
                       <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-400">
-                        Unread
+                        {tStatus("unread")}
                       </span>
                     ) : (
                       <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted-foreground">
-                        Read
+                        {tStatus("read")}
                       </span>
                     )}
                   </div>
@@ -56,7 +61,9 @@ export function AdminMessagesQueue({ messages }: Props) {
                     {message.body}
                   </p>
                   <p className="mt-3 text-xs text-muted-foreground">
-                    {new Date(message.createdAt).toLocaleString()}
+                    {new Date(message.createdAt).toLocaleString(
+                      dateTimeLocale(locale)
+                    )}
                     {message.replyEmail ? ` · ${message.replyEmail}` : ""}
                   </p>
                 </div>

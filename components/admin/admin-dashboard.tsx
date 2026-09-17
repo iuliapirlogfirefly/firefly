@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminStatCard } from "@/components/admin/ui/admin-stat-card";
@@ -18,11 +19,20 @@ type Props = {
   unreadMessages: UnreadNotification[];
 };
 
-export function AdminDashboard({
+function productKey(key: string) {
+  if (key === "subscription" || key === "premium_monthly") return "premium";
+  return key;
+}
+
+export async function AdminDashboard({
   analytics,
   counts,
   unreadMessages,
 }: Props) {
+  const t = await getTranslations("admin");
+  const tMetrics = await getTranslations("common.metrics");
+  const tProducts = await getTranslations("common.products");
+
   const hasPending =
     counts.pendingEvents > 0 ||
     counts.pendingPosts > 0 ||
@@ -32,24 +42,23 @@ export function AdminDashboard({
   return (
     <div data-route="admin-dashboard">
       <h1 className="font-heading text-2xl font-semibold text-foreground md:text-3xl">
-        Overview
+        {t("overview")}
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Platform health and moderation queues.
+        {t("overviewSubtitle")}
       </p>
 
       {unreadMessages.length > 0 ? (
         <div className="mt-6 space-y-3">
           <h2 className="text-sm font-medium text-foreground">
-            Support notifications
+            {t("supportNotifications")}
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {unreadMessages.map((message) => (
               <Link key={message.id} href="/admin/messages">
                 <AdminCard className="border-amber-500/30 p-4 transition-colors hover:bg-surface-2">
                   <p className="text-sm font-medium text-amber-400">
-                    {message.businessName} sent you a message — don&apos;t
-                    forget to check it!
+                    {t("messageAlert", { businessName: message.businessName })}
                   </p>
                   <p className="mt-1 truncate text-xs text-muted-foreground">
                     {message.subject}
@@ -67,11 +76,10 @@ export function AdminDashboard({
             <Link href="/admin/events">
               <AdminCard className="border-amber-500/30 p-4 transition-colors hover:bg-surface-2">
                 <p className="text-sm font-medium text-amber-400">
-                  {counts.pendingEvents} event
-                  {counts.pendingEvents === 1 ? "" : "s"} pending
+                  {t("pendingEvents", { count: counts.pendingEvents })}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Review queue →
+                  {t("reviewQueue")}
                 </p>
               </AdminCard>
             </Link>
@@ -80,11 +88,10 @@ export function AdminDashboard({
             <Link href="/admin/posts">
               <AdminCard className="border-amber-500/30 p-4 transition-colors hover:bg-surface-2">
                 <p className="text-sm font-medium text-amber-400">
-                  {counts.pendingPosts} post
-                  {counts.pendingPosts === 1 ? "" : "s"} pending
+                  {t("pendingPosts", { count: counts.pendingPosts })}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Review queue →
+                  {t("reviewQueue")}
                 </p>
               </AdminCard>
             </Link>
@@ -93,11 +100,10 @@ export function AdminDashboard({
             <Link href="/admin/users">
               <AdminCard className="border-amber-500/30 p-4 transition-colors hover:bg-surface-2">
                 <p className="text-sm font-medium text-amber-400">
-                  {counts.pendingBusinesses} business
-                  {counts.pendingBusinesses === 1 ? "" : "es"} pending
+                  {t("pendingBusinesses", { count: counts.pendingBusinesses })}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Review accounts →
+                  {t("reviewAccounts")}
                 </p>
               </AdminCard>
             </Link>
@@ -106,11 +112,10 @@ export function AdminDashboard({
             <Link href="/admin/messages">
               <AdminCard className="border-amber-500/30 p-4 transition-colors hover:bg-surface-2">
                 <p className="text-sm font-medium text-amber-400">
-                  {counts.unreadMessages} unread message
-                  {counts.unreadMessages === 1 ? "" : "s"}
+                  {t("unreadMessages", { count: counts.unreadMessages })}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Open inbox →
+                  {t("openInbox")}
                 </p>
               </AdminCard>
             </Link>
@@ -120,49 +125,49 @@ export function AdminDashboard({
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <AdminStatCard
-          label="Total users"
+          label={t("totalUsers")}
           value={analytics.totalUsers}
           delta={analytics.deltas.totalUsers}
         />
         <AdminStatCard
-          label="Total events"
+          label={t("totalEvents")}
           value={analytics.totalEvents}
           delta={analytics.deltas.totalEvents}
         />
         <AdminStatCard
-          label="Published"
+          label={t("published")}
           value={analytics.publishedEvents}
         />
         <AdminStatCard
-          label="Pending review"
+          label={t("pendingReview")}
           value={analytics.pendingEvents}
-          hint="Events awaiting approval"
+          hint={t("pendingReviewHint")}
         />
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <AdminStatCard
-          label="Businesses"
+          label={t("businesses")}
           value={analytics.totalBusinesses}
           delta={analytics.deltas.totalBusinesses}
         />
-        <AdminStatCard label="Venues" value={analytics.totalVenues} />
-        <AdminStatCard label="Organizers" value={analytics.totalOrganizers} />
+        <AdminStatCard label={t("venues")} value={analytics.totalVenues} />
+        <AdminStatCard label={t("organizers")} value={analytics.totalOrganizers} />
         <AdminStatCard
-          label="Active promotions"
+          label={t("activePromotions")}
           value={analytics.activePromotions}
         />
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <AdminStatCard
-          label="Total revenue"
+          label={t("totalRevenue")}
           value={formatMoney(analytics.totalRevenueCents, "ron")}
           delta={analytics.deltas.totalRevenueCents}
-          hint="Promotions + subscriptions"
+          hint={t("totalRevenueHint")}
         />
         <AdminStatCard
-          label="Active subscriptions"
+          label={t("activeSubscriptions")}
           value={analytics.activeSubscriptions}
         />
       </div>
@@ -170,51 +175,56 @@ export function AdminDashboard({
       {analytics.revenueBreakdown.length > 0 ? (
         <AdminCard className="mt-4 p-5">
           <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Revenue by type
+            {t("revenueByType")}
           </h2>
           <ul className="mt-3 space-y-2">
-            {analytics.revenueBreakdown.map((item) => (
-              <li
-                key={item.key}
-                className="flex items-center justify-between text-sm"
-              >
-                <span className="text-muted-foreground">{item.label}</span>
-                <span className="font-medium text-foreground">
-                  {formatMoney(item.amountCents, "ron")}
-                </span>
-              </li>
-            ))}
+            {analytics.revenueBreakdown.map((item) => {
+              const key = productKey(item.key);
+              return (
+                <li
+                  key={item.key}
+                  className="flex items-center justify-between text-sm"
+                >
+                  <span className="text-muted-foreground">
+                    {tProducts.has(key) ? tProducts(key) : item.label}
+                  </span>
+                  <span className="font-medium text-foreground">
+                    {formatMoney(item.amountCents, "ron")}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </AdminCard>
       ) : null}
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <AdminStatCard
-          label="Views"
+          label={tMetrics("views")}
           value={analytics.analytics.views}
           delta={analytics.deltas.views}
           href="/admin/analytics?metric=views"
         />
         <AdminStatCard
-          label="Saves"
+          label={tMetrics("saves")}
           value={analytics.analytics.saves}
           delta={analytics.deltas.saves}
           href="/admin/analytics?metric=saves"
         />
         <AdminStatCard
-          label="Clicks"
+          label={tMetrics("clicks")}
           value={analytics.analytics.clicks}
           delta={analytics.deltas.clicks}
           href="/admin/analytics?metric=clicks"
         />
         <AdminStatCard
-          label="Ticket clicks"
+          label={tMetrics("ticketClicks")}
           value={analytics.analytics.ticketClicks}
           delta={analytics.deltas.ticketClicks}
           href="/admin/analytics?metric=ticketClicks"
         />
         <AdminStatCard
-          label="Shares"
+          label={tMetrics("shares")}
           value={analytics.analytics.shares}
           delta={analytics.deltas.shares}
           href="/admin/analytics?metric=shares"

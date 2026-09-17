@@ -12,18 +12,9 @@ export const EVENT_TYPES: EventType[] = [
   "private_event",
 ];
 
-const EVENT_TYPE_LABELS: Record<EventType, string> = {
-  party: "Party",
-  concert: "Concert",
-  festival: "Festival",
-  rooftop: "Rooftop",
-  brunch_day_party: "Brunch / Day Party",
-  social_gathering: "Social Gathering",
-  club_night: "Club Night",
-  live_performance: "Live Performance",
-  private_event: "Private Event",
-};
-
-export function formatEventTypeLabel(type: EventType): string {
-  return EVENT_TYPE_LABELS[type];
+export function formatEventTypeLabel(
+  type: EventType,
+  t: (key: string) => string
+): string {
+  return t(type);
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { FilterChip } from "@/components/filters/filter-chip";
 import {
   FilterDropdown,
@@ -13,6 +14,7 @@ import {
   formatEventTypeLabel,
 } from "@/lib/constants/event-types";
 import { formatGenreLabel, GENRES } from "@/lib/constants/genres";
+import { dateTimeLocale } from "@/lib/i18n/date-locale";
 import type { DatePreset, EventType, Genre, Locale } from "@/types";
 
 const DATE_PRESETS = [
@@ -22,42 +24,27 @@ const DATE_PRESETS = [
   "this_week",
 ] as const satisfies ReadonlyArray<Exclude<DatePreset, "custom">>;
 
+const DATE_PRESET_MESSAGE = {
+  tonight: "tonight",
+  tomorrow: "tomorrow",
+  this_weekend: "thisWeekend",
+  this_week: "thisWeek",
+  custom: "custom",
+} as const;
+
 const DISTANCE_OPTIONS = [2, 5, 10] as const;
 
-function datePresetLabel(preset: DatePreset, locale: Locale): string {
-  if (locale === "ro") {
-    switch (preset) {
-      case "tonight":
-        return "Diseară";
-      case "tomorrow":
-        return "Mâine";
-      case "this_weekend":
-        return "Weekendul ăsta";
-      case "this_week":
-        return "Săptămâna asta";
-      case "custom":
-        return "Personalizat";
-    }
-  }
-
-  switch (preset) {
-    case "tonight":
-      return "Tonight";
-    case "tomorrow":
-      return "Tomorrow";
-    case "this_weekend":
-      return "This weekend";
-    case "this_week":
-      return "This week";
-    case "custom":
-      return "Custom";
-  }
+function datePresetLabel(
+  preset: DatePreset,
+  t: (key: (typeof DATE_PRESET_MESSAGE)[DatePreset]) => string
+): string {
+  return t(DATE_PRESET_MESSAGE[preset]);
 }
 
 function formatCustomDate(dateKey: string, locale: Locale): string {
   const parsed = new Date(`${dateKey}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return dateKey;
-  return parsed.toLocaleDateString(locale === "ro" ? "ro-RO" : "en-GB", {
+  return parsed.toLocaleDateString(dateTimeLocale(locale), {
     day: "numeric",
     month: "short",
   });
@@ -66,13 +53,14 @@ function formatCustomDate(dateKey: string, locale: Locale): string {
 function whenValueLabel(
   datePreset: DatePreset | undefined,
   customDate: string | undefined,
-  locale: Locale
+  locale: Locale,
+  t: (key: (typeof DATE_PRESET_MESSAGE)[DatePreset]) => string
 ): string | undefined {
   if (datePreset === "custom" && customDate) {
     return formatCustomDate(customDate, locale);
   }
   if (datePreset && datePreset !== "custom") {
-    return datePresetLabel(datePreset, locale);
+    return datePresetLabel(datePreset, t);
   }
   return undefined;
 }
@@ -121,6 +109,9 @@ export function DiscoveryFilterBar({
   hasActiveFilters,
   onReset,
 }: DiscoveryFilterBarProps) {
+  const t = useTranslations("discovery");
+  const tGenres = useTranslations("genres");
+  const tTypes = useTranslations("eventTypes");
   const showSearch = searchDraft != null && onSearchDraftChange != null;
   const showWhen = Boolean(onDateChange);
   const showGenre = Boolean(onGenreChange);
@@ -128,26 +119,13 @@ export function DiscoveryFilterBar({
   const showPromoted = Boolean(onPromotedChange);
   const showMeta = filteredCount != null || Boolean(onReset);
 
-  const whenLabel = locale === "ro" ? "Când" : "When";
-  const typeLabel = locale === "ro" ? "Tip" : "Type";
-  const genreLabel = locale === "ro" ? "Gen" : "Genre";
-  const nearLabel = locale === "ro" ? "Aproape" : "Near";
-  const allLabel = locale === "ro" ? "Toate" : "All";
-  const anyTimeLabel = locale === "ro" ? "Oricând" : "Any time";
-  const offLabel = locale === "ro" ? "Oprit" : "Off";
-  const pickDayLabel = locale === "ro" ? "Alege o zi" : "Pick a day";
-
   return (
     <div>
       {showSearch ? (
         <FilterSearch
           value={searchDraft}
           onChange={onSearchDraftChange}
-          placeholder={
-            locale === "ro"
-              ? "Caută locații, petreceri…"
-              : "Search venues, parties…"
-          }
+          placeholder={t("searchPlaceholder")}
         />
       ) : null}
 
@@ -159,8 +137,8 @@ export function DiscoveryFilterBar({
             {showWhen ? (
               <FilterDropdown
                 id="filter-when"
-                label={whenLabel}
-                valueLabel={whenValueLabel(datePreset, customDate, locale)}
+                label={t("when")}
+                valueLabel={whenValueLabel(datePreset, customDate, locale, t)}
                 active={Boolean(datePreset)}
               >
                 {(close) => (
@@ -168,10 +146,10 @@ export function DiscoveryFilterBar({
                     <FilterOptions
                       value={datePreset ?? null}
                       options={[
-                        { value: null, label: anyTimeLabel },
+                        { value: null, label: t("anyTime") },
                         ...DATE_PRESETS.map((preset) => ({
                           value: preset,
-                          label: datePresetLabel(preset, locale),
+                          label: datePresetLabel(preset, t),
                         })),
                       ]}
                       onChange={(value) => {
@@ -184,7 +162,7 @@ export function DiscoveryFilterBar({
                     />
                     <div className="mx-3 my-1 h-px bg-firefly/10" />
                     <p className="px-3.5 pb-1 pt-1.5 font-mono text-[10px] uppercase tracking-wider text-foreground/45">
-                      {pickDayLabel}
+                      {t("pickADay")}
                     </p>
                     <MiniDatePicker
                       selectedDate={
@@ -205,9 +183,9 @@ export function DiscoveryFilterBar({
 
             <FilterDropdown
               id="filter-type"
-              label={typeLabel}
+              label={t("type")}
               valueLabel={
-                eventType ? formatEventTypeLabel(eventType) : undefined
+                eventType ? formatEventTypeLabel(eventType, tTypes) : undefined
               }
               active={Boolean(eventType)}
             >
@@ -215,10 +193,10 @@ export function DiscoveryFilterBar({
                 <FilterOptions
                   value={eventType ?? null}
                   options={[
-                    { value: null, label: allLabel },
+                    { value: null, label: t("all") },
                     ...EVENT_TYPES.map((type) => ({
                       value: type,
-                      label: formatEventTypeLabel(type),
+                      label: formatEventTypeLabel(type, tTypes),
                     })),
                   ]}
                   onChange={(value) => {
@@ -232,18 +210,18 @@ export function DiscoveryFilterBar({
             {showGenre ? (
               <FilterDropdown
                 id="filter-genre"
-                label={genreLabel}
-                valueLabel={genre ? formatGenreLabel(genre) : undefined}
+                label={t("genre")}
+                valueLabel={genre ? formatGenreLabel(genre, tGenres) : undefined}
                 active={Boolean(genre)}
               >
                 {(close) => (
                   <FilterOptions
                     value={genre ?? null}
                     options={[
-                      { value: null, label: allLabel },
+                      { value: null, label: t("all") },
                       ...GENRES.map((item) => ({
                         value: item,
-                        label: formatGenreLabel(item),
+                        label: formatGenreLabel(item, tGenres),
                       })),
                     ]}
                     onChange={(value) => {
@@ -258,8 +236,8 @@ export function DiscoveryFilterBar({
             {showDistance ? (
               <FilterDropdown
                 id="filter-distance"
-                label={nearLabel}
-                valueLabel={distanceKm ? `${distanceKm} km` : undefined}
+                label={t("near")}
+                valueLabel={distanceKm ? t("km", { km: distanceKm }) : undefined}
                 active={distanceKm != null}
                 align="end"
               >
@@ -267,10 +245,10 @@ export function DiscoveryFilterBar({
                   <FilterOptions
                     value={distanceKm ?? null}
                     options={[
-                      { value: null, label: offLabel },
+                      { value: null, label: t("off") },
                       ...DISTANCE_OPTIONS.map((km) => ({
                         value: km,
-                        label: `${km} km`,
+                        label: t("km", { km }),
                       })),
                     ]}
                     onChange={(value) => {
@@ -290,7 +268,7 @@ export function DiscoveryFilterBar({
                   onPromotedChange?.(promotedOnly ? undefined : true)
                 }
               >
-                {locale === "ro" ? "Promovate" : "Promoted"}
+                {t("promoted")}
               </FilterChip>
             ) : null}
           </div>
@@ -305,8 +283,7 @@ export function DiscoveryFilterBar({
         <div className="mt-3 flex items-center justify-between gap-3">
           {filteredCount != null ? (
             <p className="text-sm text-foreground/60">
-              <span className="font-medium text-firefly">{filteredCount}</span>{" "}
-              {locale === "ro" ? "evenimente strălucesc" : "events glowing"}
+              {t("eventsGlowing", { count: filteredCount })}
             </p>
           ) : (
             <span />
@@ -317,7 +294,7 @@ export function DiscoveryFilterBar({
               onClick={onReset}
               className="font-mono text-xs uppercase tracking-wider-2 text-foreground/50 transition-colors hover:text-firefly"
             >
-              {locale === "ro" ? "Resetează" : "Reset"}
+              {t("reset")}
             </button>
           ) : null}
         </div>

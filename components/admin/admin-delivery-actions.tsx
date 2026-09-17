@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import {
   markPromotionDelivered,
@@ -25,6 +26,8 @@ export function AdminDeliveryActions({
   deliveryUrl,
   deliveryNotes,
 }: Props) {
+  const t = useTranslations("admin");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -48,7 +51,7 @@ export function AdminDeliveryActions({
       } else {
         setFeedback({
           type: "error",
-          message: result.error ?? "Action failed",
+          message: result.error ?? tCommon("actionFailed"),
         });
       }
     });
@@ -63,26 +66,26 @@ export function AdminDeliveryActions({
               variant="secondary"
               onClick={() => setDialogOpen(true)}
               pending={pending}
-              pendingLabel="Saving…"
+              pendingLabel={tCommon("saving")}
             >
-              Edit details
+              {t("editDetails")}
             </AdminButton>
             <AdminButton
               variant="danger"
               onClick={() => setUnmarkOpen(true)}
               pending={pending}
-              pendingLabel="Unmarking…"
+              pendingLabel={t("unmarking")}
             >
-              Unmark
+              {t("unmark")}
             </AdminButton>
           </>
         ) : (
           <AdminButton
             onClick={() => setDialogOpen(true)}
             pending={pending}
-            pendingLabel="Saving…"
+            pendingLabel={tCommon("saving")}
           >
-            Mark delivered
+            {t("markDelivered")}
           </AdminButton>
         )}
       </div>
@@ -93,8 +96,8 @@ export function AdminDeliveryActions({
 
       <DeliveryDialog
         open={dialogOpen}
-        title={fulfilled ? "Edit delivery details" : "Mark as delivered"}
-        confirmLabel={fulfilled ? "Save" : "Mark delivered"}
+        title={fulfilled ? t("editDelivery") : t("markAsDelivered")}
+        confirmLabel={fulfilled ? tCommon("save") : t("markDelivered")}
         initialUrl={deliveryUrl}
         initialNotes={deliveryNotes}
         pending={pending}
@@ -103,13 +106,13 @@ export function AdminDeliveryActions({
           if (fulfilled) {
             run(
               () => updatePromotionDelivery(promotionId, { url, notes }),
-              "Delivery details updated",
+              t("detailsUpdated"),
               () => setDialogOpen(false)
             );
           } else {
             run(
               () => markPromotionDelivered(promotionId, { url, notes }),
-              "Marked as delivered",
+              t("markedDelivered"),
               () => setDialogOpen(false)
             );
           }
@@ -118,16 +121,16 @@ export function AdminDeliveryActions({
 
       <ConfirmDialog
         open={unmarkOpen}
-        title="Unmark delivery?"
-        description="This will clear the delivered status, URL, and notes so the item appears pending again."
-        confirmLabel="Unmark"
+        title={t("unmarkTitle")}
+        description={t("unmarkDescription")}
+        confirmLabel={t("unmark")}
         confirmVariant="danger"
         pending={pending}
         onClose={() => setUnmarkOpen(false)}
         onConfirm={() => {
           run(
             () => unmarkPromotionDelivered(promotionId),
-            "Unmarked",
+            t("unmarked"),
             () => setUnmarkOpen(false)
           );
         }}

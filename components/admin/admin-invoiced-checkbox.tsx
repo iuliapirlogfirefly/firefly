@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import {
   setPromotionInvoiced,
@@ -19,12 +20,15 @@ export function AdminInvoicedCheckbox({
   kind,
   id,
   invoiced,
-  label = "Invoiced",
+  label,
 }: Props) {
+  const t = useTranslations("admin");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [checked, setChecked] = useState(invoiced);
   const [error, setError] = useState<string | null>(null);
+  const ariaLabel = label ?? t("colInvoiced");
 
   useEffect(() => {
     setChecked(invoiced);
@@ -41,7 +45,7 @@ export function AdminInvoicedCheckbox({
         router.refresh();
       } else {
         setChecked(invoiced);
-        setError(result.error ?? "Action failed");
+        setError(result.error ?? tCommon("actionFailed"));
       }
     });
   };
@@ -55,7 +59,7 @@ export function AdminInvoicedCheckbox({
           disabled={pending}
           onChange={(event) => onChange(event.target.checked)}
           className="h-4 w-4 rounded border-border accent-firefly disabled:opacity-50"
-          aria-label={label}
+          aria-label={ariaLabel}
         />
       </label>
       {error ? <ActionFeedback message={error} type="error" /> : null}

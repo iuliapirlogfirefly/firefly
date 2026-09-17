@@ -16,22 +16,9 @@ export const GENRES: Genre[] = [
   "open_format",
 ];
 
-const GENRE_LABELS: Record<Genre, string> = {
-  techno: "Techno",
-  house: "House",
-  afro_house: "Afro House",
-  minimal: "Minimal",
-  hip_hop_rnb: "Hip Hop / R&B",
-  commercial: "Commercial",
-  latin: "Latin",
-  manele: "Manele",
-  pop: "Pop",
-  edm: "EDM",
-  live_music: "Live Music",
-  jazz: "Jazz",
-  open_format: "Open Format",
-};
-
-export function formatGenreLabel(genre: Genre): string {
-  return GENRE_LABELS[genre];
+export function formatGenreLabel(
+  genre: Genre,
+  t: (key: string) => string
+): string {
+  return t(genre);
 }

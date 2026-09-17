@@ -2,6 +2,7 @@
 
 import type { ButtonHTMLAttributes } from "react";
 import { useFormStatus } from "react-dom";
+import { useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/spinner";
 
 type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type" | "disabled"> & {
@@ -11,11 +12,14 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type" | "disabled"> 
 
 export function SignOutButton({
   className = "",
-  label = "Sign out",
-  pendingLabel = "Signing out…",
+  label,
+  pendingLabel,
   ...props
 }: Props) {
+  const t = useTranslations("common");
   const { pending } = useFormStatus();
+  const resolvedLabel = label ?? t("signOut");
+  const resolvedPendingLabel = pendingLabel ?? t("signingOut");
 
   return (
     <button
@@ -26,7 +30,7 @@ export function SignOutButton({
       {...props}
     >
       {pending ? <Spinner className="h-3.5 w-3.5 shrink-0" /> : null}
-      {pending ? pendingLabel : label}
+      {pending ? resolvedPendingLabel : resolvedLabel}
     </button>
   );
 }

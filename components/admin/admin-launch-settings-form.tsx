@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { updatePrelaunchSettings } from "@/lib/actions/site-settings";
 import { isPrelaunchActiveFromSettings } from "@/lib/launch/config";
@@ -25,6 +26,7 @@ export function AdminLaunchSettingsForm({
   initialActive,
   initialEndsAt,
 }: Props) {
+  const t = useTranslations("admin");
   const router = useRouter();
   const [active, setActive] = useState(initialActive);
   const [endsAt, setEndsAt] = useState(toDatetimeLocal(initialEndsAt));
@@ -48,7 +50,7 @@ export function AdminLaunchSettingsForm({
         endsAt: endsAt ? new Date(endsAt).toISOString() : null,
       });
       if (result.success) {
-        setFeedback({ type: "success", message: "Pre-launch settings saved." });
+        setFeedback({ type: "success", message: t("launchSaved") });
         router.refresh();
       } else {
         setFeedback({ type: "error", message: result.error });
@@ -68,19 +70,17 @@ export function AdminLaunchSettingsForm({
           />
           <span>
             <span className="block text-sm font-medium text-foreground">
-              Countdown is active
+              {t("countdownActive")}
             </span>
             <span className="mt-0.5 block text-xs text-muted-foreground">
-              When on, visitors stay on the countdown landing until the end
-              date. Businesses can still open their dashboard; Promotions shows
-              Coming soon. Admins can open the full product.
+              {t("countdownHint")}
             </span>
           </span>
         </label>
 
         <label className="block">
           <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            End date
+            {t("endDate")}
           </span>
           <input
             type="datetime-local"
@@ -90,8 +90,7 @@ export function AdminLaunchSettingsForm({
             required={active}
           />
           <span className="mt-1.5 block text-xs text-muted-foreground">
-            Time is in your local timezone. After this moment the live site
-            opens on its own, even if the flag is still on.
+            {t("endDateHint")}
           </span>
         </label>
 
@@ -100,9 +99,7 @@ export function AdminLaunchSettingsForm({
             previewLive ? "text-emerald-400" : "text-amber-400"
           }`}
         >
-          {previewLive
-            ? "Visitors currently see the live site."
-            : "Visitors currently see the countdown."}
+          {previewLive ? t("previewLive") : t("previewCountdown")}
         </p>
 
         {feedback ? (
@@ -110,7 +107,7 @@ export function AdminLaunchSettingsForm({
         ) : null}
 
         <AdminButton type="submit" variant="primary" size="md" pending={pending}>
-          Save settings
+          {t("saveSettings")}
         </AdminButton>
       </form>
     </AdminCard>

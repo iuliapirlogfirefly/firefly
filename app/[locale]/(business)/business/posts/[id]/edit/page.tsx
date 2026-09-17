@@ -38,7 +38,6 @@ export default async function EditFeedPostPage({ params }: Props) {
       </h1>
 
       <BusinessFeedPostForm
-        locale={locale}
         mode="edit"
         postId={post.id}
         initial={post}

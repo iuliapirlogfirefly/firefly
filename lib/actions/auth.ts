@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { createAuthClient, createClient } from "@/lib/supabase/server";
 import { createBusinessAccountForProfile } from "@/lib/actions/business";
 import {
@@ -9,7 +10,13 @@ import {
 } from "@/lib/launch/settings";
 import { success, failure } from "@/lib/utils/action-result";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
-import type { AccountType, ActionResult, BusinessType, UserRole } from "@/types";
+import type {
+  AccountType,
+  ActionResult,
+  BusinessType,
+  Locale,
+  UserRole,
+} from "@/types";
 
 function roleMatchesAccountType(
   role: UserRole,
@@ -19,11 +26,14 @@ function roleMatchesAccountType(
   return role === "business_venue" || role === "business_organizer";
 }
 
-function accountTypeMismatchError(accountType: AccountType): string {
+async function accountTypeMismatchError(
+  accountType: AccountType
+): Promise<string> {
+  const t = await getTranslations("auth");
   if (accountType === "business") {
-    return "This is a personal account. Switch to Person to sign in.";
+    return t("errors.personalAccount");
   }
-  return "This is a business account. Switch to Business to sign in.";
+  return t("errors.businessAccount");
 }
 
 export async function signInWithEmail(
@@ -43,7 +53,10 @@ export async function signInWithEmail(
   if (error) return failure(error.message);
 
   const userId = authData.user?.id;
-  if (!userId) return failure("Sign in failed");
+  if (!userId) {
+    const t = await getTranslations("auth");
+    return failure(t("errors.signInFailed"));
+  }
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
@@ -60,7 +73,7 @@ export async function signInWithEmail(
 
   if (!roleMatchesAccountType(role, accountType)) {
     await supabase.auth.signOut();
-    return failure(accountTypeMismatchError(accountType));
+    return failure(await accountTypeMismatchError(accountType));
   }
 
   let isSuspended = profile?.is_suspended === true;
@@ -78,7 +91,8 @@ export async function signInWithEmail(
 
   if (isSuspended) {
     await supabase.auth.signOut();
-    return failure("Account suspended");
+    const t = await getTranslations("auth");
+    return failure(t("errors.accountSuspended"));
   }
 
   return success({
@@ -90,6 +104,7 @@ type SignUpOptions = {
   displayName?: string;
   businessName?: string;
   businessType?: BusinessType;
+  preferredLocale?: Locale;
   billing?: {
     legalName: string;
     cui: string;
@@ -110,16 +125,18 @@ export async function signUpWithEmail(
   const disabled = supabaseDisabled<{ redirectTo: string }>();
   if (disabled) return disabled;
 
+  const t = await getTranslations("auth");
+
   if (accountType === "business") {
     const businessName = options.businessName?.trim();
     if (!businessName || businessName.length < 2) {
-      return failure("Business name must be at least 2 characters");
+      return failure(t("errors.businessNameMin"));
     }
     if (!options.businessType) {
-      return failure("Business type is required");
+      return failure(t("errors.businessTypeRequired"));
     }
     if (!options.billing) {
-      return failure("Billing information is required");
+      return failure(t("errors.billingRequired"));
     }
   }
 
@@ -139,7 +156,14 @@ export async function signUpWithEmail(
   if (error) return failure(error.message);
 
   const userId = authData.user?.id;
-  if (!userId) return failure("Sign up failed");
+  if (!userId) return failure(t("errors.signUpFailed"));
+
+  if (options.preferredLocale === "en" || options.preferredLocale === "ro") {
+    await supabase
+      .from("profiles")
+      .update({ preferred_locale: options.preferredLocale })
+      .eq("id", userId);
+  }
 
   if (accountType === "business") {
     const billing = options.billing!;
@@ -189,7 +213,10 @@ export async function signInWithOAuth(
   });
 
   if (error) return failure(error.message);
-  if (!data.url) return failure("Failed to get OAuth URL");
+  if (!data.url) {
+    const t = await getTranslations("auth");
+    return failure(t("errors.oauthUrl"));
+  }
   return success({ url: data.url });
 }
 
@@ -222,7 +249,8 @@ export async function updatePassword(newPassword: string): Promise<ActionResult>
   if (disabled) return disabled;
 
   if (newPassword.length < 6) {
-    return failure("Password must be at least 6 characters");
+    const t = await getTranslations("auth");
+    return failure(t("errors.passwordMin"));
   }
 
   const supabase = await createClient();
@@ -254,7 +282,10 @@ export async function updateProfile(data: {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return failure("Not authenticated");
+  if (!user) {
+    const t = await getTranslations("auth");
+    return failure(t("errors.notAuthenticated"));
+  }
 
   const { error } = await supabase
     .from("profiles")

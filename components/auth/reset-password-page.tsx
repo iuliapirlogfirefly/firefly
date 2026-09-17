@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { ArrowRight, Eye, EyeOff, Lock } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { AuthField } from "@/components/auth/auth-field";
 import { FireflyField } from "@/components/FireflyField";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { PendingButton } from "@/components/ui/pending-button";
 import { updatePassword } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/client";
@@ -15,6 +17,7 @@ type Props = {
 };
 
 export function ResetPasswordPage({ authenticated }: Props) {
+  const t = useTranslations("auth");
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -49,7 +52,7 @@ export function ResetPasswordPage({ authenticated }: Props) {
     setError("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("passwordsMismatch"));
       return;
     }
 
@@ -71,8 +74,11 @@ export function ResetPasswordPage({ authenticated }: Props) {
       <div className="relative min-h-screen w-full overflow-hidden bg-background">
         <div className="pointer-events-none absolute -top-40 left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-firefly/10 blur-3xl" />
         <FireflyField count={24} />
+        <div className="absolute right-6 top-6 z-30">
+          <LanguageSwitcher />
+        </div>
         <section className="relative z-10 flex min-h-screen items-center justify-center px-6 py-24">
-          <p className="text-sm text-foreground/60">Confirming reset link…</p>
+          <p className="text-sm text-foreground/60">{t("confirmingLink")}</p>
         </section>
       </div>
     );
@@ -83,29 +89,31 @@ export function ResetPasswordPage({ authenticated }: Props) {
       <div className="relative min-h-screen w-full overflow-hidden bg-background">
         <div className="pointer-events-none absolute -top-40 left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-firefly/10 blur-3xl" />
         <FireflyField count={24} />
+        <div className="absolute right-6 top-6 z-30">
+          <LanguageSwitcher />
+        </div>
 
         <section className="relative z-10 flex min-h-screen items-center justify-center px-6 py-24">
           <div className="w-full max-w-md">
             <div className="mb-10">
               <p className="mb-3 font-mono text-xs tracking-wider-2 text-firefly/80">
-                NEW LIGHT
+                {t("newLight")}
               </p>
               <h1 className="font-display text-5xl leading-[1.05] text-foreground text-glow sm:text-6xl">
-                Choose a new{" "}
-                <span className="text-gradient-firefly">password</span>
+                {t("chooseNew")}{" "}
+                <span className="text-gradient-firefly">
+                  {t("chooseNewAccent")}
+                </span>
               </h1>
             </div>
 
             <div className="space-y-4">
-              <p className="text-sm text-destructive">
-                Invalid or expired reset link. Request a new one — only the most
-                recent email link works.
-              </p>
+              <p className="text-sm text-destructive">{t("invalidExpiredLink")}</p>
               <Link
                 href="/auth/forgot-password"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-firefly/30 px-6 py-3.5 text-sm font-medium text-firefly transition-all hover:bg-firefly/10"
               >
-                Request a new link
+                {t("requestNewLink")}
               </Link>
             </div>
           </div>
@@ -118,24 +126,27 @@ export function ResetPasswordPage({ authenticated }: Props) {
     <div className="relative min-h-screen w-full overflow-hidden bg-background">
       <div className="pointer-events-none absolute -top-40 left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-firefly/10 blur-3xl" />
       <FireflyField count={24} />
+      <div className="absolute right-6 top-6 z-30">
+        <LanguageSwitcher />
+      </div>
 
       <section className="relative z-10 flex min-h-screen items-center justify-center px-6 py-24">
         <div className="w-full max-w-md">
           <div className="mb-10">
             <p className="mb-3 font-mono text-xs tracking-wider-2 text-firefly/80">
-              NEW LIGHT
+              {t("newLight")}
             </p>
             <h1 className="font-display text-5xl leading-[1.05] text-foreground text-glow sm:text-6xl">
-              Choose a new{" "}
-              <span className="text-gradient-firefly">password</span>
+              {t("chooseNew")}{" "}
+              <span className="text-gradient-firefly">{t("chooseNewAccent")}</span>
             </h1>
             <p className="mt-4 text-pretty text-foreground/60">
-              Pick something strong enough to guard your fireflies.
+              {t("guardFireflies")}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <AuthField icon={<Lock className="h-4 w-4" />} label="New password">
+            <AuthField icon={<Lock className="h-4 w-4" />} label={t("newPassword")}>
               <input
                 type={showPass ? "text" : "password"}
                 value={password}
@@ -150,7 +161,7 @@ export function ResetPasswordPage({ authenticated }: Props) {
                 type="button"
                 onClick={() => setShowPass((current) => !current)}
                 className="text-foreground/40 transition-colors hover:text-firefly"
-                aria-label={showPass ? "Hide password" : "Show password"}
+                aria-label={showPass ? t("hidePassword") : t("showPassword")}
               >
                 {showPass ? (
                   <EyeOff className="h-4 w-4" />
@@ -162,7 +173,7 @@ export function ResetPasswordPage({ authenticated }: Props) {
 
             <AuthField
               icon={<Lock className="h-4 w-4" />}
-              label="Confirm password"
+              label={t("confirmPassword")}
             >
               <input
                 type={showPass ? "text" : "password"}
@@ -182,10 +193,10 @@ export function ResetPasswordPage({ authenticated }: Props) {
             <PendingButton
               type="submit"
               pending={pending}
-              pendingLabel="Updating…"
+              pendingLabel={t("updating")}
               className="group mt-2 w-full rounded-full bg-firefly px-6 py-3.5 text-sm font-medium text-primary-foreground transition-all hover:scale-[1.01] hover:firefly-glow"
             >
-              Update password
+              {t("updatePassword")}
               {!pending ? (
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               ) : null}

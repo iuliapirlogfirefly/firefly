@@ -21,6 +21,7 @@ import {
 import { AuthField } from "@/components/auth/auth-field";
 import { FireflyField } from "@/components/FireflyField";
 import { HeroPin } from "@/components/landing/hero-pin";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { PendingButton } from "@/components/ui/pending-button";
 import { signInWithEmail, signUpWithEmail } from "@/lib/actions/auth";
 import { isPrelaunchLockedPath } from "@/lib/launch/config";
@@ -42,6 +43,7 @@ function safeReturnPath(raw: string | null): string | null {
 }
 
 export function AuthPage({
+  locale,
   initialMode = "signin",
   initialAccountType = "person",
 }: Props) {
@@ -105,7 +107,7 @@ export function AuthPage({
     setError("");
 
     if (mode === "signup" && isBusiness && businessName.trim().length < 2) {
-      setError("Business name must be at least 2 characters");
+      setError(tAuth("errors.businessNameMin"));
       return;
     }
 
@@ -119,7 +121,7 @@ export function AuthPage({
         !billingCounty.trim() ||
         !billingPostalCode.trim())
     ) {
-      setError("Please fill in all billing details");
+      setError(tAuth("fillBilling"));
       return;
     }
 
@@ -133,6 +135,7 @@ export function AuthPage({
         mode === "signin"
           ? await signInWithEmail(email, password, accountType, rememberMe)
           : await signUpWithEmail(email, password, accountType, {
+              preferredLocale: locale,
               displayName: name.trim() || undefined,
               businessName: isBusiness ? businessName.trim() : undefined,
               businessType: isBusiness ? businessType : undefined,
@@ -162,11 +165,15 @@ export function AuthPage({
   const subtitle =
     mode === "signin"
       ? isBusiness
-        ? "Manage your venue or events. Pick up where you left off."
-        : "Your saved fireflies are waiting. Pick up where the night left off."
+        ? tAuth("subtitleSigninBusiness")
+        : tAuth("subtitleSigninPerson")
       : isBusiness
-        ? "Register your venue or organizer account and start reaching the night crowd."
-        : "Save events, collect nights, and follow the light wherever it goes.";
+        ? tAuth("subtitleSignupBusiness")
+        : tAuth("subtitleSignupPerson");
+
+  const quote = tAuth("quote");
+  const quoteAccent = tAuth("quoteAccent");
+  const quoteAccentAt = quote.lastIndexOf(quoteAccent);
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-background">
@@ -180,6 +187,9 @@ export function AuthPage({
         <span className="inline-flex h-2 w-2 animate-firefly-pulse rounded-full bg-firefly" />
         <span className="font-display tracking-tight-logo">firefly</span>
       </Link>
+      <div className="absolute right-6 top-6 z-30">
+        <LanguageSwitcher />
+      </div>
 
       <div className="relative z-10 mx-auto grid min-h-screen max-w-7xl grid-cols-1 gap-0 lg:grid-cols-[1.1fr_1fr]">
         <aside className="relative hidden items-center justify-center p-12 lg:flex">
@@ -190,11 +200,20 @@ export function AuthPage({
           <div className="absolute bottom-12 left-12 right-12">
             <div className="deco-line mb-4" />
             <p className="max-w-md font-hand text-2xl leading-snug text-foreground/80">
-              &ldquo;The best parties aren&apos;t found. They&apos;re{" "}
-              <span className="text-firefly">followed.</span>&rdquo;
+              &ldquo;
+              {quoteAccentAt === -1 ? (
+                quote
+              ) : (
+                <>
+                  {quote.slice(0, quoteAccentAt)}
+                  <span className="text-firefly">{quoteAccent}</span>
+                  {quote.slice(quoteAccentAt + quoteAccent.length)}
+                </>
+              )}
+              &rdquo;
             </p>
             <p className="mt-2 font-mono text-xs tracking-wider-2 text-foreground/40">
-              — A FIREFLY, PROBABLY
+              {tAuth("quoteBy")}
             </p>
           </div>
         </aside>
@@ -203,22 +222,22 @@ export function AuthPage({
           <div className="w-full max-w-md">
             <div className="mb-10">
               <p className="mb-3 font-mono text-xs tracking-wider-2 text-firefly/80">
-                {mode === "signin" ? "WELCOME BACK" : "NEW HERE"}
+                {mode === "signin" ? tAuth("welcomeBack") : tAuth("newHere")}
               </p>
               <h1 className="font-heading text-5xl font-bold leading-[0.95] tracking-tight-logo text-foreground sm:text-6xl">
                 {mode === "signin" ? (
                   <>
-                    Step back <br />
-                    into the{" "}
+                    {tAuth("signinTitleLine1")} <br />
+                    {tAuth("signinTitleLine2")}{" "}
                     <span className="bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow italic">
-                      night
+                      {tAuth("signinTitleAccent")}
                     </span>
                   </>
                 ) : (
                   <>
-                    Open the <br />
+                    {tAuth("signupTitleLine1")} <br />
                     <span className="underline-squiggle bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow italic">
-                      jar
+                      {tAuth("signupTitleAccent")}
                     </span>
                   </>
                 )}
@@ -233,12 +252,12 @@ export function AuthPage({
               />
 
               {mode === "signup" && !isBusiness ? (
-                <AuthField icon={<User className="h-4 w-4" />} label="Your name">
+                <AuthField icon={<User className="h-4 w-4" />} label={tAuth("yourName")}>
                   <input
                     type="text"
                     value={name}
                     onChange={(event) => setName(event.target.value)}
-                    placeholder="What should we call you?"
+                    placeholder={tAuth("yourNamePlaceholder")}
                     className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
                   />
                 </AuthField>
@@ -248,13 +267,13 @@ export function AuthPage({
                 <>
                   <AuthField
                     icon={<Building2 className="h-4 w-4" />}
-                    label="Business name"
+                    label={tAuth("businessName")}
                   >
                     <input
                       type="text"
                       value={businessName}
                       onChange={(event) => setBusinessName(event.target.value)}
-                      placeholder="Your venue or brand name"
+                      placeholder={tAuth("businessNamePlaceholder")}
                       required
                       minLength={2}
                       className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
@@ -263,7 +282,7 @@ export function AuthPage({
 
                   <div>
                     <span className="font-mono text-[10px] tracking-wider-2 text-foreground/40">
-                      BUSINESS TYPE
+                      {tAuth("businessType")}
                     </span>
                     <div className="mt-1.5">
                       <BusinessTypeSwitch
@@ -275,13 +294,13 @@ export function AuthPage({
 
                   <AuthField
                     icon={<Building2 className="h-4 w-4" />}
-                    label="Legal company name"
+                    label={tAuth("legalName")}
                   >
                     <input
                       type="text"
                       value={legalName}
                       onChange={(event) => setLegalName(event.target.value)}
-                      placeholder="SC Example SRL"
+                      placeholder={tAuth("legalNamePlaceholder")}
                       required
                       minLength={2}
                       className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
@@ -290,13 +309,13 @@ export function AuthPage({
 
                   <AuthField
                     icon={<Building2 className="h-4 w-4" />}
-                    label="CUI"
+                    label={tAuth("cui")}
                   >
                     <input
                       type="text"
                       value={cui}
                       onChange={(event) => setCui(event.target.value)}
-                      placeholder="RO12345678"
+                      placeholder={tAuth("cuiPlaceholder")}
                       required
                       minLength={2}
                       className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
@@ -305,13 +324,13 @@ export function AuthPage({
 
                   <AuthField
                     icon={<Building2 className="h-4 w-4" />}
-                    label="Billing address"
+                    label={tAuth("billingAddress")}
                   >
                     <input
                       type="text"
                       value={billingAddress}
                       onChange={(event) => setBillingAddress(event.target.value)}
-                      placeholder="Street, number"
+                      placeholder={tAuth("streetPlaceholder")}
                       required
                       minLength={2}
                       className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
@@ -321,20 +340,20 @@ export function AuthPage({
                   <div className="grid gap-4 sm:grid-cols-2">
                     <AuthField
                       icon={<Building2 className="h-4 w-4" />}
-                      label="City"
+                      label={tAuth("city")}
                     >
                       <input
                         type="text"
                         value={billingCity}
                         onChange={(event) => setBillingCity(event.target.value)}
-                        placeholder="Bucharest"
+                        placeholder={tAuth("cityPlaceholder")}
                         required
                         className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
                       />
                     </AuthField>
                     <AuthField
                       icon={<Building2 className="h-4 w-4" />}
-                      label="County"
+                      label={tAuth("county")}
                     >
                       <input
                         type="text"
@@ -342,7 +361,7 @@ export function AuthPage({
                         onChange={(event) =>
                           setBillingCounty(event.target.value)
                         }
-                        placeholder="București"
+                        placeholder={tAuth("countyPlaceholder")}
                         required
                         className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
                       />
@@ -351,7 +370,7 @@ export function AuthPage({
 
                   <AuthField
                     icon={<Building2 className="h-4 w-4" />}
-                    label="Postal code"
+                    label={tAuth("postalCode")}
                   >
                     <input
                       type="text"
@@ -367,18 +386,18 @@ export function AuthPage({
                 </>
               ) : null}
 
-              <AuthField icon={<Mail className="h-4 w-4" />} label="Email">
+              <AuthField icon={<Mail className="h-4 w-4" />} label={tAuth("email")}>
                 <input
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@aftersunset.com"
+                  placeholder={tAuth("emailPlaceholder")}
                   required
                   className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
                 />
               </AuthField>
 
-              <AuthField icon={<Lock className="h-4 w-4" />} label="Password">
+              <AuthField icon={<Lock className="h-4 w-4" />} label={tAuth("password")}>
                 <input
                   type={showPass ? "text" : "password"}
                   value={password}
@@ -392,7 +411,9 @@ export function AuthPage({
                   type="button"
                   onClick={() => setShowPass((current) => !current)}
                   className="text-foreground/40 transition-colors hover:text-firefly"
-                  aria-label={showPass ? "Hide password" : "Show password"}
+                  aria-label={
+                    showPass ? tAuth("hidePassword") : tAuth("showPassword")
+                  }
                 >
                   {showPass ? (
                     <EyeOff className="h-4 w-4" />
@@ -411,13 +432,13 @@ export function AuthPage({
                       onChange={(event) => setRememberMe(event.target.checked)}
                       className="accent-firefly"
                     />
-                    Stay glowing
+                    {tAuth("stayGlowing")}
                   </label>
                   <Link
                     href="/auth/forgot-password"
                     className="text-firefly/80 transition-colors hover:text-firefly"
                   >
-                    Forgot password?
+                    {tAuth("forgotPassword")}
                   </Link>
                 </div>
               ) : (
@@ -473,17 +494,19 @@ export function AuthPage({
                 type="submit"
                 pending={pending}
                 pendingLabel={
-                  mode === "signin" ? "Signing in…" : "Creating account…"
+                  mode === "signin"
+                    ? tAuth("signingIn")
+                    : tAuth("creatingAccount")
                 }
                 className="group mt-2 w-full rounded-full bg-firefly px-6 py-3.5 text-sm font-medium text-primary-foreground transition-all hover:scale-[1.01] hover:firefly-glow"
               >
                 {mode === "signin"
                   ? isBusiness
-                    ? "Enter business dashboard"
-                    : "Find my fireflies"
+                    ? tAuth("enterBusiness")
+                    : tAuth("findFireflies")
                   : isBusiness
-                    ? "Register business"
-                    : "Light the jar"}
+                    ? tAuth("registerBusiness")
+                    : tAuth("lightTheJar")}
                 {!pending ? (
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 ) : null}
@@ -491,7 +514,9 @@ export function AuthPage({
             </form>
 
             <p className="mt-8 text-center text-sm text-foreground/60">
-              {mode === "signin" ? "First night out?" : "Already a regular?"}{" "}
+              {mode === "signin"
+                ? tAuth("firstNightOut")
+                : tAuth("alreadyRegular")}{" "}
               <button
                 type="button"
                 onClick={() =>
@@ -499,12 +524,12 @@ export function AuthPage({
                 }
                 className="font-medium text-firefly underline-offset-4 hover:underline"
               >
-                {mode === "signin" ? "Create an account" : "Sign in"}
+                {mode === "signin" ? tAuth("createAnAccount") : tAuth("signIn")}
               </button>
             </p>
 
             <p className="mt-10 text-center font-mono text-[10px] tracking-wider-2 text-foreground/30">
-              BY JOINING YOU AGREE TO DANCE RESPONSIBLY ✦
+              {tAuth("danceResponsibly")}
             </p>
           </div>
         </section>

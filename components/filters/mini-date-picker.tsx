@@ -2,12 +2,19 @@
 
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import {
-  isToday,
-  monthMatrix,
-  toDateKey,
-  WEEKDAYS,
-} from "@/lib/utils/calendar";
+import { useLocale, useTranslations } from "next-intl";
+import { dateTimeLocale } from "@/lib/i18n/date-locale";
+import { isToday, monthMatrix, toDateKey } from "@/lib/utils/calendar";
+
+const WEEKDAY_KEYS = [
+  "weekdayMon",
+  "weekdayTue",
+  "weekdayWed",
+  "weekdayThu",
+  "weekdayFri",
+  "weekdaySat",
+  "weekdaySun",
+] as const;
 
 type MiniDatePickerProps = {
   selectedDate?: string;
@@ -24,6 +31,8 @@ export function MiniDatePicker({
   selectedDate,
   onSelect,
 }: MiniDatePickerProps) {
+  const t = useTranslations("discovery");
+  const locale = useLocale();
   const today = useMemo(() => new Date(), []);
   const initial = parseDateKey(selectedDate, today);
   const [viewYear, setViewYear] = useState(initial.getFullYear());
@@ -34,10 +43,13 @@ export function MiniDatePicker({
     [viewYear, viewMonth]
   );
 
-  const monthLabel = new Date(viewYear, viewMonth).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
+  const monthLabel = new Date(viewYear, viewMonth).toLocaleDateString(
+    dateTimeLocale(locale),
+    {
+      month: "long",
+      year: "numeric",
+    }
+  );
 
   const shift = (delta: number) => {
     const next = new Date(viewYear, viewMonth + delta, 1);
@@ -54,7 +66,7 @@ export function MiniDatePicker({
             type="button"
             onClick={() => shift(-1)}
             className="flex h-7 w-7 items-center justify-center rounded-full border border-firefly/20 text-foreground/70 transition-colors hover:border-firefly/50 hover:text-firefly"
-            aria-label="Previous month"
+            aria-label={t("prevMonth")}
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </button>
@@ -62,7 +74,7 @@ export function MiniDatePicker({
             type="button"
             onClick={() => shift(1)}
             className="flex h-7 w-7 items-center justify-center rounded-full border border-firefly/20 text-foreground/70 transition-colors hover:border-firefly/50 hover:text-firefly"
-            aria-label="Next month"
+            aria-label={t("nextMonth")}
           >
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
@@ -70,12 +82,12 @@ export function MiniDatePicker({
       </div>
 
       <div className="mb-1 grid grid-cols-7">
-        {WEEKDAYS.map((weekday) => (
+        {WEEKDAY_KEYS.map((weekday) => (
           <div
             key={weekday}
             className="py-1 text-center font-mono text-[9px] uppercase tracking-wider-2 text-foreground/40"
           >
-            {weekday}
+            {t(weekday)}
           </div>
         ))}
       </div>

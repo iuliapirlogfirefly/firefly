@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import {
   approveBusinessAccount,
@@ -26,6 +27,8 @@ export function AdminUserActions({
   status,
   isBusiness,
 }: Props) {
+  const t = useTranslations("admin");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
@@ -38,12 +41,12 @@ export function AdminUserActions({
     startTransition(async () => {
       const result = await action();
       if (result.success) {
-        setFeedback({ type: "success", message: "Updated" });
+        setFeedback({ type: "success", message: tCommon("updated") });
         router.refresh();
       } else {
         setFeedback({
           type: "error",
-          message: result.error ?? "Action failed",
+          message: result.error ?? tCommon("actionFailed"),
         });
       }
     });
@@ -59,9 +62,9 @@ export function AdminUserActions({
               variant="danger"
               onClick={() => run(() => suspendUser(userId))}
               pending={pending}
-              pendingLabel="Suspending…"
+              pendingLabel={t("suspending")}
             >
-              Suspend
+              {t("suspend")}
             </AdminButton>
           ) : null}
           {status === "suspended" ? (
@@ -69,9 +72,9 @@ export function AdminUserActions({
               size="sm"
               onClick={() => run(() => unsuspendUser(userId))}
               pending={pending}
-              pendingLabel="Unsuspending…"
+              pendingLabel={t("unsuspending")}
             >
-              Unsuspend
+              {t("unsuspend")}
             </AdminButton>
           ) : null}
         </div>
@@ -97,9 +100,9 @@ export function AdminUserActions({
               size="sm"
               onClick={() => run(() => approveBusinessAccount(businessAccountId))}
               pending={pending}
-              pendingLabel="Approving…"
+              pendingLabel={t("approving")}
             >
-              Approve
+              {t("approve")}
             </AdminButton>
             <AdminButton
               size="sm"
@@ -107,7 +110,7 @@ export function AdminUserActions({
               onClick={() => setRejectOpen(true)}
               disabled={pending}
             >
-              Reject
+              {t("reject")}
             </AdminButton>
           </>
         ) : null}
@@ -117,9 +120,9 @@ export function AdminUserActions({
             variant="danger"
             onClick={() => run(() => suspendUser(userId))}
             pending={pending}
-            pendingLabel="Suspending…"
+            pendingLabel={t("suspending")}
           >
-            Suspend
+            {t("suspend")}
           </AdminButton>
         ) : null}
         {status === "suspended" ? (
@@ -129,9 +132,9 @@ export function AdminUserActions({
               run(() => reactivateBusinessAccount(businessAccountId))
             }
             pending={pending}
-            pendingLabel="Reactivating…"
+            pendingLabel={t("reactivating")}
           >
-            Reactivate
+            {t("reactivate")}
           </AdminButton>
         ) : null}
       </div>
@@ -141,7 +144,7 @@ export function AdminUserActions({
 
       <RejectDialog
         open={rejectOpen}
-        title="Reject business account"
+        title={t("rejectBusiness")}
         onClose={() => setRejectOpen(false)}
         pending={pending}
         onConfirm={(reason) => {

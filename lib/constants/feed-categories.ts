@@ -1,45 +1,13 @@
-import type { FeedPostCategory, Locale } from "@/types";
+import type { FeedPostCategory } from "@/types";
 
-export type FeedCategoryMeta = {
-  icon: string;
-  label: Record<Locale, string>;
-  description: Record<Locale, string>;
+export const FEED_CATEGORY_ICONS: Record<FeedPostCategory, string> = {
+  party_updates: "⚡",
+  nightlife_news: "📰",
+  nightlife_chaos: "🎭",
+  club_moments: "📸",
 };
 
-export const FEED_CATEGORIES: Record<FeedPostCategory, FeedCategoryMeta> = {
-  party_updates: {
-    icon: "⚡",
-    label: { en: "Party Updates", ro: "Noutăți petreceri" },
-    description: {
-      en: "Sold out, lineup changes, last tables",
-      ro: "Sold out, schimbări lineup, ultimele mese",
-    },
-  },
-  nightlife_news: {
-    icon: "📰",
-    label: { en: "Nightlife News", ro: "Știri nightlife" },
-    description: {
-      en: "Openings, DJ announcements, collabs",
-      ro: "Deschideri, anunțuri DJ, colaborări",
-    },
-  },
-  nightlife_chaos: {
-    icon: "🎭",
-    label: { en: "Nightlife Chaos", ro: "Haos nightlife" },
-    description: {
-      en: "Polls, hot takes, crowd reactions",
-      ro: "Sondaje, opinii, reacții crowd",
-    },
-  },
-  club_moments: {
-    icon: "📸",
-    label: { en: "Club Moments", ro: "Momente club" },
-    description: {
-      en: "Party photos & videos from venues",
-      ro: "Poze și clipuri de la petreceri",
-    },
-  },
-};
+export const FEED_CATEGORIES = FEED_CATEGORY_ICONS;
 
 export const FEED_FILTER_CATEGORIES = [
   "all",
@@ -50,11 +18,13 @@ export const FEED_FILTER_CATEGORIES = [
 
 export type FeedFilterCategory = (typeof FEED_FILTER_CATEGORIES)[number];
 
-export function getCategoryMeta(category: FeedPostCategory, locale: Locale) {
-  const meta = FEED_CATEGORIES[category];
+export function getCategoryMeta(
+  category: FeedPostCategory,
+  t: (key: string) => string
+) {
   return {
-    icon: meta.icon,
-    label: meta.label[locale],
-    description: meta.description[locale],
+    icon: FEED_CATEGORY_ICONS[category],
+    label: t(`${category}.label`),
+    description: t(`${category}.description`),
   };
 }

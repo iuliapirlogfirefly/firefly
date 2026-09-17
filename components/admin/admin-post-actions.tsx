@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { publishFeedPost, rejectFeedPost } from "@/lib/actions/admin";
 import { AdminButton } from "@/components/admin/ui/admin-button";
@@ -9,9 +10,12 @@ import { RejectDialog } from "@/components/admin/ui/reject-dialog";
 
 type Props = {
   postId: string;
+  status?: string;
 };
 
-export function AdminPostActions({ postId }: Props) {
+export function AdminPostActions({ postId, status = "pending" }: Props) {
+  const t = useTranslations("admin");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
@@ -24,12 +28,12 @@ export function AdminPostActions({ postId }: Props) {
     startTransition(async () => {
       const result = await action();
       if (result.success) {
-        setFeedback({ type: "success", message: "Published" });
+        setFeedback({ type: "success", message: t("publishedFeedback") });
         router.refresh();
       } else {
         setFeedback({
           type: "error",
-          message: result.error ?? "Action failed",
+          message: result.error ?? tCommon("actionFailed"),
         });
       }
     });
@@ -38,20 +42,24 @@ export function AdminPostActions({ postId }: Props) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        <AdminButton
-          onClick={() => run(() => publishFeedPost(postId))}
-          pending={pending}
-          pendingLabel="Publishing…"
-        >
-          Publish
-        </AdminButton>
-        <AdminButton
-          variant="secondary"
-          onClick={() => setRejectOpen(true)}
-          disabled={pending}
-        >
-          Reject
-        </AdminButton>
+        {status === "pending" ? (
+          <>
+            <AdminButton
+              onClick={() => run(() => publishFeedPost(postId))}
+              pending={pending}
+              pendingLabel={t("publishing")}
+            >
+              {t("publish")}
+            </AdminButton>
+            <AdminButton
+              variant="secondary"
+              onClick={() => setRejectOpen(true)}
+              disabled={pending}
+            >
+              {t("reject")}
+            </AdminButton>
+          </>
+        ) : null}
       </div>
       {feedback ? (
         <ActionFeedback message={feedback.message} type={feedback.type} />
@@ -59,7 +67,7 @@ export function AdminPostActions({ postId }: Props) {
 
       <RejectDialog
         open={rejectOpen}
-        title="Reject post"
+        title={t("rejectPost")}
         onClose={() => setRejectOpen(false)}
         pending={pending}
         onConfirm={(reason) => {
@@ -67,12 +75,12 @@ export function AdminPostActions({ postId }: Props) {
             const result = await rejectFeedPost(postId, reason);
             setRejectOpen(false);
             if (result.success) {
-              setFeedback({ type: "success", message: "Rejected" });
+              setFeedback({ type: "success", message: t("rejectedFeedback") });
               router.refresh();
             } else {
               setFeedback({
                 type: "error",
-                message: result.error ?? "Action failed",
+                message: result.error ?? tCommon("actionFailed"),
               });
             }
           });

@@ -14,54 +14,40 @@ import { Nav } from "@/components/Nav";
 import { PrelaunchLanding } from "@/components/landing/prelaunch-landing";
 import { HeroPin } from "@/components/landing/hero-pin";
 import { QuoteRotator } from "@/components/landing/quote-rotator";
+import { EVENT_TYPES } from "@/lib/constants/event-types";
 import { landingImages } from "@/lib/landing/images";
-import { isPrelaunchActive } from "@/lib/launch/settings";
-
-const stats = [
-  { n: "1,247", l: "parties this month" },
-  { n: "84", l: "venues lit up" },
-  { n: "12K", l: "nights planned" },
-  { n: "·", l: "" },
-  { n: "live", l: "every weekend", hand: true },
-] as const;
+import { isPrelaunchActive, isLandingStatsEnabled } from "@/lib/launch/settings";
+import {
+  formatLandingCount,
+  getLandingStats,
+  hasLandingStats,
+} from "@/lib/queries/landing";
 
 const mapFeatureIcons = [MapPin, Sparkles, Heart] as const;
 const mapFeatureKeys = ["pin1", "pin2", "pin3"] as const;
 
-const marqueeItems = [
-  "Party",
-  "Concert",
-  "Festival",
-  "Rooftop",
-  "Brunch / Day Party",
-  "Social Gathering",
-  "Club Night",
-  "Live Performance",
-  "Private Event",
-] as const;
-
-const steps = [
+const stepDefs = [
   {
     n: "01",
     icon: MapPin,
-    t: "The map glows",
-    d: "Open Firefly and watch the city light up with everywhere worth being.",
+    titleKey: "step1Title",
+    bodyKey: "step1Body",
     img: landingImages.stepMap,
     align: "left" as const,
   },
   {
     n: "02",
     icon: Sparkles,
-    t: "An event appears",
-    d: "Tap any firefly to peek at the lineup, venue, and the energy you're in for.",
+    titleKey: "step2Title",
+    bodyKey: "step2Body",
     img: landingImages.editorialDj,
     align: "right" as const,
   },
   {
     n: "03",
     icon: Calendar,
-    t: "You save the night",
-    d: "Heart it, set a reminder, share with the right friends — the night is on your radar.",
+    titleKey: "step3Title",
+    bodyKey: "step3Body",
     img: landingImages.stepSave,
     align: "left" as const,
   },
@@ -73,10 +59,29 @@ export async function HomePage() {
   }
 
   const t = await getTranslations("landing");
+  const tEventTypes = await getTranslations("eventTypes");
   const mapFeatures = mapFeatureKeys.map((key, i) => ({
     icon: mapFeatureIcons[i],
     t: t(`${key}Title`),
     d: t(`${key}Description`),
+  }));
+  const marqueeItems = EVENT_TYPES.map((type) => tEventTypes(type));
+  const liveStats =
+    (await isLandingStatsEnabled()) ? await getLandingStats() : null;
+  const stats =
+    liveStats && hasLandingStats(liveStats)
+      ? [
+          { n: formatLandingCount(liveStats.partiesThisMonth), l: t("statsParties") },
+          { n: formatLandingCount(liveStats.venuesLitUp), l: t("statsVenues") },
+          { n: formatLandingCount(liveStats.nightsPlanned), l: t("statsNights") },
+          { n: "·", l: "" },
+          { n: t("statsLive"), l: t("statsWeekend"), hand: true },
+        ]
+      : null;
+  const steps = stepDefs.map((step) => ({
+    ...step,
+    title: t(step.titleKey),
+    body: t(step.bodyKey),
   }));
 
   return (
@@ -100,7 +105,7 @@ export async function HomePage() {
                 <span className="absolute inset-0 rounded-full bg-firefly animate-firefly-pulse" />
               </span>
               <span className="font-mono text-[11px] uppercase tracking-wider-2 text-foreground/80">
-                Tonight in Bucharest · 23 venues glowing
+                {t("liveBadge")}
               </span>
             </div>
 
@@ -109,12 +114,12 @@ export async function HomePage() {
               style={{ animationDelay: "0.1s" }}
             >
               <span className="block text-[14vw] sm:text-8xl md:text-[8.5rem]">
-                Follow
+                {t("heroFollow")}
               </span>
               <span className="-mt-2 block pl-[18%] text-[14vw] sm:-mt-3 sm:pl-[22%] sm:text-8xl md:text-[8.5rem]">
-                the{" "}
+                {t("heroThe")}{" "}
                 <span className="bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow italic">
-                  light.
+                  {t("heroLight")}
                 </span>
               </span>
             </h1>
@@ -123,8 +128,7 @@ export async function HomePage() {
               className="mt-6 max-w-xl animate-fade-up text-pretty text-base leading-relaxed text-foreground/70 sm:mt-10 sm:text-lg"
               style={{ animationDelay: "0.3s" }}
             >
-              The city&apos;s nightlife, mapped in real time. Every glowing dot
-              is a party waiting to happen.
+              {t("heroSub")}
             </p>
 
             <div
@@ -135,14 +139,14 @@ export async function HomePage() {
                 href="/map"
                 className="group inline-flex items-center gap-2 rounded-full bg-firefly px-7 py-4 font-medium text-primary-foreground transition-all hover:scale-[1.03] hover:firefly-glow"
               >
-                Open the map
+                {t("ctaOpenMap")}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link
                 href="/feed"
                 className="inline-flex items-center gap-2 rounded-full border border-firefly/40 px-7 py-4 font-medium text-firefly transition-colors hover:bg-firefly/10"
               >
-                Browse tonight
+                {t("ctaBrowseTonight")}
               </Link>
             </div>
           </div>
@@ -155,29 +159,31 @@ export async function HomePage() {
           </div>
         </div>
 
-        <div className="relative mx-auto mt-12 max-w-[1400px] px-4 sm:mt-20 sm:px-6">
-          <div className="deco-line mb-6" />
-          <div className="flex flex-wrap items-baseline gap-x-12 gap-y-4">
-            {stats.map((s, i) => (
-              <div key={i} className="flex items-baseline gap-2">
-                <span
-                  className={
-                    "hand" in s && s.hand
-                      ? "font-hand text-3xl italic text-firefly"
-                      : "font-heading text-2xl text-firefly md:text-3xl"
-                  }
-                >
-                  {s.n}
-                </span>
-                {s.l ? (
-                  <span className="font-mono text-[10px] uppercase tracking-wider-2 text-foreground/50">
-                    {s.l}
+        {stats ? (
+          <div className="relative mx-auto mt-12 max-w-[1400px] px-4 sm:mt-20 sm:px-6">
+            <div className="deco-line mb-6" />
+            <div className="flex flex-wrap items-baseline gap-x-12 gap-y-4">
+              {stats.map((s, i) => (
+                <div key={i} className="flex items-baseline gap-2">
+                  <span
+                    className={
+                      s.hand
+                        ? "font-hand text-3xl italic text-firefly"
+                        : "font-heading text-2xl text-firefly md:text-3xl"
+                    }
+                  >
+                    {s.n}
                   </span>
-                ) : null}
-              </div>
-            ))}
+                  {s.l ? (
+                    <span className="font-mono text-[10px] uppercase tracking-wider-2 text-foreground/50">
+                      {s.l}
+                    </span>
+                  ) : null}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
       </section>
 
       <section className="relative overflow-hidden border-y border-firefly/10 bg-surface-1/40 py-10">
@@ -207,7 +213,7 @@ export async function HomePage() {
         <div className="mx-auto grid max-w-[1400px] gap-10 px-6 lg:grid-cols-12">
           <div className="lg:col-span-5 lg:pt-16">
             <div className="mb-5 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-              ◦ Chapter 01 — The Living Map
+              {t("chapter01Label")}
             </div>
             <h2 className="text-balance font-heading text-5xl font-bold leading-[1.02] md:text-6xl">
               {t.rich("chapter01Headline", {
@@ -245,7 +251,7 @@ export async function HomePage() {
             >
               <Image
                 src={landingImages.mapInset}
-                alt="Martini Club cocktail"
+                alt={t("mapInsetAlt")}
                 width={480}
                 height={640}
                 className="aspect-[3/4] h-full w-full object-cover"
@@ -260,14 +266,16 @@ export async function HomePage() {
         <div className="relative mx-auto max-w-[1200px] px-6">
           <div className="mb-20">
             <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-              ◦ Chapter 02 — How it works
+              {t("chapter02Label")}
             </div>
             <h2 className="max-w-3xl font-heading text-5xl font-bold leading-[1.02] md:text-6xl">
-              Three steps from{" "}
-              <em className="font-display not-italic bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow">
-                curiosity
-              </em>{" "}
-              to dance floor.
+              {t.rich("chapter02Headline", {
+                glow: (chunks) => (
+                  <em className="font-display not-italic bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow">
+                    {chunks}
+                  </em>
+                ),
+              })}
             </h2>
           </div>
 
@@ -312,10 +320,10 @@ export async function HomePage() {
                     </div>
                   </div>
                   <h3 className="mt-4 font-heading text-3xl font-bold md:text-4xl">
-                    {step.t}
+                    {step.title}
                   </h3>
                   <p className="mt-3 max-w-md leading-relaxed text-foreground/65">
-                    {step.d}
+                    {step.body}
                   </p>
                 </div>
               </div>
@@ -332,7 +340,7 @@ export async function HomePage() {
           >
             <Image
               src={landingImages.editorialStreet}
-              alt="Bucharest nightlife through a rain-speckled window"
+              alt={t("editorialAlt")}
               fill
               sizes="100vw"
               className="object-cover"
@@ -352,15 +360,16 @@ export async function HomePage() {
           <div className="grid items-end gap-6 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-                ◦ Chapter 03 — This week
+                {t("chapter03Label")}
               </div>
               <h2 className="text-balance font-heading text-5xl font-bold leading-[0.98] md:text-7xl">
-                The parties everyone&apos;s
-                <span className="font-display italic bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow">
-                  {" "}
-                  whispering{" "}
-                </span>
-                about.
+                {t.rich("chapter03Headline", {
+                  whisper: (chunks) => (
+                    <span className="font-display italic bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow">
+                      {chunks}
+                    </span>
+                  ),
+                })}
               </h2>
             </div>
             <div className="flex lg:col-span-5 lg:justify-end">
@@ -368,7 +377,7 @@ export async function HomePage() {
                 href="/feed"
                 className="group inline-flex items-center gap-2 font-medium text-firefly transition-all hover:gap-3"
               >
-                <span className="font-hand text-2xl">see them all</span>
+                <span className="font-hand text-2xl">{t("seeThemAll")}</span>
                 <ArrowRight className="mt-1 h-4 w-4" />
               </Link>
             </div>
@@ -388,7 +397,7 @@ export async function HomePage() {
             >
               <Image
                 src={landingImages.manifestoDj}
-                alt="DJ hands on a mixer"
+                alt={t("manifestoDjAlt")}
                 width={640}
                 height={800}
                 className="aspect-[4/5] w-full object-cover"
@@ -397,26 +406,25 @@ export async function HomePage() {
           </div>
           <div className="lg:col-span-7 lg:pl-8">
             <div className="mb-4 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-              ◦ A small manifesto
+              {t("manifestoLabel")}
             </div>
             <p className="text-balance font-heading text-3xl leading-[1.15] md:text-4xl">
-              We don&apos;t believe nightlife belongs in a feed of{" "}
-              <span className="text-foreground/30 line-through">
-                algorithmic suggestions
-              </span>
-              . It belongs in{" "}
-              <span className="bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent">
-                people&apos;s hands
-              </span>
-              , in the city, in the moment a friend says
-              <em className="font-display not-italic">
-                {" "}
-                &ldquo;wait, where are we going?&rdquo;
-              </em>
+              {t.rich("manifestoBody", {
+                struck: (chunks) => (
+                  <span className="text-foreground/30 line-through">{chunks}</span>
+                ),
+                glow: (chunks) => (
+                  <span className="bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent">
+                    {chunks}
+                  </span>
+                ),
+                quote: (chunks) => (
+                  <em className="font-display not-italic">{chunks}</em>
+                ),
+              })}
             </p>
             <p className="mt-6 max-w-xl text-pretty text-foreground/65">
-              Firefly was built by people who&apos;d rather be at the party than
-              looking for one.
+              {t("manifestoFooter")}
             </p>
           </div>
         </div>
@@ -435,23 +443,23 @@ export async function HomePage() {
         <div className="relative mx-auto max-w-4xl px-6 text-center">
           <h2 className="mx-auto w-fit text-left font-heading font-bold tracking-tight-logo leading-[0.88]">
             <span className="block text-[14vw] sm:text-8xl md:text-[8.5rem]">
-              Your night
+              {t("ctaHeadlineNight")}
             </span>
             <span className="-mt-2 block pl-[18%] text-[14vw] sm:-mt-3 sm:pl-[22%] sm:text-8xl md:text-[8.5rem]">
-              is out{" "}
+              {t("ctaHeadlineOut")}{" "}
               <span className="bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow italic">
-                there.
+                {t("ctaHeadlineThere")}
               </span>
             </span>
           </h2>
           <p className="mx-auto mt-8 max-w-lg text-lg text-foreground/70">
-            Find it.
+            {t("ctaFindIt")}
           </p>
           <Link
             href="/map"
             className="mt-10 inline-flex items-center gap-2 rounded-full bg-firefly px-9 py-5 text-lg font-medium text-primary-foreground transition-all hover:scale-[1.03] hover:firefly-glow"
           >
-            Follow the light
+            {t("ctaFollowLight")}
             <ArrowRight className="h-5 w-5" />
           </Link>
         </div>

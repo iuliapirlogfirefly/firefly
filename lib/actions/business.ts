@@ -6,7 +6,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession, requireAuth } from "@/lib/auth/session";
-import { deactivatePromotionsForTarget } from "@/lib/stripe/promotions";
+import {
+  consumeFeedPostCredit,
+  restoreFeedPostCredit,
+} from "@/lib/stripe/feed-post-credits";
 import { success, failure } from "@/lib/utils/action-result";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
 import type { ActionResult, BusinessBillingInfo, BusinessType } from "@/types";
@@ -182,8 +185,18 @@ export async function submitFeedPost(
       return failure("Business account required");
     }
 
-    const supabase = await createClient();
-    const { data: post, error } = await supabase
+    const admin = createAdminClient();
+    const credit = await consumeFeedPostCredit(
+      admin,
+      session.businessAccountId
+    );
+    if (!credit) {
+      return failure(
+        "No What Did You Miss slots remaining. Buy a 4-post pack or upgrade to Premium."
+      );
+    }
+
+    const { data: post, error } = await admin
       .from("feed_posts")
       .insert({
         business_account_id: session.businessAccountId,
@@ -195,7 +208,10 @@ export async function submitFeedPost(
       .select("id")
       .single();
 
-    if (error) return failure(error.message);
+    if (error) {
+      await restoreFeedPostCredit(admin, session.businessAccountId);
+      return failure(error.message);
+    }
     return success({ id: post.id });
   } catch (e) {
     return failure(e instanceof Error ? e.message : "Failed to submit What Did You Miss post");
@@ -237,7 +253,6 @@ export async function updateFeedPost(
         media_url: data.mediaUrl ?? null,
         status: "pending",
         rejection_reason: null,
-        published_at: null,
       })
       .eq("id", id)
       .eq("business_account_id", session.businessAccountId)
@@ -270,7 +285,7 @@ export async function deleteBusinessFeedPost(id: string): Promise<ActionResult> 
     const supabase = await createClient();
     const { data: existing } = await supabase
       .from("feed_posts")
-      .select("id, business_account_id")
+      .select("id, business_account_id, status, published_at")
       .eq("id", id)
       .single();
 
@@ -278,11 +293,13 @@ export async function deleteBusinessFeedPost(id: string): Promise<ActionResult> 
       return failure("Post not found");
     }
 
-    const admin = createAdminClient();
-    await deactivatePromotionsForTarget(admin, session.businessAccountId, id);
-
     const { error } = await supabase.from("feed_posts").delete().eq("id", id);
     if (error) return failure(error.message);
+
+    if (existing.status === "pending" && !existing.published_at) {
+      const admin = createAdminClient();
+      await restoreFeedPostCredit(admin, session.businessAccountId);
+    }
 
     updateTag("feed");
     return success(undefined);

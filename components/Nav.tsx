@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
 import { Heart, LayoutDashboard, User } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { Link } from "@/i18n/navigation";
 import { usePrelaunch } from "@/components/launch-provider";
 import { useSession } from "@/components/session-provider";
@@ -11,19 +11,19 @@ import { SignOutButton } from "@/components/ui/sign-out-button";
 import { signOut } from "@/lib/actions/auth";
 
 const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/map", label: "Map" },
-  { href: "/calendar", label: "Calendar" },
-  { href: "/feed", label: "Feed" },
-  { href: "/missed", label: "Missed" },
+  { href: "/", key: "home" },
+  { href: "/map", key: "map" },
+  { href: "/calendar", key: "calendar" },
+  { href: "/feed", key: "feed" },
+  { href: "/missed", key: "missed" },
 ] as const;
 
 export function Nav() {
   const session = useSession();
   const isPrelaunch = usePrelaunch();
-  const t = useTranslations("prelaunch");
-  const params = useParams();
-  const locale = (params?.locale as string) ?? "en";
+  const tPrelaunch = useTranslations("prelaunch");
+  const t = useTranslations("nav");
+  const locale = useLocale();
   const isLoggedIn = Boolean(session.userId);
   const isAdmin = session.role === "admin";
   const isBusiness =
@@ -62,20 +62,21 @@ export function Nav() {
                 href={link.href}
                 className="font-mono text-[11px] uppercase tracking-wider-2 text-foreground/70 transition-colors hover:text-firefly"
               >
-                {link.label}
+                {t(link.key)}
               </Link>
             ))}
           </nav>
         ) : null}
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <LanguageSwitcher />
           {isLoggedIn ? (
             <>
               {!isPrelaunch ? (
                 <Link
                   href="/profile#saved"
                   className="flex h-9 w-9 items-center justify-center rounded-full border border-firefly/30 text-firefly transition-colors hover:bg-firefly/10"
-                  aria-label="Saved events"
+                  aria-label={t("savedEvents")}
                 >
                   <Heart className="h-4 w-4" />
                 </Link>
@@ -85,7 +86,7 @@ export function Nav() {
                 <Link
                   href="/admin"
                   className="flex h-9 w-9 items-center justify-center rounded-full border border-firefly/30 text-firefly transition-colors hover:bg-firefly/10"
-                  aria-label="Admin dashboard"
+                  aria-label={t("adminDashboard")}
                 >
                   <LayoutDashboard className="h-4 w-4" />
                 </Link>
@@ -95,7 +96,7 @@ export function Nav() {
                 <Link
                   href="/business"
                   className="flex h-9 w-9 items-center justify-center rounded-full border border-firefly/30 text-firefly transition-colors hover:bg-firefly/10"
-                  aria-label="Business dashboard"
+                  aria-label={t("businessDashboard")}
                 >
                   <LayoutDashboard className="h-4 w-4" />
                 </Link>
@@ -111,7 +112,7 @@ export function Nav() {
                   className="flex h-9 w-9 items-center justify-center rounded-full border border-foreground/20 text-foreground/70 transition-colors hover:border-foreground/40 hover:text-foreground/90"
                   aria-expanded={menuOpen}
                   aria-haspopup="menu"
-                  aria-label="Account menu"
+                  aria-label={t("accountMenu")}
                 >
                   <User className="h-4 w-4" />
                 </button>
@@ -127,7 +128,7 @@ export function Nav() {
                       onClick={() => setMenuOpen(false)}
                       className="block px-4 py-2.5 font-mono text-[11px] uppercase tracking-wider-2 text-foreground/70 transition-colors hover:bg-firefly/10 hover:text-firefly"
                     >
-                      Account
+                      {t("account")}
                     </Link>
                     {isBusiness ? (
                       <Link
@@ -136,12 +137,14 @@ export function Nav() {
                         onClick={() => setMenuOpen(false)}
                         className="block px-4 py-2.5 font-mono text-[11px] uppercase tracking-wider-2 text-foreground/70 transition-colors hover:bg-firefly/10 hover:text-firefly"
                       >
-                        Business dashboard
+                        {t("businessDashboard")}
                       </Link>
                     ) : null}
                     <form action={signOut.bind(null, locale)}>
                       <SignOutButton
                         role="menuitem"
+                        label={t("signOut")}
+                        pendingLabel={t("signingOut")}
                         className="w-full px-4 py-2.5 text-left font-mono text-[11px] uppercase tracking-wider-2 text-foreground/70 transition-colors hover:bg-firefly/10 hover:text-firefly"
                       />
                     </form>
@@ -156,7 +159,7 @@ export function Nav() {
                 isPrelaunch ? "inline-flex" : "hidden sm:inline-flex"
               } rounded-full border border-firefly/30 px-4 py-2 font-mono text-[11px] uppercase tracking-wider-2 text-firefly transition-colors hover:bg-firefly/10`}
             >
-              {isPrelaunch ? t("signIn") : "Sign in"}
+              {isPrelaunch ? tPrelaunch("signIn") : t("signIn")}
             </Link>
           )}
           {isPrelaunch && !isLoggedIn ? (
@@ -164,7 +167,7 @@ export function Nav() {
               href="/register"
               className="inline-flex rounded-full bg-firefly px-4 py-2 font-medium text-primary-foreground transition-all hover:firefly-glow hover:scale-[1.02]"
             >
-              {t("createAccount")}
+              {tPrelaunch("createAccount")}
             </Link>
           ) : null}
           {!isPrelaunch ? (
@@ -172,7 +175,7 @@ export function Nav() {
               href="/map"
               className="inline-flex rounded-full bg-firefly px-4 py-2 font-medium text-primary-foreground transition-all hover:firefly-glow hover:scale-[1.02]"
             >
-              Open map
+              {t("openMap")}
             </Link>
           ) : null}
         </div>

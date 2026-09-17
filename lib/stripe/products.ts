@@ -8,7 +8,7 @@ export const PROMOTION_PRICES: Record<
   feed_post: {
     amount: 10000,
     currency: "ron",
-    label: "What Did You Miss? Post",
+    label: "What Did You Miss? Pack (4 posts)",
   },
   newsletter: { amount: 15000, currency: "ron", label: "Newsletter Inclusion" },
   social_media: {
@@ -36,6 +36,8 @@ export const SUBSCRIPTION_QUOTAS = {
   quota_newsletters: 1,
   quota_social_posts: 2,
 };
+
+export const FEED_POST_PACK_SIZE = 4;
 
 export const PROMOTION_DURATION_DAYS = 7;
 

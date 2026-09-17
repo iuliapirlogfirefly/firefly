@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { PendingButton } from "@/components/ui/pending-button";
 
 type Props = {
@@ -22,15 +23,19 @@ export function ConfirmDialog({
   title,
   description,
   extraDescription,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
-  pendingLabel = "Processing…",
+  confirmLabel,
+  cancelLabel,
+  pendingLabel,
   onClose,
   onConfirm,
   pending = false,
   error = null,
 }: Props) {
+  const t = useTranslations("common");
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const resolvedConfirmLabel = confirmLabel ?? t("confirm");
+  const resolvedCancelLabel = cancelLabel ?? t("cancel");
+  const resolvedPendingLabel = pendingLabel ?? t("processing");
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -59,16 +64,16 @@ export function ConfirmDialog({
             disabled={pending}
             className="rounded-full px-4 py-2 text-sm text-foreground/60 hover:text-foreground disabled:opacity-50"
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
           <PendingButton
             type="button"
             pending={pending}
-            pendingLabel={pendingLabel}
+            pendingLabel={resolvedPendingLabel}
             onClick={onConfirm}
             className="rounded-full border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10"
           >
-            {confirmLabel}
+            {resolvedConfirmLabel}
           </PendingButton>
         </div>
       </div>

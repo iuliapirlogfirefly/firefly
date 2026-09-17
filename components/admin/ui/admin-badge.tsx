@@ -1,3 +1,7 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 type Status = "pending" | "active" | "approved" | "published" | "rejected" | "suspended" | "default";
 
 type Props = {
@@ -16,12 +20,18 @@ const styles: Record<Status, string> = {
 };
 
 export function AdminBadge({ status, children }: Props) {
+  const tStatus = useTranslations("common.status");
   const key = (status in styles ? status : "default") as Status;
+  const label =
+    typeof children === "string" && tStatus.has(children)
+      ? tStatus(children)
+      : children;
+
   return (
     <span
       className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ${styles[key]}`}
     >
-      {children}
+      {label}
     </span>
   );
 }

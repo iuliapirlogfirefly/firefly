@@ -3,6 +3,7 @@ export type PrelaunchMode = "auto" | "on" | "off";
 export type LaunchSettings = {
   active: boolean;
   endsAt: Date | null;
+  landingStatsEnabled: boolean;
 };
 
 export const LAUNCH_TIME_ZONE = "Europe/Bucharest";
@@ -39,23 +40,28 @@ function getEnvLaunchAt(): Date | null {
 export function envLaunchSettings(): LaunchSettings {
   const mode = getPrelaunchMode();
   const endsAt = getEnvLaunchAt();
-  if (mode === "off") return { active: false, endsAt };
-  if (mode === "on") return { active: true, endsAt };
-  return { active: Boolean(endsAt), endsAt };
+  if (mode === "off") return { active: false, endsAt, landingStatsEnabled: false };
+  if (mode === "on") return { active: true, endsAt, landingStatsEnabled: false };
+  return { active: Boolean(endsAt), endsAt, landingStatsEnabled: false };
 }
 
 export function settingsFromRow(
-  row: { prelaunch_active: boolean; prelaunch_ends_at: string | null } | null
+  row: {
+    prelaunch_active: boolean;
+    prelaunch_ends_at: string | null;
+    landing_stats_enabled?: boolean;
+  } | null
 ): LaunchSettings {
   if (!row) return envLaunchSettings();
   return {
     active: row.prelaunch_active,
     endsAt: row.prelaunch_ends_at ? new Date(row.prelaunch_ends_at) : null,
+    landingStatsEnabled: row.landing_stats_enabled ?? false,
   };
 }
 
 export function isPrelaunchActiveFromSettings(
-  settings: LaunchSettings,
+  settings: Pick<LaunchSettings, "active" | "endsAt">,
   now = new Date()
 ): boolean {
   if (!settings.active) return false;

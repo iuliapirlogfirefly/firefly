@@ -1,4 +1,4 @@
-import { setRequestLocale } from "next-intl/server";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { BusinessDashboard } from "@/components/business/business-dashboard";
 import {
   MOCK_BUSINESS_ACCOUNT_ID,
@@ -44,10 +44,12 @@ export default async function BusinessDashboardPage({ params }: Props) {
         },
       };
 
+  const t = await getTranslations("common");
+
   return (
     <BusinessDashboard
       analytics={analytics}
-      venueName={session.displayName ?? "Your venue"}
+      venueName={session.displayName ?? t("yourVenue")}
     />
   );
 }

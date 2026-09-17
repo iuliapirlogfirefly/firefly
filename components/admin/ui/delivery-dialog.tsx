@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 
 type Props = {
@@ -24,6 +25,8 @@ export function DeliveryDialog({
   onConfirm,
   pending = false,
 }: Props) {
+  const t = useTranslations("admin");
+  const tCommon = useTranslations("common");
   const [url, setUrl] = useState("");
   const [notes, setNotes] = useState("");
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -53,11 +56,9 @@ export function DeliveryDialog({
     >
       <form onSubmit={handleSubmit} className="p-6">
         <h2 className="font-heading text-lg font-semibold">{title}</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Optionally add the post or newsletter link and any notes for the team.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">{t("deliveryHint")}</p>
         <label className="mt-4 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Delivery URL
+          {t("deliveryUrl")}
           <input
             type="text"
             inputMode="url"
@@ -68,12 +69,12 @@ export function DeliveryDialog({
           />
         </label>
         <label className="mt-4 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Notes
+          {t("colNotes")}
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
-            placeholder="Posted to Instagram feed…"
+            placeholder={t("deliveryNotesPlaceholder")}
             className="mt-1.5 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-foreground/30"
           />
         </label>
@@ -84,12 +85,12 @@ export function DeliveryDialog({
             onClick={onClose}
             disabled={pending}
           >
-            Cancel
+            {tCommon("cancel")}
           </AdminButton>
           <AdminButton
             type="submit"
             pending={pending}
-            pendingLabel="Saving…"
+            pendingLabel={tCommon("saving")}
           >
             {confirmLabel}
           </AdminButton>

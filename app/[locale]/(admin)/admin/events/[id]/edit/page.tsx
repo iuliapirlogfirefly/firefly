@@ -1,5 +1,6 @@
 import { EventForm } from "@/components/events/event-form";
 import { getAdminEventForEdit } from "@/lib/queries/events";
+import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 
@@ -18,6 +19,14 @@ export default async function AdminEditEventPage({ params }: Props) {
 
   return (
     <div data-route="admin-events-edit">
+      <div className="mb-2">
+        <Link
+          href={`/admin/events/${eventId}`}
+          className="text-xs text-muted-foreground hover:text-foreground"
+        >
+          ← Event details
+        </Link>
+      </div>
       <h1 className="font-heading text-2xl font-semibold md:text-3xl">
         Edit event
       </h1>

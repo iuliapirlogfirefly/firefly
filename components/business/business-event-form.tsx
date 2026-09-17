@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { createEvent, updateEvent } from "@/lib/actions/events";
 import { GENRES, formatGenreLabel } from "@/lib/constants/genres";
@@ -41,38 +42,25 @@ function StatusNote({
   status?: string;
   rejectionReason?: string | null;
 }) {
+  const t = useTranslations("business");
+
   if (!status || status === "draft") {
-    return (
-      <p className="text-xs text-foreground/50">
-        This event is a draft. Save it, then submit it for admin approval
-        when it&apos;s ready — nothing goes live until it&apos;s approved.
-      </p>
-    );
+    return <p className="text-xs text-foreground/50">{t("draftHint")}</p>;
   }
   if (status === "pending") {
-    return (
-      <p className="text-xs text-amber-warm">
-        This event is awaiting admin approval. You can still edit it, but
-        it&apos;ll need to be resubmitted after changes.
-      </p>
-    );
+    return <p className="text-xs text-amber-warm">{t("pendingHint")}</p>;
   }
   if (status === "rejected") {
     return (
       <p className="text-xs text-destructive">
-        This event was rejected
-        {rejectionReason ? `: ${rejectionReason}` : "."} Update it and
-        submit it again.
+        {t("rejectedHint", {
+          detail: rejectionReason ? `: ${rejectionReason}` : ".",
+        })}
       </p>
     );
   }
   if (status === "published") {
-    return (
-      <p className="text-xs text-firefly">
-        This event is live. Editing a published event isn&apos;t supported
-        yet — contact an admin for changes.
-      </p>
-    );
+    return <p className="text-xs text-firefly">{t("publishedHint")}</p>;
   }
   return null;
 }
@@ -84,6 +72,11 @@ export function BusinessEventForm({
   venue,
   initial,
 }: Props) {
+  const t = useTranslations("business");
+  const tEvent = useTranslations("event");
+  const tGenres = useTranslations("genres");
+  const tEventTypes = useTranslations("eventTypes");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [submitIntent, setSubmitIntent] = useState(false);
@@ -115,7 +108,6 @@ export function BusinessEventForm({
   );
   const [images, setImages] = useState<string[]>(initial?.images ?? []);
 
-  // Location via map pin (admin/organizer/venue); lat/lng not shown in UI
   const [venueName, setVenueName] = useState(
     initial?.venueName ?? venue?.name ?? ""
   );
@@ -166,11 +158,11 @@ export function BusinessEventForm({
     setError(null);
 
     if (!venueName || !address) {
-      setError("Venue name and address are required.");
+      setError(tEvent("venueRequired"));
       return;
     }
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      setError("Pin a location on the map before saving.");
+      setError(tEvent("pinRequired"));
       return;
     }
 
@@ -199,7 +191,7 @@ export function BusinessEventForm({
       router.push("/business/events");
     } catch {
       savingRef.current = false;
-      setError("Failed to save event");
+      setError(t("saveFailed"));
       setSaving(false);
     }
   };
@@ -219,18 +211,18 @@ export function BusinessEventForm({
 
         <fieldset disabled={locked} className="space-y-6 disabled:opacity-60">
           <div>
-            <label className={labelClass}>Cover image</label>
+            <label className={labelClass}>{tEvent("coverImage")}</label>
             <ImageUploader value={coverImageUrl} onChange={setCoverImageUrl} />
           </div>
 
           <div>
-            <label className={labelClass}>Gallery images</label>
+            <label className={labelClass}>{tEvent("galleryImages")}</label>
             <ImageUploader value={images} onChange={setImages} multiple />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className={labelClass}>Title (EN)</label>
+              <label className={labelClass}>{tEvent("titleEn")}</label>
               <input
                 className={inputClass}
                 value={titleEn}
@@ -239,7 +231,7 @@ export function BusinessEventForm({
               />
             </div>
             <div>
-              <label className={labelClass}>Title (RO)</label>
+              <label className={labelClass}>{tEvent("titleRo")}</label>
               <input
                 className={inputClass}
                 value={titleRo}
@@ -250,7 +242,7 @@ export function BusinessEventForm({
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className={labelClass}>Description (EN)</label>
+              <label className={labelClass}>{tEvent("descriptionEn")}</label>
               <textarea
                 className={`${inputClass} min-h-[100px] resize-y`}
                 value={descEn}
@@ -259,7 +251,7 @@ export function BusinessEventForm({
               />
             </div>
             <div>
-              <label className={labelClass}>Description (RO)</label>
+              <label className={labelClass}>{tEvent("descriptionRo")}</label>
               <textarea
                 className={`${inputClass} min-h-[100px] resize-y`}
                 value={descRo}
@@ -270,7 +262,7 @@ export function BusinessEventForm({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className={labelClass}>Starts at</label>
+              <label className={labelClass}>{tEvent("startsAt")}</label>
               <input
                 type="datetime-local"
                 className={inputClass}
@@ -280,7 +272,7 @@ export function BusinessEventForm({
               />
             </div>
             <div>
-              <label className={labelClass}>Ends at</label>
+              <label className={labelClass}>{tEvent("endsAt")}</label>
               <input
                 type="datetime-local"
                 className={inputClass}
@@ -292,7 +284,7 @@ export function BusinessEventForm({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className={labelClass}>Genre</label>
+              <label className={labelClass}>{tEvent("genre")}</label>
               <select
                 className={inputClass}
                 value={genre}
@@ -300,21 +292,21 @@ export function BusinessEventForm({
               >
                 {GENRES.map((g) => (
                   <option key={g} value={g}>
-                    {formatGenreLabel(g)}
+                    {formatGenreLabel(g, tGenres)}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className={labelClass}>Event type</label>
+              <label className={labelClass}>{tEvent("eventType")}</label>
               <select
                 className={inputClass}
                 value={eventType}
                 onChange={(e) => setEventType(e.target.value as EventType)}
               >
-                {EVENT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {formatEventTypeLabel(t)}
+                {EVENT_TYPES.map((eventTypeOption) => (
+                  <option key={eventTypeOption} value={eventTypeOption}>
+                    {formatEventTypeLabel(eventTypeOption, tEventTypes)}
                   </option>
                 ))}
               </select>
@@ -322,66 +314,63 @@ export function BusinessEventForm({
           </div>
 
           <div>
-            <label className={labelClass}>Special Guest (optional)</label>
+            <label className={labelClass}>{tEvent("specialGuest")}</label>
             <input
               className={inputClass}
               value={specialGuest}
               onChange={(e) => setSpecialGuest(e.target.value)}
-              placeholder="DJ Ion Popescu"
+              placeholder={tEvent("specialGuestPlaceholder")}
             />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className={labelClass}>Price (RON)</label>
+              <label className={labelClass}>{tEvent("price")}</label>
               <input
                 type="number"
                 className={inputClass}
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 min={0}
-                placeholder="Leave empty if free"
+                placeholder={tEvent("pricePlaceholder")}
               />
             </div>
             <div>
-              <label className={labelClass}>Ticket URL</label>
+              <label className={labelClass}>{tEvent("ticketUrl")}</label>
               <input
                 type="url"
                 className={inputClass}
                 value={ticketUrl}
                 onChange={(e) => setTicketUrl(e.target.value)}
-                placeholder="https://"
+                placeholder={tEvent("urlPlaceholder")}
               />
             </div>
           </div>
 
           <div>
-            <label className={labelClass}>Website / social link</label>
+            <label className={labelClass}>{tEvent("websiteUrl")}</label>
             <input
               type="url"
               className={inputClass}
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
-              placeholder="https://"
+              placeholder={tEvent("urlPlaceholder")}
             />
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className={labelClass}>Venue name</label>
+              <label className={labelClass}>{tEvent("venueName")}</label>
               <input
                 className={inputClass}
                 value={venueName}
                 onChange={(e) => setVenueName(e.target.value)}
                 required
-                placeholder={
-                  businessType === "venue" ? "Your venue name" : "Venue name"
-                }
+                placeholder={tEvent("venueName")}
               />
               {businessType === "venue" ? (
                 <p className="mt-1.5 text-xs text-foreground/40">
-                  Pre-filled from your venue when available. You can change it
-                  for this event and still adjust the pin.
+                  {t("venueNameHint")}
                 </p>
               ) : null}
             </div>
@@ -410,7 +399,7 @@ export function BusinessEventForm({
               disabled={saving}
               className="rounded-full border border-firefly/30 px-5 py-2.5 text-sm font-medium text-firefly transition-all hover:bg-firefly/10 disabled:opacity-50"
             >
-              {saving && !submitIntent ? "Saving…" : "Save draft"}
+              {saving && !submitIntent ? tCommon("saving") : t("saveDraft")}
             </button>
             <button
               type="button"
@@ -418,7 +407,7 @@ export function BusinessEventForm({
               onClick={() => void save(true)}
               className="rounded-full bg-firefly px-5 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:firefly-glow disabled:opacity-50"
             >
-              {saving && submitIntent ? "Submitting…" : "Save & submit for approval"}
+              {saving && submitIntent ? t("submitting") : t("saveAndSubmit")}
             </button>
             <button
               type="button"
@@ -426,7 +415,7 @@ export function BusinessEventForm({
               onClick={() => router.push("/business/events")}
               className="rounded-full px-5 py-2.5 text-sm text-foreground/60 hover:text-foreground disabled:opacity-50"
             >
-              Cancel
+              {tCommon("cancel")}
             </button>
           </div>
         ) : (
@@ -435,7 +424,7 @@ export function BusinessEventForm({
             onClick={() => router.push("/business/events")}
             className="rounded-full border border-firefly/30 px-5 py-2.5 text-sm text-firefly transition-all hover:bg-firefly/10"
           >
-            Back to events
+            {t("backToEvents")}
           </button>
         )}
       </div>

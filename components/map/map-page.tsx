@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Clock, MapPin, Menu, Search, X } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { Nav } from "@/components/Nav";
@@ -30,11 +31,18 @@ type Props = {
 };
 
 const DATE_FILTERS = [
-  ["any", "Any time"],
-  ["tonight", "Tonight"],
-  ["tomorrow", "Tomorrow"],
-  ["weekend", "Weekend"],
-] as const satisfies ReadonlyArray<[DateFilter, string]>;
+  "any",
+  "tonight",
+  "tomorrow",
+  "weekend",
+] as const satisfies ReadonlyArray<DateFilter>;
+
+const DATE_FILTER_MESSAGE = {
+  any: "anyTime",
+  tonight: "tonight",
+  tomorrow: "tomorrow",
+  weekend: "weekend",
+} as const;
 
 function MapFilters({
   query,
@@ -61,18 +69,22 @@ function MapFilters({
   resetFilters: () => void;
   onClose?: () => void;
 }) {
+  const t = useTranslations("discovery");
+  const tGenres = useTranslations("genres");
+  const tTypes = useTranslations("eventTypes");
+
   return (
     <div className="flex flex-col">
       <div className="mb-4 flex items-center justify-between">
         <div className="font-mono text-xs uppercase tracking-wider-2 text-firefly">
-          ◦ Tune the night
+          ◦ {t("tuneNight")}
         </div>
         {onClose ? (
           <button
             type="button"
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-full border border-firefly/20 transition-colors hover:border-firefly/50"
-            aria-label="Close filters"
+            aria-label={t("closeFilters")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -84,17 +96,17 @@ function MapFilters({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search venues, parties…"
+          placeholder={t("searchPlaceholder")}
           className="w-full rounded-xl border border-firefly/10 bg-surface-2/60 py-3 pl-10 pr-3 text-sm transition-colors placeholder:text-foreground/40 focus:border-firefly/50 focus:outline-none"
         />
       </div>
 
       <div className="mb-5">
         <div className="mb-2 font-mono text-xs uppercase tracking-wider text-foreground/50">
-          When
+          {t("when")}
         </div>
         <div className="flex flex-wrap gap-2">
-          {DATE_FILTERS.map(([key, label]) => (
+          {DATE_FILTERS.map((key) => (
             <button
               key={key}
               type="button"
@@ -105,7 +117,7 @@ function MapFilters({
                   : "border-firefly/20 text-foreground/70 hover:border-firefly/50"
               }`}
             >
-              {label}
+              {t(DATE_FILTER_MESSAGE[key])}
             </button>
           ))}
         </div>
@@ -113,7 +125,7 @@ function MapFilters({
 
       <div className="mb-5">
         <div className="mb-2 font-mono text-xs uppercase tracking-wider text-foreground/50">
-          Genre
+          {t("genre")}
         </div>
         <div className="grid grid-cols-2 gap-2">
           {GENRES.map((genre) => {
@@ -130,7 +142,7 @@ function MapFilters({
                     : "border-firefly/10 bg-surface-2/40 text-foreground/70 hover:border-firefly/30"
                 }`}
               >
-                {formatGenreLabel(genre)}
+                {formatGenreLabel(genre, tGenres)}
               </button>
             );
           })}
@@ -139,7 +151,7 @@ function MapFilters({
 
       <div className="mb-5">
         <div className="mb-2 font-mono text-xs uppercase tracking-wider text-foreground/50">
-          Event type
+          {t("eventType")}
         </div>
         <div className="grid grid-cols-2 gap-2">
           {EVENT_TYPES.map((type) => {
@@ -156,7 +168,7 @@ function MapFilters({
                     : "border-firefly/10 bg-surface-2/40 text-foreground/70 hover:border-firefly/30"
                 }`}
               >
-                {formatEventTypeLabel(type)}
+                {formatEventTypeLabel(type, tTypes)}
               </button>
             );
           })}
@@ -165,15 +177,14 @@ function MapFilters({
 
       <div className="flex items-center justify-between border-t border-firefly/10 pt-4">
         <div className="text-sm text-foreground/60">
-          <span className="font-medium text-firefly">{filteredCount}</span> events
-          glowing
+          {t("eventsGlowing", { count: filteredCount })}
         </div>
         <button
           type="button"
           onClick={resetFilters}
           className="font-mono text-xs uppercase tracking-wider-2 text-foreground/50 transition-colors hover:text-firefly"
         >
-          Reset
+          {t("reset")}
         </button>
       </div>
     </div>
@@ -234,6 +245,8 @@ function MapCanvas({
   className?: string;
   activeCardClassName: string;
 }) {
+  const t = useTranslations("discovery");
+  const locale = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
@@ -363,7 +376,7 @@ function MapCanvas({
             type="button"
             onClick={() => setActiveId(null)}
             className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/70 backdrop-blur transition-colors hover:bg-firefly/20"
-            aria-label="Close"
+            aria-label={t("close")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -381,10 +394,10 @@ function MapCanvas({
 
           <div className="p-4">
             <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider-2 text-firefly">
-              <span>{formatDateBadge(active.startsAt)}</span>
+              <span>{formatDateBadge(active.startsAt, locale)}</span>
               <span className="text-foreground/30">·</span>
               <Clock className="h-3 w-3" />
-              <span>{formatTime(active.startsAt)}</span>
+              <span>{formatTime(active.startsAt, locale)}</span>
             </div>
             <h3 className="mt-1 font-heading text-xl font-bold leading-tight">
               {active.title}
@@ -398,13 +411,13 @@ function MapCanvas({
                 href={`/events/${active.slug}`}
                 className="inline-flex flex-1 items-center justify-center rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:firefly-glow"
               >
-                View details
+                {t("viewDetails")}
               </Link>
               <button
                 type="button"
                 onClick={() => toggle(active.id)}
                 className="flex h-9 w-9 items-center justify-center rounded-full border border-firefly/40 text-firefly transition-colors hover:bg-firefly/10"
-                aria-label="Save"
+                aria-label={t("save")}
               >
                 <svg
                   width="14"
@@ -427,6 +440,7 @@ function MapCanvas({
 }
 
 export function MapPageClient({ events }: Props) {
+  const t = useTranslations("discovery");
   const [query, setQuery] = useState("");
   const [date, setDate] = useState<DateFilter>("any");
   const [genres, setGenres] = useState<Set<Genre>>(new Set());
@@ -527,11 +541,11 @@ export function MapPageClient({ events }: Props) {
             onClick={() => setFiltersOpen((open) => !open)}
             className="glass flex items-center gap-2 rounded-full px-4 py-2.5 text-sm transition-colors hover:bg-surface-1/80"
             aria-expanded={filtersOpen}
-            aria-label={filtersOpen ? "Hide filters" : "Show filters"}
+            aria-label={filtersOpen ? t("hideFilters") : t("showFilters")}
           >
             <Menu className="h-4 w-4 text-firefly" />
             <span className="font-mono text-[11px] uppercase tracking-wider-2">
-              Filters
+              {t("filters")}
             </span>
             {hasActiveFilters ? (
               <span className="h-2 w-2 rounded-full bg-firefly" />
@@ -539,7 +553,7 @@ export function MapPageClient({ events }: Props) {
           </button>
           <span className="font-mono text-[10px] uppercase tracking-wider-2 text-foreground/50">
             <span className="font-medium text-firefly">{filtered.length}</span>
-            <span className="ml-1.5">glowing</span>
+            <span className="ml-1.5">{t("glowing")}</span>
           </span>
         </div>
 

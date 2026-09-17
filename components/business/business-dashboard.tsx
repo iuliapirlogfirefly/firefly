@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { formatDateBadge } from "@/lib/utils/event-format";
@@ -22,6 +23,10 @@ function statusClass(status: string) {
 }
 
 export function BusinessDashboard({ analytics, venueName }: Props) {
+  const t = useTranslations("business");
+  const tStatus = useTranslations("common.status");
+  const tMetrics = useTranslations("common.metrics");
+  const locale = useLocale();
   const [sortMetric, setSortMetric] = useState<EngagementMetric | null>(null);
 
   const sortedEvents = useMemo(() => {
@@ -40,22 +45,26 @@ export function BusinessDashboard({ analytics, venueName }: Props) {
   return (
     <div data-route="business-dashboard">
       <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-        ◦ Business · {venueName}
+        {t("dashboardEyebrow", { venueName })}
       </div>
       <h1 className="font-heading text-4xl font-bold md:text-5xl">
-        Your venue <span className="text-gradient-firefly">pulse</span>
+        {t.rich("pulseHeadline", {
+          glow: (chunks) => (
+            <span className="text-gradient-firefly">{chunks}</span>
+          ),
+        })}
       </h1>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Total events"
+          label={t("totalEvents")}
           value={analytics.totalEvents}
           delta={analytics.deltas.totalEvents}
         />
-        <StatCard label="Promoted" value={analytics.promotedEvents} />
-        <StatCard label="Active boosts" value={analytics.activePromotions} />
+        <StatCard label={t("promoted")} value={analytics.promotedEvents} />
+        <StatCard label={t("activeBoosts")} value={analytics.activePromotions} />
         <StatCard
-          label="Views"
+          label={tMetrics("views")}
           value={analytics.views}
           delta={analytics.deltas.views}
           onClick={() => toggleMetric("views")}
@@ -65,28 +74,28 @@ export function BusinessDashboard({ analytics, venueName }: Props) {
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Saves"
+          label={tMetrics("saves")}
           value={analytics.saves}
           delta={analytics.deltas.saves}
           onClick={() => toggleMetric("saves")}
           active={sortMetric === "saves"}
         />
         <StatCard
-          label="Clicks"
+          label={tMetrics("clicks")}
           value={analytics.clicks}
           delta={analytics.deltas.clicks}
           onClick={() => toggleMetric("clicks")}
           active={sortMetric === "clicks"}
         />
         <StatCard
-          label="Ticket clicks"
+          label={tMetrics("ticketClicks")}
           value={analytics.ticketClicks}
           delta={analytics.deltas.ticketClicks}
           onClick={() => toggleMetric("ticketClicks")}
           active={sortMetric === "ticketClicks"}
         />
         <StatCard
-          label="Shares"
+          label={tMetrics("shares")}
           value={analytics.shares}
           delta={analytics.deltas.shares}
           onClick={() => toggleMetric("shares")}
@@ -96,21 +105,21 @@ export function BusinessDashboard({ analytics, venueName }: Props) {
 
       <section className="mt-12">
         <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-          ◦ Event performance
+          {t("performanceEyebrow")}
         </div>
         <h2 className="font-heading text-2xl font-bold md:text-3xl">
-          How each event performed
+          {t("performanceTitle")}
         </h2>
         {sortMetric ? (
           <p className="mt-2 text-sm text-foreground/50">
-            Sorted by {sortMetric} — click the metric again to clear.
+            {t("sortedBy", { metric: tMetrics(sortMetric) })}
           </p>
         ) : null}
 
         <ul className="mt-6 space-y-3">
           {sortedEvents.length === 0 ? (
             <li className="glass rounded-2xl p-8 text-center text-sm text-foreground/50">
-              No events yet — create your first one to see performance.
+              {t("emptyEvents")}
             </li>
           ) : null}
           {sortedEvents.map((event) => (
@@ -122,16 +131,16 @@ export function BusinessDashboard({ analytics, venueName }: Props) {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-[10px] uppercase tracking-wider-2 text-firefly">
-                      {formatDateBadge(event.startsAt)}
+                      {formatDateBadge(event.startsAt, locale)}
                     </span>
                     <span
                       className={`rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider-2 ${statusClass(event.status)}`}
                     >
-                      {event.status}
+                      {tStatus(event.status)}
                     </span>
                     {event.isPromoted ? (
                       <span className="text-[10px] text-amber-warm">
-                        Promoted
+                        {t("promoted")}
                       </span>
                     ) : null}
                   </div>
@@ -146,33 +155,33 @@ export function BusinessDashboard({ analytics, venueName }: Props) {
                 </div>
                 <dl className="grid grid-cols-5 gap-3 font-mono text-[10px] uppercase tracking-wider-2 text-foreground/50 sm:shrink-0">
                   <div>
-                    <dt>Views</dt>
+                    <dt>{tMetrics("views")}</dt>
                     <dd className="mt-0.5 text-sm font-semibold normal-case tracking-normal text-firefly">
-                      {event.views.toLocaleString()}
+                      {event.views.toLocaleString(locale)}
                     </dd>
                   </div>
                   <div>
-                    <dt>Saves</dt>
+                    <dt>{tMetrics("saves")}</dt>
                     <dd className="mt-0.5 text-sm font-semibold normal-case tracking-normal text-foreground">
-                      {event.saves.toLocaleString()}
+                      {event.saves.toLocaleString(locale)}
                     </dd>
                   </div>
                   <div>
-                    <dt>Clicks</dt>
+                    <dt>{tMetrics("clicks")}</dt>
                     <dd className="mt-0.5 text-sm font-semibold normal-case tracking-normal text-foreground">
-                      {event.clicks.toLocaleString()}
+                      {event.clicks.toLocaleString(locale)}
                     </dd>
                   </div>
                   <div>
-                    <dt>Tickets</dt>
+                    <dt>{tMetrics("tickets")}</dt>
                     <dd className="mt-0.5 text-sm font-semibold normal-case tracking-normal text-foreground">
-                      {event.ticketClicks.toLocaleString()}
+                      {event.ticketClicks.toLocaleString(locale)}
                     </dd>
                   </div>
                   <div>
-                    <dt>Shares</dt>
+                    <dt>{tMetrics("shares")}</dt>
                     <dd className="mt-0.5 text-sm font-semibold normal-case tracking-normal text-foreground">
-                      {event.shares.toLocaleString()}
+                      {event.shares.toLocaleString(locale)}
                     </dd>
                   </div>
                 </dl>
@@ -187,19 +196,19 @@ export function BusinessDashboard({ analytics, venueName }: Props) {
           href="/business/events"
           className="rounded-full bg-firefly px-5 py-2.5 text-sm font-medium text-primary-foreground hover:firefly-glow"
         >
-          Manage events
+          {t("manageEvents")}
         </Link>
         <Link
           href="/business/posts"
           className="rounded-full border border-firefly/30 px-5 py-2.5 text-sm text-firefly hover:bg-firefly/10"
         >
-          What Did You Miss
+          {t("posts")}
         </Link>
         <Link
           href="/business/promotions"
           className="rounded-full border border-firefly/30 px-5 py-2.5 text-sm text-firefly hover:bg-firefly/10"
         >
-          Promotions
+          {t("promotions")}
         </Link>
       </div>
     </div>

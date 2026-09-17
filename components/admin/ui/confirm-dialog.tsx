@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { AdminButton } from "./admin-button";
 
 type Props = {
@@ -18,12 +19,13 @@ export function ConfirmDialog({
   open,
   title,
   description,
-  confirmLabel = "Confirm",
+  confirmLabel,
   confirmVariant = "danger",
   onClose,
   onConfirm,
   pending = false,
 }: Props) {
+  const tCommon = useTranslations("common");
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -49,16 +51,16 @@ export function ConfirmDialog({
             onClick={onClose}
             disabled={pending}
           >
-            Cancel
+            {tCommon("cancel")}
           </AdminButton>
           <AdminButton
             type="button"
             variant={confirmVariant}
             onClick={onConfirm}
             pending={pending}
-            pendingLabel="Processing…"
+            pendingLabel={tCommon("processing")}
           >
-            {confirmLabel}
+            {confirmLabel ?? tCommon("confirm")}
           </AdminButton>
         </div>
       </div>

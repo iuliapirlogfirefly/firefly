@@ -12,5 +12,5 @@ export default async function AdminPostsPage({ params }: Props) {
 
   const pendingPosts = await getPendingFeedPosts(locale);
 
-  return <AdminPostsQueue posts={pendingPosts} locale={locale} />;
+  return <AdminPostsQueue posts={pendingPosts} />;
 }

@@ -2,94 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Quote } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const INTERVAL_MS = 5000;
 const FADE_MS = 400;
+const QUOTE_COUNT = 16;
 
-const quotes = [
-  {
-    text: "It's funny how the nights you never planned become the ones you never forget.",
-    highlight: "forget",
-    attribution: "Maria, catching the first morning tram.",
-  },
-  {
-    text: "Nothing builds character like losing your friends in a club and pretending you're totally fine with it.",
-    highlight: "fine",
-    attribution: "Irina, 2:14 AM",
-  },
-  {
-    text: "The afterparty always starts with someone saying 'I know a place.'",
-    highlight: "place",
-    attribution: "Alex, absolutely trusting that person",
-  },
-  {
-    text: "You know it's a good night when the Uber driver asks if you're sure about the destination.",
-    highlight: "destination",
-    attribution: "Andreea, 4:52 AM",
-  },
-  {
-    text: "I don't remember the DJ's name, but I'd recognize that set anywhere.",
-    highlight: "anywhere",
-    attribution: "Răzvan, still thinking about it Monday",
-  },
-  {
-    text: "There's always one friend who knows a place that apparently doesn't exist on Google Maps.",
-    highlight: "Maps",
-    attribution: "Daria, following anyway",
-  },
-  {
-    text: "The group chat spent 40 minutes choosing a place we stayed at for 23 minutes.",
-    highlight: "minutes",
-    attribution: "Andrei, Saturday night",
-  },
-  {
-    text: "Nothing says 'quick drink' like checking the sunrise forecast.",
-    highlight: "sunrise",
-    attribution: "Bianca, 5:38 AM",
-  },
-  {
-    text: "We skipped the first party because it looked too quiet. We were wrong.",
-    highlight: "wrong",
-    attribution: "Ștefan, learning the hard way",
-  },
-  {
-    text: "I knew we were in trouble when someone said, 'Let's just check what's nearby.'",
-    highlight: "nearby",
-    attribution: "Elena, three venues later",
-  },
-  {
-    text: "The best part of the night is finding a place none of you had heard of.",
-    highlight: "heard",
-    attribution: "Lavinia, gatekeeping the location",
-  },
-  {
-    text: "There's a very specific moment when 'where are we going?' becomes 'where are we going next?'",
-    highlight: "next",
-    attribution: "David, 1:37 AM",
-  },
-  {
-    text: "My screen time is embarrassing. My nightlife knowledge is impressive.",
-    highlight: "impressive",
-    attribution: "Daria, refusing to elaborate",
-  },
-  {
-    text: "The party wasn't even on our list. That's usually how you know.",
-    highlight: "know",
-    attribution: "Mihai, 3:46 AM",
-  },
-  {
-    text: "We said rooftop. We did not specify which rooftop.",
-    highlight: "rooftop",
-    attribution: "Alexandra, somewhere above Bucharest",
-  },
-  {
-    text: "I only knew two people there. By 2 AM, apparently I knew everyone.",
-    highlight: "everyone",
-    attribution: "Ioana, making questionable new friends",
-  },
-] as const;
-
-type QuoteItem = (typeof quotes)[number];
+type QuoteItem = {
+  text: string;
+  highlight: string;
+  attribution: string;
+};
 
 function QuoteText({
   text,
@@ -129,6 +52,16 @@ function QuoteBody({ quote }: { quote: QuoteItem }) {
 }
 
 export function QuoteRotator() {
+  const t = useTranslations("landing");
+  const quotes: QuoteItem[] = Array.from({ length: QUOTE_COUNT }, (_, i) => {
+    const n = i + 1;
+    return {
+      text: t(`quotes.q${n}.text`),
+      highlight: t(`quotes.q${n}.highlight`),
+      attribution: t(`quotes.q${n}.attribution`),
+    };
+  });
+
   const indexRef = useRef(0);
   const [index, setIndex] = useState(0);
   const [prevIndex, setPrevIndex] = useState<number | null>(null);
@@ -141,7 +74,7 @@ export function QuoteRotator() {
 
     const interval = window.setInterval(() => {
       const current = indexRef.current;
-      const next = (current + 1) % quotes.length;
+      const next = (current + 1) % QUOTE_COUNT;
       indexRef.current = next;
 
       if (media.matches) {

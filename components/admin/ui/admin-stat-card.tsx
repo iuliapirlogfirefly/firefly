@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { AdminCard } from "./admin-card";
 import { formatDelta } from "@/lib/utils/percent-change";
@@ -11,6 +14,7 @@ type Props = {
 };
 
 function DeltaBadge({ delta }: { delta: number | null | undefined }) {
+  const t = useTranslations("common");
   const text = formatDelta(delta);
   if (!text || delta == null) return null;
   const color =
@@ -19,7 +23,11 @@ function DeltaBadge({ delta }: { delta: number | null | undefined }) {
       : delta < 0
         ? "text-red-400"
         : "text-muted-foreground";
-  return <div className={`mt-1 text-xs font-medium ${color}`}>{text} MoM</div>;
+  return (
+    <div className={`mt-1 text-xs font-medium ${color}`}>
+      {text} {t("mom")}
+    </div>
+  );
 }
 
 export function AdminStatCard({ label, value, hint, delta, href }: Props) {

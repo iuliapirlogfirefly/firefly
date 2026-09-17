@@ -15,7 +15,7 @@ export async function fetchLaunchSettings(): Promise<LaunchSettings> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("site_settings")
-      .select("prelaunch_active, prelaunch_ends_at")
+      .select("prelaunch_active, prelaunch_ends_at, landing_stats_enabled")
       .eq("id", 1)
       .maybeSingle();
 
@@ -36,6 +36,11 @@ export async function isPrelaunchActive(now = new Date()): Promise<boolean> {
 export async function getLaunchAt(): Promise<Date | null> {
   const settings = await getLaunchSettings();
   return settings.endsAt;
+}
+
+export async function isLandingStatsEnabled(): Promise<boolean> {
+  const settings = await getLaunchSettings();
+  return settings.landingStatsEnabled;
 }
 
 export async function getAuthenticatedHomePath(isBusiness: boolean): Promise<string> {

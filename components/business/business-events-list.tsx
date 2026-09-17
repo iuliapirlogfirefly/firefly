@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { BusinessDeleteButton } from "@/components/business/business-delete-button";
 import { formatDateBadge } from "@/lib/utils/event-format";
@@ -15,27 +18,36 @@ type Props = {
 };
 
 export function BusinessEventsList({ events }: Props) {
+  const t = useTranslations("business");
+  const tCommon = useTranslations("common");
+  const tStatus = useTranslations("common.status");
+  const locale = useLocale();
+
   return (
     <div data-route="business-events">
         <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-          ◦ Business · Events
+          {t("eventsEyebrow")}
         </div>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <h1 className="font-heading text-4xl font-bold">
-            Your <span className="text-gradient-firefly">events</span>
+            {t.rich("eventsHeadline", {
+              glow: (chunks) => (
+                <span className="text-gradient-firefly">{chunks}</span>
+              ),
+            })}
           </h1>
           <Link
             href="/business/events/new"
             className="rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground"
           >
-            New event
+            {t("newEvent")}
           </Link>
         </div>
 
         <ul className="mt-10 space-y-4">
           {events.length === 0 ? (
             <li className="glass rounded-2xl p-8 text-center text-sm text-foreground/50">
-              No events yet — create your first one.
+              {t("emptyEventsList")}
             </li>
           ) : null}
           {events.map((event) => (
@@ -52,7 +64,7 @@ export function BusinessEventsList({ events }: Props) {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-[10px] uppercase tracking-wider-2 text-firefly">
-                    {formatDateBadge(event.startsAt)}
+                    {formatDateBadge(event.startsAt, locale)}
                   </span>
                   <span
                     className={`rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider-2 ${
@@ -65,10 +77,10 @@ export function BusinessEventsList({ events }: Props) {
                             : "bg-amber-warm/15 text-amber-warm"
                     }`}
                   >
-                    {event.status}
+                    {tStatus(event.status)}
                   </span>
                   {event.isPromoted ? (
-                    <span className="text-[10px] text-amber-warm">Promoted</span>
+                    <span className="text-[10px] text-amber-warm">{t("promoted")}</span>
                   ) : null}
                 </div>
                 <h2 className="mt-1 font-heading text-xl font-semibold">
@@ -87,14 +99,14 @@ export function BusinessEventsList({ events }: Props) {
                     href={`/business/promotions?boost=event_boost&target=${event.id}`}
                     className="rounded-full bg-firefly px-3 py-1.5 text-xs font-medium text-primary-foreground"
                   >
-                    Boost
+                    {t("boost")}
                   </Link>
                 ) : null}
                 <Link
                   href={`/business/events/${event.id}/edit`}
                   className="rounded-full border border-firefly/30 px-3 py-1.5 text-xs text-firefly transition-colors hover:bg-firefly/10"
                 >
-                  Edit
+                  {tCommon("edit")}
                 </Link>
                 <BusinessDeleteButton
                   kind="event"

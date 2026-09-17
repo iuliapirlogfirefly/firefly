@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import {
   dismissDuplicatePair,
@@ -15,6 +16,8 @@ type Props = {
 };
 
 export function AdminDuplicateActions({ group }: Props) {
+  const t = useTranslations("admin");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
@@ -26,12 +29,12 @@ export function AdminDuplicateActions({ group }: Props) {
     startTransition(async () => {
       const result = await action();
       if (result.success) {
-        setFeedback({ type: "success", message: "Updated" });
+        setFeedback({ type: "success", message: tCommon("updated") });
         router.refresh();
       } else {
         setFeedback({
           type: "error",
-          message: result.error ?? "Action failed",
+          message: result.error ?? tCommon("actionFailed"),
         });
       }
     });
@@ -48,18 +51,18 @@ export function AdminDuplicateActions({ group }: Props) {
           size="sm"
           onClick={() => run(() => mergeEvents(first.id, second.id))}
           pending={pending}
-          pendingLabel="Merging…"
+          pendingLabel={t("merging")}
         >
-          Keep &ldquo;{first.title}&rdquo;
+          {t("keepTitle", { title: first.title })}
         </AdminButton>
         <AdminButton
           size="sm"
           variant="secondary"
           onClick={() => run(() => mergeEvents(second.id, first.id))}
           pending={pending}
-          pendingLabel="Merging…"
+          pendingLabel={t("merging")}
         >
-          Keep &ldquo;{second.title}&rdquo;
+          {t("keepTitle", { title: second.title })}
         </AdminButton>
         <AdminButton
           size="sm"
@@ -68,9 +71,9 @@ export function AdminDuplicateActions({ group }: Props) {
             run(() => dismissDuplicatePair(first.id, second.id))
           }
           pending={pending}
-          pendingLabel="Dismissing…"
+          pendingLabel={t("dismissing")}
         >
-          Not duplicates
+          {t("notDuplicates")}
         </AdminButton>
       </div>
       {feedback ? (

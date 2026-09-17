@@ -1,5 +1,5 @@
 import type { PromotionType } from "@/types";
-import { PROMOTION_PRICES, SUBSCRIPTION_QUOTAS } from "@/lib/stripe/products";
+import { SUBSCRIPTION_QUOTAS } from "@/lib/stripe/products";
 import {
   isPaymentFailedStatus,
   isPremiumEntitled,
@@ -48,6 +48,8 @@ export type AdminSubscriptionRow = {
   newslettersQuota: number;
   socialUsed: number;
   socialQuota: number;
+  packUsed: number;
+  packQuota: number;
   invoiced: boolean;
 };
 
@@ -101,7 +103,7 @@ export async function getBusinessPromotions(
     if (businessAccountId !== MOCK_BUSINESS_ACCOUNT_ID) return [];
 
     return getMockPromotions()
-      .filter((p) => p.venue === "Control Club" && p.status === "active")
+      .filter((p) => p.venue === "Control Club" && p.status === "active" && p.type !== "feed_post")
       .map((p) => ({
         id: p.id,
         type: p.type as PromotionType,
@@ -126,25 +128,14 @@ export async function getBusinessPromotions(
 
   if (error) throw error;
 
-  const rows = promotions ?? [];
+  const rows = (promotions ?? []).filter((p) => p.type !== "feed_post");
   const eventIds = rows
     .filter((p) => p.type === "event_boost")
     .map((p) => p.target_id);
-  const postIds = rows
-    .filter((p) => p.type === "feed_post")
-    .map((p) => p.target_id);
 
-  const [{ data: events }, { data: posts }] = await Promise.all([
-    eventIds.length
-      ? supabase.from("events").select("id, translations").in("id", eventIds)
-      : Promise.resolve({ data: [] as { id: string; translations: unknown }[] }),
-    postIds.length
-      ? supabase
-          .from("feed_posts")
-          .select("id, translations")
-          .in("id", postIds)
-      : Promise.resolve({ data: [] as { id: string; translations: unknown }[] }),
-  ]);
+  const { data: events } = eventIds.length
+    ? await supabase.from("events").select("id, translations").in("id", eventIds)
+    : { data: [] as { id: string; translations: unknown }[] };
 
   const { getLocalizedField } = await import("@/lib/i18n/content");
   const eventMap = new Map(
@@ -157,16 +148,6 @@ export async function getBusinessPromotions(
       ),
     ])
   );
-  const postMap = new Map(
-    (posts ?? []).map((p) => [
-      p.id,
-      getLocalizedField(
-        p.translations as Parameters<typeof getLocalizedField>[0],
-        locale,
-        "title"
-      ),
-    ])
-  );
 
   return rows.map((p) => ({
     id: p.id,
@@ -174,11 +155,9 @@ export async function getBusinessPromotions(
     targetLabel:
       p.type === "event_boost"
         ? (eventMap.get(p.target_id) ?? "Event")
-        : p.type === "feed_post"
-          ? (postMap.get(p.target_id) ?? PROMOTION_PRICES.feed_post.label)
-          : p.type === "newsletter"
-            ? "Newsletter slot"
-            : "Social media slot",
+        : p.type === "newsletter"
+          ? "Newsletter slot"
+          : "Social media slot",
     expiresAt: p.expires_at?.slice(0, 10) ?? "",
     isActive: p.is_active,
   }));
@@ -268,7 +247,9 @@ export async function getAdminPromotions(): Promise<AdminPromotionRow[]> {
   );
   if (shouldUseMockData()) {
     const { getMockPromotions } = await import("@/lib/mocks/data");
-    return getMockPromotions().map((p) => ({
+    return getMockPromotions()
+      .filter((p) => p.type !== "feed_post")
+      .map((p) => ({
       id: p.id,
       businessName: p.venue,
       type: p.type as PromotionType,
@@ -299,7 +280,9 @@ export async function getAdminPromotions(): Promise<AdminPromotionRow[]> {
     (businesses ?? []).map((b) => [b.id, b.name])
   );
 
-  return (promotions ?? []).map((p) => ({
+  return (promotions ?? [])
+    .filter((p) => p.type !== "feed_post")
+    .map((p) => ({
     id: p.id,
     businessName: businessMap.get(p.business_account_id) ?? "Unknown",
     type: p.type as PromotionType,
@@ -333,6 +316,8 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
         newslettersQuota: 1,
         socialUsed: 0,
         socialQuota: 2,
+        packUsed: 0,
+        packQuota: 4,
         invoiced: false,
       },
     ];
@@ -350,18 +335,22 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
         .select(
           "id, status, billing_type, current_period_start, current_period_end, cancel_at_period_end, used_promoted_events, quota_promoted_events, used_feed_posts, quota_feed_posts, used_newsletters, quota_newsletters, used_social_posts, quota_social_posts, business_account_id, invoiced_at"
         ),
-      supabase.from("business_accounts").select("id, name"),
+      supabase.from("business_accounts").select(
+        "id, name, addon_feed_posts_quota, addon_feed_posts_used"
+      ),
     ]);
 
   if (error) throw error;
 
   const businessMap = new Map(
-    (businesses ?? []).map((b) => [b.id, b.name])
+    (businesses ?? []).map((b) => [b.id, b])
   );
 
-  return (subscriptions ?? []).map((s) => ({
+  return (subscriptions ?? []).map((s) => {
+    const business = businessMap.get(s.business_account_id);
+    return {
     id: s.id,
-    businessName: businessMap.get(s.business_account_id) ?? "Unknown",
+    businessName: business?.name ?? "Unknown",
     status: s.status,
     billingType: parseBillingType(s.billing_type),
     renewsAt: s.current_period_end?.slice(0, 10) ?? "",
@@ -376,8 +365,11 @@ export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
     newslettersQuota: s.quota_newsletters,
     socialUsed: s.used_social_posts,
     socialQuota: s.quota_social_posts,
+    packUsed: business?.addon_feed_posts_used ?? 0,
+    packQuota: business?.addon_feed_posts_quota ?? 0,
     invoiced: isInvoicedForCurrentPeriod(s.invoiced_at, s.current_period_start),
-  })).filter((s) => s.entitled || s.paymentFailed);
+  };
+  }).filter((s) => s.entitled || s.paymentFailed);
 }
 
 function sortDeliveries(rows: AdminDeliveryRow[]): AdminDeliveryRow[] {

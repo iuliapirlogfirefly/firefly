@@ -17,5 +17,5 @@ END $$;
 
 DELETE FROM auth.users;
 
-INSERT INTO public.site_settings (id, prelaunch_active, prelaunch_ends_at)
-VALUES (1, false, null);
+INSERT INTO public.site_settings (id, prelaunch_active, prelaunch_ends_at, landing_stats_enabled)
+VALUES (1, false, null, false);

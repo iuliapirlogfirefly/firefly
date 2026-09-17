@@ -1,6 +1,7 @@
 import { AdminLaunchSettingsForm } from "@/components/admin/admin-launch-settings-form";
+import { AdminLandingStatsForm } from "@/components/admin/admin-landing-stats-form";
 import { getLaunchSettings } from "@/lib/launch/settings";
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 
 type Props = {
   params: Promise<{ locale: "en" | "ro" }>;
@@ -10,7 +11,10 @@ export default async function AdminSettingsPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const settings = await getLaunchSettings();
+  const [settings, t] = await Promise.all([
+    getLaunchSettings(),
+    getTranslations("admin"),
+  ]);
 
   return (
     <div data-route="admin-settings">
@@ -30,6 +34,16 @@ export default async function AdminSettingsPage({ params }: Props) {
           key={`${settings.active}-${settings.endsAt?.toISOString() ?? "none"}`}
           initialActive={settings.active}
           initialEndsAt={settings.endsAt ? settings.endsAt.toISOString() : null}
+        />
+      </div>
+
+      <div className="mt-8">
+        <h2 className="mb-3 text-sm font-medium text-foreground">
+          {t("landingStatsTitle")}
+        </h2>
+        <AdminLandingStatsForm
+          key={String(settings.landingStatsEnabled)}
+          initialEnabled={settings.landingStatsEnabled}
         />
       </div>
     </div>

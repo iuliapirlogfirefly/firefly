@@ -1,15 +1,18 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { submitFeedPost, updateFeedPost } from "@/lib/actions/business";
-import { FEED_CATEGORIES } from "@/lib/constants/feed-categories";
+import {
+  FEED_CATEGORIES,
+  getCategoryMeta,
+} from "@/lib/constants/feed-categories";
 import { ImageUploader } from "@/components/events/image-uploader";
 import type { CreateFeedPostInput } from "@/types/events";
-import type { FeedPostCategory, Locale } from "@/types";
+import type { FeedPostCategory } from "@/types";
 
 type Props = {
-  locale: Locale;
   mode?: "create" | "edit";
   postId?: string;
   initial?: CreateFeedPostInput & {
@@ -34,38 +37,26 @@ function StatusNote({
   status?: string;
   rejectionReason?: string | null;
 }) {
+  const t = useTranslations("business");
+
   if (mode === "create") {
-    return (
-      <p className="text-xs text-foreground/50">
-        New posts are submitted for admin review before they appear in the
-        public feed.
-      </p>
-    );
+    return <p className="text-xs text-foreground/50">{t("postCreateHint")}</p>;
   }
 
   if (status === "published") {
-    return (
-      <p className="text-xs text-amber-warm">
-        This post is live. Saving changes will take it offline and send it
-        back for admin approval.
-      </p>
-    );
+    return <p className="text-xs text-amber-warm">{t("postPublishedHint")}</p>;
   }
 
   if (status === "pending") {
-    return (
-      <p className="text-xs text-amber-warm">
-        This post is awaiting admin approval. Edits stay in the review queue.
-      </p>
-    );
+    return <p className="text-xs text-amber-warm">{t("postPendingHint")}</p>;
   }
 
   if (status === "rejected") {
     return (
       <p className="text-xs text-destructive">
-        This post was rejected
-        {rejectionReason ? `: ${rejectionReason}` : "."} Update it and
-        resubmit for review.
+        {t("postRejectedHint", {
+          detail: rejectionReason ? `: ${rejectionReason}` : ".",
+        })}
       </p>
     );
   }
@@ -74,13 +65,16 @@ function StatusNote({
 }
 
 export function BusinessFeedPostForm({
-  locale,
   mode = "create",
   postId,
   initial,
   onCancel,
   onCreated,
 }: Props) {
+  const t = useTranslations("business");
+  const tEvent = useTranslations("event");
+  const tCommon = useTranslations("common");
+  const tCategories = useTranslations("feedCategories");
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,7 +104,7 @@ export function BusinessFeedPostForm({
     setError(null);
 
     if (!titleEn.trim() || !descEn.trim()) {
-      setError("English title and description are required.");
+      setError(t("enRequired"));
       return;
     }
 
@@ -157,7 +151,7 @@ export function BusinessFeedPostForm({
       router.refresh();
     } catch {
       savingRef.current = false;
-      setError("Failed to submit post");
+      setError(t("submitFailed"));
       setSaving(false);
     }
   };
@@ -167,7 +161,7 @@ export function BusinessFeedPostForm({
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="space-y-2">
           <h2 className="font-heading text-lg font-semibold">
-            {mode === "edit" ? "Edit What Did You Miss post" : "New What Did You Miss post"}
+            {mode === "edit" ? t("editPostTitle") : t("createPostTitle")}
           </h2>
           <StatusNote
             mode={mode}
@@ -181,50 +175,53 @@ export function BusinessFeedPostForm({
             onClick={onCancel}
             className="shrink-0 text-xs text-foreground/50 hover:text-foreground"
           >
-            Cancel
+            {tCommon("cancel")}
           </button>
         ) : null}
       </div>
 
       <div className="space-y-4">
         <div>
-          <label className={labelClass}>Category</label>
+          <label className={labelClass}>{t("category")}</label>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value as FeedPostCategory)}
             className={inputClass}
           >
-            {Object.entries(FEED_CATEGORIES).map(([key, meta]) => (
-              <option key={key} value={key}>
-                {meta.icon} {meta.label[locale]}
-              </option>
-            ))}
+            {Object.entries(FEED_CATEGORIES).map(([key, icon]) => {
+              const meta = getCategoryMeta(key as FeedPostCategory, tCategories);
+              return (
+                <option key={key} value={key}>
+                  {icon} {meta.label}
+                </option>
+              );
+            })}
           </select>
         </div>
 
         <div>
-          <label className={labelClass}>Title (EN)</label>
+          <label className={labelClass}>{tEvent("titleEn")}</label>
           <input
             value={titleEn}
             onChange={(e) => setTitleEn(e.target.value)}
             className={inputClass}
-            placeholder="SOLD OUT — Techno Night"
+            placeholder={t("titleEnPlaceholder")}
           />
         </div>
 
         <div>
-          <label className={labelClass}>Description (EN)</label>
+          <label className={labelClass}>{tEvent("descriptionEn")}</label>
           <textarea
             value={descEn}
             onChange={(e) => setDescEn(e.target.value)}
             rows={3}
             className={inputClass}
-            placeholder="What happened, what's next..."
+            placeholder={t("descriptionEnPlaceholder")}
           />
         </div>
 
         <div>
-          <label className={labelClass}>Title (RO, optional)</label>
+          <label className={labelClass}>{t("titleRoOptional")}</label>
           <input
             value={titleRo}
             onChange={(e) => setTitleRo(e.target.value)}
@@ -233,7 +230,7 @@ export function BusinessFeedPostForm({
         </div>
 
         <div>
-          <label className={labelClass}>Description (RO, optional)</label>
+          <label className={labelClass}>{t("descriptionRoOptional")}</label>
           <textarea
             value={descRo}
             onChange={(e) => setDescRo(e.target.value)}
@@ -243,7 +240,7 @@ export function BusinessFeedPostForm({
         </div>
 
         <div>
-          <label className={labelClass}>Media (optional)</label>
+          <label className={labelClass}>{t("mediaOptional")}</label>
           <ImageUploader
             bucket="feed-media"
             value={mediaUrl}
@@ -264,17 +261,18 @@ export function BusinessFeedPostForm({
           className="rounded-full bg-firefly px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
         >
           {saving
-            ? "Submitting…"
+            ? t("submitting")
             : mode === "edit"
-              ? "Save & submit for review"
-              : "Submit for review"}
+              ? t("saveAndSubmitReview")
+              : t("submitForReview")}
         </button>
       </div>
     </div>
   );
 }
 
-export function BusinessFeedPostSection({ locale }: { locale: Locale }) {
+export function BusinessFeedPostSection() {
+  const t = useTranslations("business");
   const [open, setOpen] = useState(false);
 
   if (!open) {
@@ -284,7 +282,7 @@ export function BusinessFeedPostSection({ locale }: { locale: Locale }) {
         onClick={() => setOpen(true)}
         className="mt-8 rounded-full bg-firefly px-5 py-2.5 text-sm font-medium text-primary-foreground"
       >
-        New post
+        {t("newPost")}
       </button>
     );
   }
@@ -292,7 +290,6 @@ export function BusinessFeedPostSection({ locale }: { locale: Locale }) {
   return (
     <div className="mt-8">
       <BusinessFeedPostForm
-        locale={locale}
         mode="create"
         onCancel={() => setOpen(false)}
         onCreated={() => setOpen(false)}

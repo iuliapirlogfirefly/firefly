@@ -2,6 +2,7 @@
 
 import { useRouter } from "@/i18n/navigation";
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { createAdminEvent, updateAdminEvent } from "@/lib/actions/events";
 import { GENRES, formatGenreLabel } from "@/lib/constants/genres";
 import {
@@ -28,6 +29,10 @@ const inputClass =
 const labelClass = "mb-1.5 block text-xs font-medium text-muted-foreground";
 
 export function EventForm({ mode, eventId, initial }: Props) {
+  const t = useTranslations("event");
+  const tCommon = useTranslations("common");
+  const tGenres = useTranslations("genres");
+  const tTypes = useTranslations("eventTypes");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -80,11 +85,11 @@ export function EventForm({ mode, eventId, initial }: Props) {
     setError(null);
 
     if (!venueName || !address) {
-      setError("Venue name and address are required.");
+      setError(t("venueRequired"));
       return;
     }
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      setError("Pin a location on the map before saving.");
+      setError(t("pinRequired"));
       return;
     }
 
@@ -132,7 +137,7 @@ export function EventForm({ mode, eventId, initial }: Props) {
       <AdminCard className="space-y-6 p-6">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className={labelClass}>Title (EN)</label>
+            <label className={labelClass}>{t("titleEn")}</label>
             <input
               className={inputClass}
               value={titleEn}
@@ -141,7 +146,7 @@ export function EventForm({ mode, eventId, initial }: Props) {
             />
           </div>
           <div>
-            <label className={labelClass}>Title (RO)</label>
+            <label className={labelClass}>{t("titleRo")}</label>
             <input
               className={inputClass}
               value={titleRo}
@@ -152,7 +157,7 @@ export function EventForm({ mode, eventId, initial }: Props) {
 
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className={labelClass}>Description (EN)</label>
+            <label className={labelClass}>{t("descriptionEn")}</label>
             <textarea
               className={`${inputClass} min-h-[100px] resize-y`}
               value={descEn}
@@ -161,7 +166,7 @@ export function EventForm({ mode, eventId, initial }: Props) {
             />
           </div>
           <div>
-            <label className={labelClass}>Description (RO)</label>
+            <label className={labelClass}>{t("descriptionRo")}</label>
             <textarea
               className={`${inputClass} min-h-[100px] resize-y`}
               value={descRo}
@@ -172,7 +177,7 @@ export function EventForm({ mode, eventId, initial }: Props) {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className={labelClass}>Starts at</label>
+            <label className={labelClass}>{t("startsAt")}</label>
             <input
               type="datetime-local"
               className={inputClass}
@@ -182,7 +187,7 @@ export function EventForm({ mode, eventId, initial }: Props) {
             />
           </div>
           <div>
-            <label className={labelClass}>Ends at</label>
+            <label className={labelClass}>{t("endsAt")}</label>
             <input
               type="datetime-local"
               className={inputClass}
@@ -194,29 +199,29 @@ export function EventForm({ mode, eventId, initial }: Props) {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className={labelClass}>Genre</label>
+            <label className={labelClass}>{t("genre")}</label>
             <select
               className={inputClass}
               value={genre}
               onChange={(e) => setGenre(e.target.value as Genre)}
             >
-              {GENRES.map((g) => (
-                <option key={g} value={g}>
-                  {formatGenreLabel(g)}
+              {GENRES.map((genreOption) => (
+                <option key={genreOption} value={genreOption}>
+                  {formatGenreLabel(genreOption, tGenres)}
                 </option>
               ))}
             </select>
           </div>
           <div>
-            <label className={labelClass}>Event type</label>
+            <label className={labelClass}>{t("eventType")}</label>
             <select
               className={inputClass}
               value={eventType}
               onChange={(e) => setEventType(e.target.value as EventType)}
             >
-              {EVENT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {formatEventTypeLabel(t)}
+              {EVENT_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {formatEventTypeLabel(type, tTypes)}
                 </option>
               ))}
             </select>
@@ -224,18 +229,18 @@ export function EventForm({ mode, eventId, initial }: Props) {
         </div>
 
         <div>
-          <label className={labelClass}>Special Guest (optional)</label>
+          <label className={labelClass}>{t("specialGuest")}</label>
           <input
             className={inputClass}
             value={specialGuest}
             onChange={(e) => setSpecialGuest(e.target.value)}
-            placeholder="DJ Ion Popescu"
+            placeholder={t("specialGuestPlaceholder")}
           />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className={labelClass}>Price (RON)</label>
+            <label className={labelClass}>{t("price")}</label>
             <input
               type="number"
               className={inputClass}
@@ -245,41 +250,41 @@ export function EventForm({ mode, eventId, initial }: Props) {
             />
           </div>
           <div>
-            <label className={labelClass}>Ticket URL</label>
+            <label className={labelClass}>{t("ticketUrl")}</label>
             <input
               type="url"
               className={inputClass}
               value={ticketUrl}
               onChange={(e) => setTicketUrl(e.target.value)}
-              placeholder="https://"
+              placeholder={t("urlPlaceholder")}
             />
           </div>
         </div>
 
         <div>
-          <label className={labelClass}>Website / social link</label>
+          <label className={labelClass}>{t("websiteUrl")}</label>
           <input
             type="url"
             className={inputClass}
             value={websiteUrl}
             onChange={(e) => setWebsiteUrl(e.target.value)}
-            placeholder="https://"
+            placeholder={t("urlPlaceholder")}
           />
         </div>
 
         <div>
-          <label className={labelClass}>Cover image</label>
+          <label className={labelClass}>{t("coverImage")}</label>
           <ImageUploader value={coverImageUrl} onChange={setCoverImageUrl} />
         </div>
 
         <div>
-          <label className={labelClass}>Gallery images</label>
+          <label className={labelClass}>{t("galleryImages")}</label>
           <ImageUploader value={images} onChange={setImages} multiple />
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className={labelClass}>Venue name</label>
+            <label className={labelClass}>{t("venueName")}</label>
             <input
               className={inputClass}
               value={venueName}
@@ -308,10 +313,10 @@ export function EventForm({ mode, eventId, initial }: Props) {
         <div className="flex gap-3">
           <AdminButton type="submit" size="md" disabled={pending}>
             {pending
-              ? "Saving..."
+              ? tCommon("saving")
               : mode === "create"
-                ? "Create & publish"
-                : "Save changes"}
+                ? t("createPublish")
+                : t("saveChanges")}
           </AdminButton>
           <AdminButton
             type="button"
@@ -319,7 +324,7 @@ export function EventForm({ mode, eventId, initial }: Props) {
             size="md"
             onClick={() => router.push("/admin/events")}
           >
-            Cancel
+            {tCommon("cancel")}
           </AdminButton>
         </div>
       </AdminCard>

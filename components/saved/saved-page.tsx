@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { EventCard } from "@/components/EventCard";
@@ -14,6 +15,7 @@ type Props = {
 };
 
 export function SavedPageClient({ events, serverSavedIds }: Props) {
+  const t = useTranslations("discovery");
   const { ids } = useSavedEvents(serverSavedIds);
 
   const saved = useMemo(
@@ -27,10 +29,11 @@ export function SavedPageClient({ events, serverSavedIds }: Props) {
 
       <section className="mx-auto max-w-7xl px-6 pt-32">
         <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-          ◦ Your jar
+          ◦ {t("savedEyebrow")}
         </div>
         <h1 className="text-balance font-heading text-5xl font-bold leading-[0.95] md:text-7xl">
-          Saved <span className="text-gradient-firefly">fireflies.</span>
+          {t("savedTitle")}{" "}
+          <span className="text-gradient-firefly">{t("savedTitleAccent")}</span>
         </h1>
 
         {saved.length === 0 ? (
@@ -66,16 +69,14 @@ export function SavedPageClient({ events, serverSavedIds }: Props) {
               />
             </div>
             <h2 className="mb-3 font-heading text-2xl">
-              Your collection starts here
+              {t("savedEmptyTitle")}
             </h2>
-            <p className="mb-8 text-foreground/60">
-              Tap the heart on any event to keep it glowing in your jar.
-            </p>
+            <p className="mb-8 text-foreground/60">{t("savedEmptyBody")}</p>
             <Link
               href="/feed"
               className="inline-flex items-center gap-2 rounded-full bg-firefly px-6 py-3 font-medium text-primary-foreground transition-all hover:firefly-glow"
             >
-              Explore events
+              {t("savedEmptyCta")}
             </Link>
           </div>
         ) : (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { AdminButton } from "./admin-button";
 
 type Props = {
@@ -18,6 +19,8 @@ export function RejectDialog({
   onConfirm,
   pending = false,
 }: Props) {
+  const t = useTranslations("admin");
+  const tCommon = useTranslations("common");
   const [reason, setReason] = useState("");
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -46,16 +49,13 @@ export function RejectDialog({
     >
       <form onSubmit={handleSubmit} className="p-6">
         <h2 className="font-heading text-lg font-semibold">{title}</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Provide a short reason (min. 10 characters). This may be shared with the
-          submitter.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">{t("rejectHint")}</p>
         <textarea
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           rows={4}
           className="mt-4 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-foreground/30"
-          placeholder="Reason for rejection..."
+          placeholder={t("rejectPlaceholder")}
           required
           minLength={10}
         />
@@ -66,16 +66,16 @@ export function RejectDialog({
             onClick={onClose}
             disabled={pending}
           >
-            Cancel
+            {tCommon("cancel")}
           </AdminButton>
           <AdminButton
             type="submit"
             variant="danger"
             pending={pending}
-            pendingLabel="Rejecting…"
+            pendingLabel={t("rejecting")}
             disabled={reason.trim().length < 10}
           >
-            Reject
+            {t("reject")}
           </AdminButton>
         </div>
       </form>

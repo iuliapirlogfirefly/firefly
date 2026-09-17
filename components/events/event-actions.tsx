@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { Bell, ExternalLink, Share2, Ticket } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { PendingButton } from "@/components/ui/pending-button";
 import { Spinner } from "@/components/ui/spinner";
@@ -69,6 +70,7 @@ export function EventActions({
   ticketUrl,
   websiteUrl,
 }: Props) {
+  const t = useTranslations("event");
   const router = useRouter();
   const [saved, setSaved] = useState(initialSaved);
   const [reminded, setReminded] = useState(initialReminded);
@@ -154,7 +156,7 @@ export function EventActions({
           className="flex items-center justify-center gap-2 rounded-full bg-firefly px-6 py-4 font-medium text-primary-foreground transition-all hover:firefly-glow"
         >
           <Ticket className="h-5 w-5" />
-          Get tickets
+          {t("getTickets")}
         </a>
       ) : null}
 
@@ -166,7 +168,7 @@ export function EventActions({
           className="flex items-center justify-center gap-2 rounded-full border border-firefly/30 px-6 py-4 font-medium text-foreground transition-all hover:bg-firefly/5"
         >
           <ExternalLink className="h-5 w-5" />
-          Visit website
+          {t("visitWebsite")}
         </a>
       ) : null}
 
@@ -174,7 +176,7 @@ export function EventActions({
         type="button"
         onClick={toggleSaved}
         pending={pending}
-        pendingLabel={saved ? "Updating…" : "Saving…"}
+        pendingLabel={saved ? t("updating") : t("saving")}
         className={`w-full rounded-full border px-6 py-4 font-medium transition-all ${
           saved
             ? "border-firefly bg-firefly/10 text-firefly"
@@ -192,7 +194,7 @@ export function EventActions({
         >
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
         </svg>
-        {saved ? "Saved to your jar" : "Save this night"}
+        {saved ? t("savedToJar") : t("saveNight")}
       </PendingButton>
 
       <div className="grid grid-cols-2 gap-3">
@@ -213,10 +215,10 @@ export function EventActions({
             <Bell className="h-4 w-4" />
           )}
           {reminderPending
-            ? "Updating…"
+            ? t("updating")
             : reminded
-              ? "Reminder set"
-              : "Remind"}
+              ? t("reminderSet")
+              : t("remind")}
         </button>
         <button
           type="button"
@@ -224,12 +226,12 @@ export function EventActions({
           className="flex items-center justify-center gap-2 rounded-full border border-firefly/20 px-4 py-3 text-sm transition-colors hover:border-firefly/50"
         >
           <Share2 className="h-4 w-4" />
-          Share
+          {t("share")}
         </button>
       </div>
 
       <p className="pt-3 text-center text-xs text-foreground/40">
-        Tickets handled by external partners. Secure checkout.
+        {t("ticketsDisclaimer")}
       </p>
     </aside>
   );

@@ -20,7 +20,7 @@ import type {
   BusinessPromotionRow,
   BusinessSubscriptionInfo,
 } from "@/lib/queries/promotions";
-import type { BusinessFeedPostItem } from "@/lib/queries/feed";
+import type { FeedPostCreditBalance } from "@/lib/stripe/feed-post-credits";
 import type { EventListItem } from "@/types/events";
 import type { PromotionType } from "@/types";
 
@@ -30,33 +30,18 @@ type Props = {
   promotions: BusinessPromotionRow[];
   subscription: BusinessSubscriptionInfo;
   events: BusinessEvent[];
-  feedPosts: BusinessFeedPostItem[];
+  feedPostCredits: FeedPostCreditBalance;
   initialBoost?: PromotionType;
   initialTarget?: string;
   hasBusinessAccount: boolean;
   purchasesEnabled: boolean;
 };
 
-const ONE_TIME_PLANS: {
-  type: PromotionType;
-  description: string;
-}[] = [
-  {
-    type: "event_boost",
-    description: `Boost your event for ${PROMOTION_DURATION_DAYS} days — it appears separately as boosted on the calendar, map, and events section.`,
-  },
-  {
-    type: "feed_post",
-    description: "Pin your post to the top of What Did You Miss for 48h.",
-  },
-  {
-    type: "newsletter",
-    description: "Feature your venue in the weekly Firefly newsletter.",
-  },
-  {
-    type: "social_media",
-    description: "Dedicated post on Firefly social channels.",
-  },
+const ONE_TIME_PLANS: PromotionType[] = [
+  "event_boost",
+  "feed_post",
+  "newsletter",
+  "social_media",
 ];
 
 function formatPrice(amountCents: number, currency: string) {
@@ -80,10 +65,6 @@ function getQuotaForType(
     case "social_media":
       return { used: sub.socialUsed, quota: sub.socialQuota };
   }
-}
-
-function formatPromotionType(type: PromotionType) {
-  return PROMOTION_PRICES[type].label;
 }
 
 const TERMS_STORAGE_KEY = "firefly-promotions-accepted-terms";
@@ -134,14 +115,16 @@ export function BusinessPromotionsPage({
   promotions,
   subscription,
   events,
-  feedPosts,
+  feedPostCredits,
   initialBoost,
   initialTarget,
   hasBusinessAccount,
   purchasesEnabled,
 }: Props) {
-  const t = useTranslations("premium");
+  const t = useTranslations("business");
+  const tPremium = useTranslations("premium");
   const tAuth = useTranslations("auth");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
@@ -209,17 +192,35 @@ export function BusinessPromotionsPage({
   const isPending = (action: string) => pendingAction === action;
 
   const publishedEvents = events.filter((e) => e.status === "published");
-  const publishedPosts = feedPosts.filter((p) => p.status === "published");
+
+  const planDescription = (type: PromotionType) => {
+    switch (type) {
+      case "event_boost":
+        return t("planEventBoost", { days: PROMOTION_DURATION_DAYS });
+      case "feed_post":
+        return t("planFeedPost");
+      case "newsletter":
+        return t("planNewsletter");
+      case "social_media":
+        return t("planSocialMedia");
+    }
+  };
 
   const checkoutFeedback = (() => {
     if (searchParams.get("success") === "true") {
-      return { type: "success" as const, message: "Payment successful — your promotion is now active." };
+      return {
+        type: "success" as const,
+        message:
+          searchParams.get("pack") === "feed_post"
+            ? t("packPaymentSuccess")
+            : t("paymentSuccess"),
+      };
     }
     if (searchParams.get("subscription") === "success") {
-      return { type: "success" as const, message: t("activated") };
+      return { type: "success" as const, message: tPremium("activated") };
     }
     if (searchParams.get("canceled") === "true") {
-      return { type: "error" as const, message: "Checkout was canceled." };
+      return { type: "error" as const, message: t("checkoutCanceled") };
     }
     return null;
   })();
@@ -244,7 +245,7 @@ export function BusinessPromotionsPage({
     actionKey = `purchase:${type}:${checkout ? "pay" : "quota"}`
   ) => {
     if (!acceptedTerms) {
-      setError(t("mustAcceptLegal"));
+      setError(tPremium("mustAcceptLegal"));
       return;
     }
     setError(null);
@@ -269,32 +270,32 @@ export function BusinessPromotionsPage({
       }
 
       if (result.data.usedQuota) {
-        setSuccessMessage("Promotion activated using your subscription slot.");
+        setSuccessMessage(t("quotaActivated"));
         setPickerOpen(false);
         setPendingAction(null);
         router.refresh();
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to purchase promotion");
+      setError(e instanceof Error ? e.message : t("purchaseFailed"));
       setPendingAction(null);
     }
   };
 
   const handlePlanClick = (type: PromotionType, checkout = false) => {
     if (!acceptedTerms) {
-      setError(t("mustAcceptLegal"));
+      setError(tPremium("mustAcceptLegal"));
       return;
     }
-    if (type === "event_boost" || type === "feed_post") {
+    if (type === "event_boost") {
       openPicker(type, checkout);
       return;
     }
-    void runPurchase(type, undefined, checkout);
+    void runPurchase(type, undefined, type === "feed_post" ? true : checkout);
   };
 
   const handleSubscribe = async () => {
     if (!acceptedTerms) {
-      setError(t("mustAcceptLegal"));
+      setError(tPremium("mustAcceptLegal"));
       return;
     }
     setError(null);
@@ -312,7 +313,7 @@ export function BusinessPromotionsPage({
       goToStripeCheckout(result.data.url);
     } catch (e) {
       setError(
-        e instanceof Error ? e.message : "Failed to create subscription checkout"
+        e instanceof Error ? e.message : t("subscribeFailed")
       );
       setPendingAction(null);
     }
@@ -330,13 +331,13 @@ export function BusinessPromotionsPage({
       }
       window.location.href = result.data.url;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to open billing portal");
+      setError(e instanceof Error ? e.message : t("billingFailed"));
       setPendingAction(null);
     }
   };
 
   const handleCancelSubscription = async () => {
-    if (!window.confirm(t("cancelConfirm"))) {
+    if (!window.confirm(tPremium("cancelConfirm"))) {
       return;
     }
     setError(null);
@@ -348,11 +349,11 @@ export function BusinessPromotionsPage({
         setPendingAction(null);
         return;
       }
-      setSuccessMessage(t("canceledSuccess"));
+      setSuccessMessage(tPremium("canceledSuccess"));
       setPendingAction(null);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to cancel subscription");
+      setError(e instanceof Error ? e.message : t("cancelFailed"));
       setPendingAction(null);
     }
   };
@@ -362,11 +363,7 @@ export function BusinessPromotionsPage({
       ? publishedEvents
           .filter((e) => !e.isPromoted)
           .map((e) => ({ id: e.id, label: e.title }))
-      : pickerType === "feed_post"
-        ? publishedPosts
-            .filter((p) => !p.isPromoted)
-            .map((p) => ({ id: p.id, label: p.title }))
-        : [];
+      : [];
 
   const effectiveSelectedTarget = pickerTargets.some(
     (target) => target.id === selectedTarget
@@ -383,21 +380,24 @@ export function BusinessPromotionsPage({
     return (
       <div data-route="business-promotions">
           <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-            ◦ Business · Promotions
+            {t("promotionsEyebrow")}
           </div>
           <h1 className="font-heading text-4xl font-bold">
-            Boost your <span className="text-gradient-firefly">nights</span>
+            {t.rich("promotionsHeadline", {
+              glow: (chunks) => (
+                <span className="text-gradient-firefly">{chunks}</span>
+              ),
+            })}
           </h1>
           <div className="glass mt-10 rounded-2xl p-8 text-center">
             <p className="text-sm text-foreground/60">
-              Register and get your business account approved to purchase
-              promotions.
+              {t("needsApproval")}
             </p>
             <Link
               href="/business"
               className="mt-4 inline-flex rounded-full bg-firefly px-5 py-2.5 text-sm font-medium text-primary-foreground"
             >
-              Go to business dashboard
+              {t("goToDashboard")}
             </Link>
           </div>
       </div>
@@ -407,10 +407,14 @@ export function BusinessPromotionsPage({
   return (
     <div data-route="business-promotions">
         <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-          ◦ Business · Promotions
+          {t("promotionsEyebrow")}
         </div>
         <h1 className="font-heading text-4xl font-bold">
-          Boost your <span className="text-gradient-firefly">nights</span>
+          {t.rich("promotionsHeadline", {
+            glow: (chunks) => (
+              <span className="text-gradient-firefly">{chunks}</span>
+            ),
+          })}
         </h1>
 
         {checkoutFeedback ? (
@@ -443,8 +447,7 @@ export function BusinessPromotionsPage({
 
         {!purchasesEnabled ? (
           <p className="mt-4 rounded-xl bg-foreground/5 px-4 py-3 text-sm text-foreground/60">
-            Purchases require Supabase and Stripe to be configured. Set up your
-            environment variables to enable checkout.
+            {t("purchasesDisabled")}
           </p>
         ) : null}
 
@@ -453,8 +456,8 @@ export function BusinessPromotionsPage({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-heading text-lg font-semibold">
                 {subscription.paymentFailed
-                  ? t("statusPaymentFailed")
-                  : t("statusActive")}
+                  ? tPremium("statusPaymentFailed")
+                  : tPremium("statusActive")}
               </h2>
               <span
                 className={`font-mono text-xs uppercase tracking-wider-2 ${
@@ -462,40 +465,40 @@ export function BusinessPromotionsPage({
                 }`}
               >
                 {subscription.paymentFailed
-                  ? t("paymentFailedLabel")
+                  ? tPremium("paymentFailedLabel")
                   : subscription.cancelAtPeriodEnd ||
                       subscription.billingType === "one_time"
-                    ? t("expiresOn", { date: subscription.renewsAt })
-                    : t("nextPayment", { date: subscription.renewsAt })}
+                    ? tPremium("expiresOn", { date: subscription.renewsAt })
+                    : tPremium("nextPayment", { date: subscription.renewsAt })}
               </span>
             </div>
-            <p className="mt-1 text-sm text-foreground/60">{t("priceMonthly")}</p>
+            <p className="mt-1 text-sm text-foreground/60">{tPremium("priceMonthly")}</p>
             {subscription.entitled ? (
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <QuotaMeter
-                  label="Event boosts"
+                  label={t("quotaEventBoosts")}
                   used={subscription.promotedUsed}
                   quota={subscription.promotedQuota}
                 />
                 <QuotaMeter
-                  label="What Did You Miss posts"
+                  label={t("quotaFeedPosts")}
                   used={subscription.postsUsed}
                   quota={subscription.postsQuota}
                 />
                 <QuotaMeter
-                  label="Newsletters"
+                  label={t("quotaNewsletters")}
                   used={subscription.newslettersUsed}
                   quota={subscription.newslettersQuota}
                 />
                 <QuotaMeter
-                  label="Social posts"
+                  label={t("quotaSocialPosts")}
                   used={subscription.socialUsed}
                   quota={subscription.socialQuota}
                 />
               </div>
             ) : (
               <p className="mt-4 text-sm text-foreground/60">
-                {t("benefitsPaused")}
+                {tPremium("benefitsPaused")}
               </p>
             )}
             <div className="mt-4 flex flex-wrap gap-3">
@@ -504,13 +507,13 @@ export function BusinessPromotionsPage({
                   type="button"
                   onClick={handleManageBilling}
                   pending={isPending("billing")}
-                  pendingLabel={t("openingBilling")}
+                  pendingLabel={tPremium("openingBilling")}
                   disabled={!purchasesEnabled}
                   className="rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground"
                 >
                   {subscription.paymentFailed
-                    ? t("updatePayment")
-                    : t("manageBilling")}
+                    ? tPremium("updatePayment")
+                    : tPremium("manageBilling")}
                 </PendingButton>
               ) : null}
               {subscription.canCancelRenewal ? (
@@ -518,17 +521,17 @@ export function BusinessPromotionsPage({
                   type="button"
                   onClick={handleCancelSubscription}
                   pending={isPending("cancel")}
-                  pendingLabel={t("canceling")}
+                  pendingLabel={tPremium("canceling")}
                   disabled={!purchasesEnabled}
                   className="text-sm text-destructive/80 underline-offset-2 hover:underline"
                 >
-                  {t("cancelRenewal")}
+                  {tPremium("cancelRenewal")}
                 </PendingButton>
               ) : subscription.entitled &&
                 (subscription.cancelAtPeriodEnd ||
                   subscription.billingType === "one_time") ? (
                 <p className="text-sm text-foreground/60">
-                  {t("canceledNotice", { date: subscription.renewsAt })}
+                  {tPremium("canceledNotice", { date: subscription.renewsAt })}
                 </p>
               ) : null}
             </div>
@@ -536,42 +539,65 @@ export function BusinessPromotionsPage({
         ) : null}
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {ONE_TIME_PLANS.map((plan) => {
-            const opensPicker =
-              plan.type === "event_boost" || plan.type === "feed_post";
-            const price = PROMOTION_PRICES[plan.type];
-            const quota = getQuotaForType(subscription, plan.type);
+          {ONE_TIME_PLANS.map((planType) => {
+            const opensPicker = planType === "event_boost";
+            const price = PROMOTION_PRICES[planType];
+            const quota = getQuotaForType(subscription, planType);
             const hasQuota =
+              planType !== "feed_post" &&
               Boolean(subscription?.entitled) &&
               quota &&
               quota.used < quota.quota;
+            const formattedPrice = formatPrice(price.amount, price.currency);
+            const canCreateFromSlots =
+              planType === "feed_post" && feedPostCredits.remaining > 0;
 
             return (
-              <div key={plan.type} className="glass rounded-2xl p-5">
+              <div key={planType} className="glass rounded-2xl p-5">
                 <div className="font-heading text-lg font-semibold">
-                  {price.label}
+                  {tCommon(`products.${planType}`)}
                 </div>
                 <div className="mt-2 text-2xl font-bold text-firefly">
-                  {formatPrice(price.amount, price.currency)}
+                  {t("priceLei", { amount: Math.round(price.amount / 100) })}
                 </div>
                 <p className="mt-2 text-sm text-foreground/65">
-                  {plan.description}
+                  {planDescription(planType)}
                 </p>
+                {planType === "feed_post" ? (
+                  <p className="mt-2 font-mono text-[10px] uppercase tracking-wider-2 text-foreground/45">
+                    {t("packAndPremiumSlots", {
+                      packUsed: feedPostCredits.packUsed,
+                      packQuota: feedPostCredits.packQuota,
+                      premiumUsed: feedPostCredits.premiumUsed,
+                      premiumQuota: feedPostCredits.premiumQuota,
+                    })}
+                  </p>
+                ) : null}
                 <div className="mt-4 space-y-2">
+                  {canCreateFromSlots ? (
+                    <Link
+                      href="/business/posts"
+                      className="flex w-full items-center justify-center rounded-full bg-firefly py-2 text-sm font-medium text-primary-foreground"
+                    >
+                      {t("createPostWithSlots", {
+                        count: feedPostCredits.remaining,
+                      })}
+                    </Link>
+                  ) : null}
                   {hasQuota ? (
                     <PendingButton
                       type="button"
                       pending={
                         opensPicker
                           ? false
-                          : isPending(`purchase:${plan.type}:quota`)
+                          : isPending(`purchase:${planType}:quota`)
                       }
-                      pendingLabel="Applying…"
+                      pendingLabel={t("applying")}
                       disabled={!canPurchase}
-                      onClick={() => handlePlanClick(plan.type, false)}
+                      onClick={() => handlePlanClick(planType, false)}
                       className="w-full rounded-full bg-firefly py-2 text-sm font-medium text-primary-foreground"
                     >
-                      Use included slot ({quota!.quota - quota!.used} left)
+                      {t("useIncludedSlot", { count: quota!.quota - quota!.used })}
                     </PendingButton>
                   ) : null}
                   <PendingButton
@@ -579,16 +605,18 @@ export function BusinessPromotionsPage({
                     pending={
                       opensPicker
                         ? false
-                        : isPending(`purchase:${plan.type}:pay`)
+                        : isPending(`purchase:${planType}:pay`)
                     }
-                    pendingLabel="Redirecting to checkout…"
+                    pendingLabel={tPremium("redirecting")}
                     disabled={!canPurchase}
-                    onClick={() => handlePlanClick(plan.type, true)}
+                    onClick={() => handlePlanClick(planType, true)}
                     className="w-full rounded-full border border-firefly/30 py-2 text-sm text-firefly hover:bg-firefly/10"
                   >
-                    {hasQuota
-                      ? `Pay ${formatPrice(price.amount, price.currency)} instead`
-                      : "Purchase"}
+                    {planType === "feed_post"
+                      ? t("buyPostPack")
+                      : hasQuota
+                        ? t("payInstead", { price: formattedPrice })
+                        : t("purchase")}
                   </PendingButton>
                 </div>
               </div>
@@ -597,21 +625,21 @@ export function BusinessPromotionsPage({
 
           <div className="glass rounded-2xl p-5 sm:col-span-2 lg:col-span-1">
             <div className="font-heading text-lg font-semibold">
-              {t("cardTitle")}
+              {tPremium("cardTitle")}
             </div>
             <div className="mt-2 text-2xl font-bold text-firefly">
               {formatPrice(SUBSCRIPTION_PRICE.amount, SUBSCRIPTION_PRICE.currency)}
             </div>
-            <p className="mt-2 text-sm text-foreground/65">{t("included")}</p>
+            <p className="mt-2 text-sm text-foreground/65">{tPremium("included")}</p>
             {subscription?.entitled || subscription?.paymentFailed ? (
               <PendingButton
                 type="button"
                 pending={false}
-                pendingLabel={t("redirecting")}
+                pendingLabel={tPremium("redirecting")}
                 disabled
                 className="mt-4 w-full rounded-full border border-firefly/30 py-2 text-sm text-firefly/50"
               >
-                {subscription.paymentFailed ? t("paymentFailedLabel") : t("subscribed")}
+                {subscription.paymentFailed ? tPremium("paymentFailedLabel") : tPremium("subscribed")}
               </PendingButton>
             ) : (
               <>
@@ -622,22 +650,22 @@ export function BusinessPromotionsPage({
                     onChange={(event) => setAutoRenew(event.target.checked)}
                     className="mt-0.5 accent-firefly"
                   />
-                  <span>{t("autoRenew")}</span>
+                  <span>{tPremium("autoRenew")}</span>
                 </label>
                 {autoRenew ? (
                   <p className="mt-2 text-xs text-foreground/55">
-                    {t("autoRenewDetails")}
+                    {tPremium("autoRenewDetails")}
                   </p>
                 ) : null}
                 <PendingButton
                   type="button"
                   pending={isPending("subscribe")}
-                  pendingLabel={t("redirecting")}
+                  pendingLabel={tPremium("redirecting")}
                   disabled={!canPurchase}
                   onClick={handleSubscribe}
                   className="mt-4 w-full rounded-full border border-firefly/30 py-2 text-sm text-firefly hover:bg-firefly/10"
                 >
-                  {t("continueToCheckout")}
+                  {tPremium("continueToCheckout")}
                 </PendingButton>
               </>
             )}
@@ -678,18 +706,16 @@ export function BusinessPromotionsPage({
         {promotions.length > 0 ? (
           <div className="mt-12">
             <h2 className="mb-4 font-heading text-xl font-semibold">
-              Your active boosts
+              {t("activeBoostsTitle")}
             </h2>
             <ul className="space-y-3">
               {promotions.map((promo) => (
                 <li key={promo.id} className="glass rounded-2xl p-4 text-sm">
-                  <span className="font-medium capitalize">
-                    {formatPromotionType(promo.type)}
-                  </span>
-                  {" · "}
-                  {promo.targetLabel}
-                  {" · until "}
-                  {promo.expiresAt}
+                  {t("activeBoostItem", {
+                    type: tCommon(`products.${promo.type}`),
+                    target: promo.targetLabel,
+                    date: promo.expiresAt,
+                  })}
                 </li>
               ))}
             </ul>
@@ -699,25 +725,16 @@ export function BusinessPromotionsPage({
       {pickerOpen && pickerType ? (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4">
           <div className="w-full max-w-md rounded-2xl border border-border bg-surface-1 p-6 shadow-2xl">
-            <h3 className="font-heading text-lg font-semibold capitalize">
-              Select {formatPromotionType(pickerType)}
+            <h3 className="font-heading text-lg font-semibold">
+              {t("pickerTitle", { type: tCommon(`products.${pickerType}`) })}
             </h3>
             <p className="mt-1 text-sm text-foreground/60">
-              Choose a published{" "}
-              {pickerType === "event_boost"
-                ? "event"
-                : "What Did You Miss post"}{" "}
-              to promote.
+              {t("pickerHintEvent")}
             </p>
 
             {pickerTargets.length === 0 ? (
               <p className="mt-4 text-sm text-foreground/50">
-                No published{" "}
-                {pickerType === "event_boost"
-                  ? "events"
-                  : "What Did You Miss posts"}{" "}
-                available to boost. Items with an active boost appear again
-                after it expires.
+                {t("pickerEmptyEvents")}
               </p>
             ) : (
               <select
@@ -725,10 +742,10 @@ export function BusinessPromotionsPage({
                 onChange={(e) => setSelectedTarget(e.target.value)}
                 className="mt-4 w-full rounded-xl border border-firefly/20 bg-surface-2 px-3.5 py-2.5 text-sm"
               >
-                <option value="">Select…</option>
-                {pickerTargets.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label}
+                <option value="">{tCommon("selectEllipsis")}</option>
+                {pickerTargets.map((target) => (
+                  <option key={target.id} value={target.id}>
+                    {target.label}
                   </option>
                 ))}
               </select>
@@ -739,23 +756,23 @@ export function BusinessPromotionsPage({
                 <PendingButton
                   type="button"
                   pending={isPending(`purchase:${pickerType}:quota`)}
-                  pendingLabel="Applying…"
+                  pendingLabel={t("applying")}
                   disabled={!canPurchase || !effectiveSelectedTarget}
                   onClick={() => void runPurchase(pickerType, effectiveSelectedTarget, false)}
                   className="rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground"
                 >
-                  Use slot ({pickerQuota.quota - pickerQuota.used} left)
+                  {t("useSlot", { count: pickerQuota.quota - pickerQuota.used })}
                 </PendingButton>
               ) : (
                 <PendingButton
                   type="button"
                   pending={isPending(`purchase:${pickerType}:pay`)}
-                  pendingLabel="Redirecting to checkout…"
+                  pendingLabel={tPremium("redirecting")}
                   disabled={!canPurchase || !effectiveSelectedTarget}
                   onClick={() => void runPurchase(pickerType, effectiveSelectedTarget, true)}
                   className="rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground"
                 >
-                  Purchase
+                  {t("purchase")}
                 </PendingButton>
               )}
               {pickerQuota &&
@@ -764,12 +781,12 @@ export function BusinessPromotionsPage({
                 <PendingButton
                   type="button"
                   pending={isPending(`purchase:${pickerType}:pay`)}
-                  pendingLabel="Redirecting to checkout…"
+                  pendingLabel={tPremium("redirecting")}
                   disabled={!canPurchase || !effectiveSelectedTarget}
                   onClick={() => void runPurchase(pickerType, effectiveSelectedTarget, true)}
                   className="rounded-full border border-firefly/30 px-4 py-2 text-sm text-firefly"
                 >
-                  Pay instead
+                  {t("payInsteadShort")}
                 </PendingButton>
               ) : null}
               <button
@@ -777,7 +794,7 @@ export function BusinessPromotionsPage({
                 onClick={() => setPickerOpen(false)}
                 className="rounded-full px-4 py-2 text-sm text-foreground/50"
               >
-                Cancel
+                {tCommon("cancel")}
               </button>
             </div>
           </div>

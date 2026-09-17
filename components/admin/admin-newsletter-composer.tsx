@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { FileText, Loader2, X } from "lucide-react";
 import { sendNewsletter } from "@/lib/actions/admin";
 import { getUploadUrl } from "@/lib/actions/business";
@@ -49,6 +50,7 @@ export function AdminNewsletterComposer({
   archive,
   isMockMode,
 }: Props) {
+  const t = useTranslations("admin");
   const [subject, setSubject] = useState("");
   const [htmlContent, setHtmlContent] = useState("");
   const [pdfUrls, setPdfUrls] = useState<string[]>([]);
@@ -75,18 +77,18 @@ export function AdminNewsletterComposer({
 
     const remaining = MAX_PDFS - pdfUrls.length;
     if (remaining <= 0) {
-      setFeedback({ type: "error", message: "Maximum 3 PDFs allowed" });
+      setFeedback({ type: "error", message: t("errorMaxPdfs") });
       return;
     }
 
     const selected = Array.from(files).slice(0, remaining);
     for (const file of selected) {
       if (file.type !== "application/pdf") {
-        setFeedback({ type: "error", message: "Only PDF files are allowed" });
+        setFeedback({ type: "error", message: t("errorPdfOnly") });
         return;
       }
       if (file.size > MAX_PDF_BYTES) {
-        setFeedback({ type: "error", message: "PDF must be 10MB or smaller" });
+        setFeedback({ type: "error", message: t("errorPdfSize") });
         return;
       }
     }
@@ -100,7 +102,7 @@ export function AdminNewsletterComposer({
     } catch (e) {
       setFeedback({
         type: "error",
-        message: e instanceof Error ? e.message : "PDF upload failed",
+        message: e instanceof Error ? e.message : t("errorPdfUpload"),
       });
     } finally {
       setUploadingPdf(false);
@@ -115,7 +117,7 @@ export function AdminNewsletterComposer({
       if (result.success) {
         setFeedback({
           type: "success",
-          message: `Sent to ${result.data.sent.toLocaleString()} subscribers`,
+          message: t("sentSuccess", { count: result.data.sent }),
         });
         setSubject("");
         setHtmlContent("");
@@ -129,35 +131,34 @@ export function AdminNewsletterComposer({
   return (
     <div data-route="admin-newsletters">
       <h1 className="font-heading text-2xl font-semibold md:text-3xl">
-        Newsletters
+        {t("newsletters")}
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Compose and send to {subscriberCount.toLocaleString()} opted-in
-        subscribers.
+        {t("newsletterSubtitle", { count: subscriberCount })}
       </p>
 
       <AdminCard className="mt-8 space-y-4 p-6">
         <div>
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-            Subject
+            {t("subject")}
           </label>
           <input
             className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-foreground/30"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            placeholder="This weekend in Bucharest"
+            placeholder={t("subjectPlaceholder")}
             required
           />
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-            HTML content
+            {t("htmlContent")}
           </label>
           <textarea
             className="min-h-[200px] w-full resize-y rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm outline-none focus:ring-1 focus:ring-foreground/30"
             value={htmlContent}
             onChange={(e) => setHtmlContent(e.target.value)}
-            placeholder="<p>Your newsletter content...</p>"
+            placeholder={t("htmlPlaceholder")}
             required
           />
         </div>
@@ -165,7 +166,7 @@ export function AdminNewsletterComposer({
         <div className="grid gap-4 lg:grid-cols-2">
           <div>
             <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-              Insert image (embeds in HTML, max 5MB)
+              {t("insertImage")}
             </p>
             <ImageUploader
               bucket="newsletter-media"
@@ -176,13 +177,13 @@ export function AdminNewsletterComposer({
               label=""
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              Upload inserts an &lt;img&gt; tag at the end of the HTML.
+              {t("insertImageHint")}
             </p>
           </div>
 
           <div>
             <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-              Attach PDF (e.g. Canva export, max 10MB, up to 3)
+              {t("attachPdf")}
             </p>
             <input
               ref={pdfInputRef}
@@ -207,7 +208,7 @@ export function AdminNewsletterComposer({
               ) : (
                 <>
                   <FileText className="h-5 w-5" />
-                  Upload PDF
+                  {t("uploadPdf")}
                 </>
               )}
             </button>
@@ -234,7 +235,7 @@ export function AdminNewsletterComposer({
                         )
                       }
                       className="text-muted-foreground hover:text-foreground"
-                      aria-label="Remove PDF"
+                      aria-label={t("removePdf")}
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -253,19 +254,21 @@ export function AdminNewsletterComposer({
           disabled={pending || !subject || !htmlContent}
           onClick={() => setConfirmOpen(true)}
         >
-          Send newsletter
+          {t("sendNewsletter")}
         </AdminButton>
       </AdminCard>
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Send newsletter"
-        description={`Send "${subject}" to ${subscriberCount.toLocaleString()} subscribers${
-          pdfUrls.length
-            ? ` with ${pdfUrls.length} PDF attachment${pdfUrls.length === 1 ? "" : "s"}`
-            : ""
-        }?`}
-        confirmLabel="Send"
+        title={t("sendNewsletter")}
+        description={t("confirmSendDescription", {
+          subject,
+          count: subscriberCount,
+          pdfHint: pdfUrls.length
+            ? t("confirmPdfHint", { count: pdfUrls.length })
+            : "",
+        })}
+        confirmLabel={t("send")}
         confirmVariant="primary"
         onClose={() => setConfirmOpen(false)}
         pending={pending}
@@ -274,16 +277,16 @@ export function AdminNewsletterComposer({
 
       <section className="mt-10">
         <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Recent sends{isMockMode ? " (demo)" : ""}
+          {isMockMode ? t("recentSendsDemo") : t("recentSends")}
         </h2>
         <ul className="space-y-3">
           {archive.map((item) => (
             <AdminCard key={item.id} className="p-4">
               <div className="font-medium">{item.subject}</div>
               <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                <span>Sent {item.sentAt}</span>
-                <span>{item.recipients.toLocaleString()} recipients</span>
-                <span>{item.opens.toLocaleString()} opens</span>
+                <span>{t("sentAt", { date: item.sentAt })}</span>
+                <span>{t("recipients", { count: item.recipients })}</span>
+                <span>{t("opens", { count: item.opens })}</span>
               </div>
             </AdminCard>
           ))}

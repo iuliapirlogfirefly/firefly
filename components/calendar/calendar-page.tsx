@@ -11,11 +11,13 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { Nav } from "@/components/Nav";
 import { DiscoveryFilterBar } from "@/components/filters/discovery-filter-bar";
 import { EVENT_TYPES, formatEventTypeLabel } from "@/lib/constants/event-types";
+import { dateTimeLocale } from "@/lib/i18n/date-locale";
 import { landingImages } from "@/lib/landing/images";
 import {
   buildEventsByDate,
@@ -23,7 +25,6 @@ import {
   monthMatrix,
   toDateKey,
   updateCalendarSearchParams,
-  WEEKDAYS,
 } from "@/lib/utils/calendar";
 import { formatTimeRange } from "@/lib/utils/event-format";
 import type { EventType, Locale } from "@/types";
@@ -37,8 +38,17 @@ type Props = {
   filters: EventFilters;
 };
 
+const WEEKDAY_KEYS = [
+  "weekdayMon",
+  "weekdayTue",
+  "weekdayWed",
+  "weekdayThu",
+  "weekdayFri",
+  "weekdaySat",
+  "weekdaySun",
+] as const;
+
 function CalendarFilters({
-  locale,
   filters,
   applyEventType,
   resetFilters,
@@ -46,7 +56,6 @@ function CalendarFilters({
   onClose,
   eventTypeId,
 }: {
-  locale: Locale;
   filters: EventFilters;
   applyEventType: (value: EventType | undefined) => void;
   resetFilters: () => void;
@@ -54,18 +63,21 @@ function CalendarFilters({
   onClose?: () => void;
   eventTypeId: string;
 }) {
+  const t = useTranslations("discovery");
+  const tTypes = useTranslations("eventTypes");
+
   return (
     <div className="flex flex-col">
       <div className="mb-4 flex items-center justify-between">
         <div className="font-mono text-xs uppercase tracking-wider-2 text-firefly">
-          ◦ {locale === "ro" ? "Ajustează noaptea" : "Tune the night"}
+          ◦ {t("tuneNight")}
         </div>
         {onClose ? (
           <button
             type="button"
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-full border border-firefly/20 transition-colors hover:border-firefly/50"
-            aria-label="Close filters"
+            aria-label={t("closeFilters")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -77,7 +89,7 @@ function CalendarFilters({
           htmlFor={eventTypeId}
           className="mb-2 block font-mono text-xs uppercase tracking-wider text-foreground/50"
         >
-          {locale === "ro" ? "Tip eveniment" : "Event type"}
+          {t("eventType")}
         </label>
         <select
           id={eventTypeId}
@@ -91,12 +103,10 @@ function CalendarFilters({
           }
           className="w-full rounded-xl border border-firefly/10 bg-surface-2/60 px-3 py-2 text-sm focus:border-firefly/50 focus:outline-none"
         >
-          <option value="">
-            {locale === "ro" ? "Toate tipurile" : "All types"}
-          </option>
+          <option value="">{t("allTypes")}</option>
           {EVENT_TYPES.map((type) => (
             <option key={type} value={type}>
-              {formatEventTypeLabel(type)}
+              {formatEventTypeLabel(type, tTypes)}
             </option>
           ))}
         </select>
@@ -104,15 +114,14 @@ function CalendarFilters({
 
       <div className="flex items-center justify-between border-t border-firefly/10 pt-4">
         <div className="text-sm text-foreground/60">
-          <span className="font-medium text-firefly">{filteredCount}</span>{" "}
-          {locale === "ro" ? "evenimente strălucesc" : "events glowing"}
+          {t("eventsGlowing", { count: filteredCount })}
         </div>
         <button
           type="button"
           onClick={resetFilters}
           className="font-mono text-xs uppercase tracking-wider-2 text-foreground/50 transition-colors hover:text-firefly"
         >
-          Reset
+          {t("reset")}
         </button>
       </div>
     </div>
@@ -126,6 +135,7 @@ export function CalendarPageClient({
   year,
   filters,
 }: Props) {
+  const t = useTranslations("discovery");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -160,8 +170,9 @@ export function CalendarPageClient({
   );
   const eventsByDate = useMemo(() => buildEventsByDate(events), [events]);
   const selectedEvents = eventsByDate.get(selected) ?? [];
+  const dtLocale = dateTimeLocale(locale);
 
-  const monthName = new Date(year, month - 1).toLocaleDateString("en-US", {
+  const monthName = new Date(year, month - 1).toLocaleDateString(dtLocale, {
     month: "long",
     year: "numeric",
   });
@@ -182,10 +193,11 @@ export function CalendarPageClient({
 
       <section className="mx-auto max-w-7xl px-4 pt-28 sm:px-6 sm:pt-32">
         <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-          ◦ Calendar
+          ◦ {t("calendarEyebrow")}
         </div>
         <h1 className="text-balance font-heading text-5xl font-bold leading-none md:text-6xl">
-          Time, made <span className="text-gradient-firefly">visible.</span>
+          {t("calendarTitle")}{" "}
+          <span className="text-gradient-firefly">{t("calendarTitleAccent")}</span>
         </h1>
 
         <div className="mt-8 lg:hidden">
@@ -195,11 +207,11 @@ export function CalendarPageClient({
               onClick={() => setFiltersOpen((open) => !open)}
               className="glass flex items-center gap-2 rounded-full px-4 py-2.5 text-sm transition-colors hover:bg-surface-1/80"
               aria-expanded={filtersOpen}
-              aria-label={filtersOpen ? "Hide filters" : "Show filters"}
+              aria-label={filtersOpen ? t("hideFilters") : t("showFilters")}
             >
               <Menu className="h-4 w-4 text-firefly" />
               <span className="font-mono text-[11px] uppercase tracking-wider-2">
-                Filters
+                {t("filters")}
               </span>
               {hasFilters ? (
                 <span className="h-2 w-2 rounded-full bg-firefly" />
@@ -207,14 +219,13 @@ export function CalendarPageClient({
             </button>
             <span className="font-mono text-[10px] uppercase tracking-wider-2 text-foreground/50">
               <span className="font-medium text-firefly">{events.length}</span>
-              <span className="ml-1.5">glowing</span>
+              <span className="ml-1.5">{t("glowing")}</span>
             </span>
           </div>
 
           {filtersOpen ? (
             <aside className="glass mt-3 rounded-2xl p-4 animate-fade-up">
               <CalendarFilters
-                locale={locale}
                 filters={filters}
                 applyEventType={(value) =>
                   applySearchParams({ eventType: value })
@@ -256,13 +267,13 @@ export function CalendarPageClient({
                   }}
                   className="rounded-full border border-firefly/30 px-3 py-1.5 font-mono text-xs uppercase tracking-wider-2 text-firefly transition-colors hover:bg-firefly/10"
                 >
-                  Today
+                  {t("today")}
                 </button>
                 <button
                   type="button"
                   onClick={() => shift(-1)}
                   className="flex h-9 w-9 items-center justify-center rounded-full border border-firefly/20 transition-colors hover:border-firefly/50"
-                  aria-label="Previous month"
+                  aria-label={t("prevMonth")}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -270,7 +281,7 @@ export function CalendarPageClient({
                   type="button"
                   onClick={() => shift(1)}
                   className="flex h-9 w-9 items-center justify-center rounded-full border border-firefly/20 transition-colors hover:border-firefly/50"
-                  aria-label="Next month"
+                  aria-label={t("nextMonth")}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -278,12 +289,12 @@ export function CalendarPageClient({
             </div>
 
             <div className="mb-2 grid grid-cols-7 gap-1 sm:mb-3 sm:gap-2">
-              {WEEKDAYS.map((weekday) => (
+              {WEEKDAY_KEYS.map((weekday) => (
                 <div
                   key={weekday}
                   className="text-center font-mono text-[9px] uppercase tracking-wider-2 text-foreground/40 sm:text-[10px]"
                 >
-                  {weekday}
+                  {t(weekday)}
                 </div>
               ))}
             </div>
@@ -339,10 +350,10 @@ export function CalendarPageClient({
 
           <aside className="glass self-start rounded-3xl p-6">
             <div className="mb-2 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-              {selectedDate.toLocaleDateString("en-US", { weekday: "long" })}
+              {selectedDate.toLocaleDateString(dtLocale, { weekday: "long" })}
             </div>
             <h2 className="mb-6 font-heading text-3xl font-bold">
-              {selectedDate.toLocaleDateString("en-US", {
+              {selectedDate.toLocaleDateString(dtLocale, {
                 day: "numeric",
                 month: "long",
               })}
@@ -350,9 +361,7 @@ export function CalendarPageClient({
 
             {selectedEvents.length === 0 ? (
               <div className="text-sm text-foreground/50">
-                {locale === "ro"
-                  ? "O noapte liniștită. Odihnește-te — sau verifică mâine."
-                  : "A quiet night. Use the time to rest — or check tomorrow."}
+                {t("calendarEmpty")}
               </div>
             ) : (
               <ul className="space-y-3">
@@ -385,7 +394,7 @@ export function CalendarPageClient({
                           </div>
                           <div className="mt-1 flex items-center gap-1 font-mono text-xs text-firefly">
                             <Clock className="h-3 w-3" />
-                            {formatTimeRange(event.startsAt, event.endsAt)}
+                            {formatTimeRange(event.startsAt, event.endsAt, locale)}
                           </div>
                         </div>
                       </Link>

@@ -4,6 +4,7 @@ import { getBusinessBillingContact } from "./customer";
 import { addOneMonth } from "./entitlement";
 import { PREMIUM_PRODUCT, SUBSCRIPTION_QUOTAS } from "./products";
 import { activatePromotion } from "./activate-promotion";
+import { grantFeedPostPackFromPayment } from "./feed-post-credits";
 import {
   sendPremiumPaymentFailedEmail,
   sendPremiumUnpaidEmail,
@@ -230,14 +231,23 @@ export async function handleCheckoutCompleted(
     });
   }
 
-  if (!promotionType || !targetId) return;
-
   const paymentIntentId =
     session.payment_intent == null
       ? null
       : typeof session.payment_intent === "string"
         ? session.payment_intent
         : session.payment_intent.id;
+
+  if (promotionType === "feed_post") {
+    await grantFeedPostPackFromPayment(
+      admin,
+      businessAccountId,
+      paymentIntentId
+    );
+    return;
+  }
+
+  if (!promotionType || !targetId) return;
 
   await activatePromotion(admin, {
     businessAccountId,

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { AdminInvoicedCheckbox } from "@/components/admin/admin-invoiced-checkbox";
 import { AdminBadge } from "@/components/admin/ui/admin-badge";
 import { AdminCard } from "@/components/admin/ui/admin-card";
@@ -5,8 +6,7 @@ import type {
   AdminPromotionRow,
   AdminSubscriptionRow,
 } from "@/lib/queries/promotions";
-import { PROMOTION_PRICES, SUBSCRIPTION_PRICE } from "@/lib/stripe/products";
-import type { PromotionType } from "@/types";
+import { SUBSCRIPTION_PRICE } from "@/lib/stripe/products";
 import { formatMoney } from "@/lib/utils/money";
 
 type Props = {
@@ -15,45 +15,43 @@ type Props = {
   isMockMode?: boolean;
 };
 
-function formatPromotionType(type: string) {
-  if (type in PROMOTION_PRICES) {
-    return PROMOTION_PRICES[type as PromotionType].label;
-  }
-  return type.replace(/_/g, " ");
-}
-
-export function AdminPromotionsTable({
+export async function AdminPromotionsTable({
   promotions,
   subscriptions,
 }: Props) {
+  const t = await getTranslations("admin");
+  const tCommon = await getTranslations("common");
+  const tProducts = await getTranslations("common.products");
+  const tStatus = await getTranslations("common.status");
+
   return (
     <div data-route="admin-promotions">
       <h1 className="font-heading text-2xl font-semibold md:text-3xl">
-        Promotions
+        {t("promotions")}
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Active promotions and premium subscriptions.
+        {t("promotionsSubtitle")}
       </p>
 
       <section className="mt-8">
         <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Active promotions
+          {t("activePromotions")}
         </h2>
         {promotions.length === 0 ? (
           <AdminCard className="p-8 text-center text-sm text-muted-foreground">
-            No active promotions.
+            {t("noActivePromotions")}
           </AdminCard>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="border-b border-border bg-surface-1 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Business</th>
-                  <th className="px-4 py-3 font-medium">Type</th>
-                  <th className="px-4 py-3 font-medium">Target</th>
-                  <th className="px-4 py-3 font-medium">Expires</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Invoiced</th>
+                  <th className="px-4 py-3 font-medium">{t("colBusiness")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colType")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colTarget")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colExpires")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colStatus")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colInvoiced")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -66,7 +64,9 @@ export function AdminPromotionsTable({
                       {promo.businessName}
                     </td>
                     <td className="px-4 py-3 capitalize text-muted-foreground">
-                      {formatPromotionType(promo.type)}
+                      {tProducts.has(promo.type)
+                        ? tProducts(promo.type)
+                        : promo.type.replace(/_/g, " ")}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {promo.targetLabel}
@@ -76,7 +76,7 @@ export function AdminPromotionsTable({
                     </td>
                     <td className="px-4 py-3">
                       <AdminBadge status={promo.isActive ? "active" : "default"}>
-                        {promo.isActive ? "active" : "inactive"}
+                        {promo.isActive ? tStatus("active") : tStatus("inactive")}
                       </AdminBadge>
                     </td>
                     <td className="px-4 py-3">
@@ -96,29 +96,31 @@ export function AdminPromotionsTable({
 
       <section className="mt-10">
         <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Active subscriptions
+          {t("activeSubscriptions")}
         </h2>
         {subscriptions.length === 0 ? (
           <AdminCard className="p-8 text-center text-sm text-muted-foreground">
-            No active subscriptions.
+            {t("noActiveSubscriptions")}
           </AdminCard>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full min-w-[1080px] text-left text-sm">
               <thead className="border-b border-border bg-surface-1 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Business</th>
-                  <th className="px-4 py-3 font-medium">Price</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Renews</th>
-                  <th className="px-4 py-3 font-medium">Promoted</th>
-                  <th className="px-4 py-3 font-medium">What Did You Miss</th>
-                  <th className="px-4 py-3 font-medium">Newsletters</th>
-                  <th className="px-4 py-3 font-medium">Social</th>
+                  <th className="px-4 py-3 font-medium">{t("colBusiness")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colPrice")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colStatus")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colRenews")}</th>
+                  <th className="px-4 py-3 font-medium">{tCommon("promoted")}</th>
                   <th className="px-4 py-3 font-medium">
-                    Invoiced
+                    {t("colWhatDidYouMiss")}
+                  </th>
+                  <th className="px-4 py-3 font-medium">{t("colNewsletters")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colSocial")}</th>
+                  <th className="px-4 py-3 font-medium">
+                    {t("colInvoiced")}
                     <span className="mt-0.5 block font-normal normal-case tracking-normal text-muted-foreground">
-                      this period
+                      {t("invoicedThisPeriod")}
                     </span>
                   </th>
                 </tr>
@@ -150,22 +152,32 @@ export function AdminPromotionsTable({
                         }
                       >
                         {sub.paymentFailed
-                          ? "payment failed"
+                          ? t("statusPaymentFailed")
                           : sub.cancelAtPeriodEnd
-                            ? "canceling"
-                            : sub.status}
+                            ? t("statusCanceling")
+                            : tStatus.has(sub.status)
+                              ? tStatus(sub.status)
+                              : sub.status}
                       </AdminBadge>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {sub.cancelAtPeriodEnd || sub.billingType === "one_time"
-                        ? `Ends ${sub.renewsAt}`
+                        ? `${t("ends")} ${sub.renewsAt}`
                         : sub.renewsAt}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {sub.promotedUsed}/{sub.promotedQuota}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {sub.postsUsed}/{sub.postsQuota}
+                      <div>
+                        {sub.postsUsed}/{sub.postsQuota}
+                      </div>
+                      <div className="text-xs text-muted-foreground/70">
+                        {t("packQuotaShort", {
+                          used: sub.packUsed,
+                          quota: sub.packQuota,
+                        })}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {sub.newslettersUsed}/{sub.newslettersQuota}
@@ -178,7 +190,7 @@ export function AdminPromotionsTable({
                         kind="subscription"
                         id={sub.id}
                         invoiced={sub.invoiced}
-                        label="Invoiced this period"
+                        label={t("invoicedThisPeriod")}
                       />
                     </td>
                   </tr>

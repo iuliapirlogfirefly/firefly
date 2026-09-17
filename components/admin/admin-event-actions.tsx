@@ -2,6 +2,7 @@
 
 import { Link } from "@/i18n/navigation";
 import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import {
   approveEvent,
@@ -22,6 +23,8 @@ type Props = {
 };
 
 export function AdminEventActions({ eventId, status, compact = false }: Props) {
+  const t = useTranslations("admin");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
@@ -36,12 +39,12 @@ export function AdminEventActions({ eventId, status, compact = false }: Props) {
     startTransition(async () => {
       const result = await action();
       if (result.success) {
-        setFeedback({ type: "success", message: "Done" });
+        setFeedback({ type: "success", message: tCommon("done") });
         router.refresh();
       } else {
         setFeedback({
           type: "error",
-          message: result.error ?? "Action failed",
+          message: result.error ?? tCommon("actionFailed"),
         });
       }
     });
@@ -52,7 +55,7 @@ export function AdminEventActions({ eventId, status, compact = false }: Props) {
       href={`/admin/events/${eventId}/edit`}
       className="text-sm text-foreground underline-offset-2 hover:underline"
     >
-      Edit
+      {tCommon("edit")}
     </Link>
   );
 
@@ -65,9 +68,9 @@ export function AdminEventActions({ eventId, status, compact = false }: Props) {
               size={compact ? "sm" : "md"}
               onClick={() => run(() => approveEvent(eventId))}
               pending={pending}
-              pendingLabel="Approving…"
+              pendingLabel={t("approving")}
             >
-              Approve
+              {t("approve")}
             </AdminButton>
             <AdminButton
               size={compact ? "sm" : "md"}
@@ -75,8 +78,9 @@ export function AdminEventActions({ eventId, status, compact = false }: Props) {
               onClick={() => setRejectOpen(true)}
               disabled={pending}
             >
-              Reject
+              {t("reject")}
             </AdminButton>
+            {editLink}
           </>
         ) : null}
         {status === "published" ? (
@@ -87,7 +91,7 @@ export function AdminEventActions({ eventId, status, compact = false }: Props) {
               onClick={() => setArchiveOpen(true)}
               disabled={pending}
             >
-              Archive
+              {t("archive")}
             </AdminButton>
             {editLink}
           </>
@@ -98,9 +102,9 @@ export function AdminEventActions({ eventId, status, compact = false }: Props) {
               size={compact ? "sm" : "md"}
               onClick={() => run(() => restoreEvent(eventId))}
               pending={pending}
-              pendingLabel="Restoring…"
+              pendingLabel={t("restoring")}
             >
-              Restore
+              {t("restore")}
             </AdminButton>
             {editLink}
           </>
@@ -114,7 +118,7 @@ export function AdminEventActions({ eventId, status, compact = false }: Props) {
           onClick={() => setDeleteOpen(true)}
           disabled={pending}
         >
-          Delete
+          {tCommon("delete")}
         </AdminButton>
       </div>
       {feedback ? (
@@ -123,7 +127,7 @@ export function AdminEventActions({ eventId, status, compact = false }: Props) {
 
       <RejectDialog
         open={rejectOpen}
-        title="Reject event"
+        title={t("rejectEvent")}
         onClose={() => setRejectOpen(false)}
         pending={pending}
         onConfirm={(reason) => {
@@ -134,9 +138,9 @@ export function AdminEventActions({ eventId, status, compact = false }: Props) {
 
       <ConfirmDialog
         open={archiveOpen}
-        title="Archive event"
-        description="This removes the event from public view without deleting it."
-        confirmLabel="Archive"
+        title={t("archiveEvent")}
+        description={t("archiveDescription")}
+        confirmLabel={t("archive")}
         onClose={() => setArchiveOpen(false)}
         pending={pending}
         onConfirm={() => {
@@ -147,9 +151,9 @@ export function AdminEventActions({ eventId, status, compact = false }: Props) {
 
       <ConfirmDialog
         open={deleteOpen}
-        title="Delete event"
-        description="This permanently removes the event. This cannot be undone."
-        confirmLabel="Delete"
+        title={t("deleteEvent")}
+        description={t("deleteEventDescription")}
+        confirmLabel={tCommon("delete")}
         onClose={() => setDeleteOpen(false)}
         pending={pending}
         onConfirm={() => {

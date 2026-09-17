@@ -22,7 +22,12 @@ export function loadEnvFile(filename) {
   }
 }
 
-export function loadScriptEnv() {
+export function loadScriptEnv(options = {}) {
+  const envFile = options.envFile || process.env.STRIPE_ENV_FILE;
+  if (envFile) {
+    loadEnvFile(envFile);
+    return;
+  }
   loadEnvFile(".env.staging.local");
   loadEnvFile(".env.local");
   loadEnvFile(".env.vercel");

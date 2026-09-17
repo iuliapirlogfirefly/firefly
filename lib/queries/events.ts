@@ -15,6 +15,7 @@ import type {
 import type { Tables } from "@/types/database.types";
 import { getSession } from "@/lib/auth/session";
 import {
+  getMockAdminEventRow,
   getMockBusinessEvents,
   getMockCalendarEvents,
   getMockEventBySlug,
@@ -518,4 +519,118 @@ export async function getAdminEventForEdit(
     lat: data.lat ?? undefined,
     lng: data.lng ?? undefined,
   };
+}
+
+export type AdminEventDetail = {
+  id: string;
+  slug: string;
+  status: string;
+  source: string;
+  startsAt: string;
+  endsAt: string | null;
+  genre: EventListItem["genre"];
+  eventType: EventListItem["eventType"];
+  price: number | null;
+  ticketUrl: string | null;
+  websiteUrl: string | null;
+  specialGuest: string | null;
+  coverImageUrl: string | null;
+  images: string[];
+  venueName: string;
+  address: string;
+  lat: number;
+  lng: number;
+  translations: CreateEventInput["translations"];
+  businessAccountId: string | null;
+  businessName: string | null;
+  createdAt: string;
+  rejectionReason: string | null;
+};
+
+function mapEventToAdminDetail(
+  event: EventRow,
+  businessName: string | null
+): AdminEventDetail {
+  const translations = event.translations as CreateEventInput["translations"];
+
+  return {
+    id: event.id,
+    slug: event.slug,
+    status: event.status,
+    source: event.source,
+    startsAt: event.starts_at,
+    endsAt: event.ends_at,
+    genre: event.genre as EventListItem["genre"],
+    eventType: event.event_type as EventListItem["eventType"],
+    price: event.price,
+    ticketUrl: event.ticket_url,
+    websiteUrl: event.website_url,
+    specialGuest: event.special_guest,
+    coverImageUrl: event.cover_image_url,
+    images: event.images ?? [],
+    venueName: event.venue_name ?? "",
+    address: event.address ?? "",
+    lat: event.lat,
+    lng: event.lng,
+    translations: {
+      en: {
+        title: translations?.en?.title ?? "",
+        description: translations?.en?.description ?? "",
+      },
+      ...(translations?.ro
+        ? {
+            ro: {
+              title: translations.ro.title,
+              description: translations.ro.description,
+            },
+          }
+        : {}),
+    },
+    businessAccountId: event.business_account_id,
+    businessName,
+    createdAt: event.created_at,
+    rejectionReason: event.rejection_reason,
+  };
+}
+
+async function getBusinessNameById(
+  businessAccountId: string | null
+): Promise<string | null> {
+  if (!businessAccountId) return null;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("business_accounts")
+    .select("name")
+    .eq("id", businessAccountId)
+    .maybeSingle();
+
+  return data?.name ?? null;
+}
+
+export async function getAdminEventDetail(
+  id: string
+): Promise<AdminEventDetail | null> {
+  if (shouldUseMockData()) {
+    const row = getMockAdminEventRow(id);
+    if (!row) return null;
+    return mapEventToAdminDetail(
+      row,
+      row.business_account_id ? "Control Club" : null
+    );
+  }
+
+  if (!isSupabaseConfigured()) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const businessName = await getBusinessNameById(data.business_account_id);
+  return mapEventToAdminDetail(data, businessName);
 }

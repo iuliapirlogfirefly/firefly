@@ -2,9 +2,11 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import { ArrowLeft, ArrowRight, Mail } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { AuthField } from "@/components/auth/auth-field";
 import { FireflyField } from "@/components/FireflyField";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { PendingButton } from "@/components/ui/pending-button";
 import { requestPasswordReset } from "@/lib/actions/auth";
 import type { Locale } from "@/types";
@@ -15,6 +17,7 @@ type Props = {
 };
 
 export function ForgotPasswordPage({ locale, linkError }: Props) {
+  const t = useTranslations("auth");
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
@@ -46,54 +49,53 @@ export function ForgotPasswordPage({ locale, linkError }: Props) {
         className="absolute left-6 top-6 z-30 inline-flex items-center gap-2 text-sm text-foreground/60 transition-colors hover:text-firefly"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to sign in
+        {t("backToSignIn")}
       </Link>
+      <div className="absolute right-6 top-6 z-30">
+        <LanguageSwitcher />
+      </div>
 
       <section className="relative z-10 flex min-h-screen items-center justify-center px-6 py-24">
         <div className="w-full max-w-md">
           <div className="mb-10">
             <p className="mb-3 font-mono text-xs tracking-wider-2 text-firefly/80">
-              LOST IN THE DARK
+              {t("lostInDark")}
             </p>
             <h1 className="font-display text-5xl leading-[1.05] text-foreground text-glow sm:text-6xl">
-              Reset your{" "}
-              <span className="text-gradient-firefly">password</span>
+              {t("resetPasswordTitle")}{" "}
+              <span className="text-gradient-firefly">
+                {t("resetPasswordAccent")}
+              </span>
             </h1>
             <p className="mt-4 text-pretty text-foreground/60">
-              {sent
-                ? "If an account exists for that email, we sent a reset link. Check your inbox."
-                : "Enter your email and we'll send you a link to get back into the night."}
+              {sent ? t("resetSent") : t("resetPrompt")}
             </p>
           </div>
 
           {linkError ? (
             <p className="mb-4 text-sm text-destructive">
-              That reset link is invalid or expired. Request a new one below —
-              only the most recent email link works.
+              {t("resetLinkInvalid")}
             </p>
           ) : null}
 
           {sent ? (
             <div className="space-y-4">
-              <p className="text-sm text-foreground/50">
-                Didn&apos;t get it? You can request again, but that will
-                invalidate any earlier reset emails.
-              </p>
+              <p className="text-sm text-foreground/50">{t("didntGetIt")}</p>
               <Link
                 href="/auth"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-firefly/30 px-6 py-3.5 text-sm font-medium text-firefly transition-all hover:bg-firefly/10"
               >
-                Back to sign in
+                {t("backToSignIn")}
               </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <AuthField icon={<Mail className="h-4 w-4" />} label="Email">
+              <AuthField icon={<Mail className="h-4 w-4" />} label={t("email")}>
                 <input
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@aftersunset.com"
+                  placeholder={t("emailPlaceholder")}
                   required
                   autoFocus
                   className="w-full bg-transparent text-foreground outline-none placeholder:text-foreground/30"
@@ -107,10 +109,10 @@ export function ForgotPasswordPage({ locale, linkError }: Props) {
               <PendingButton
                 type="submit"
                 pending={pending}
-                pendingLabel="Sending…"
+                pendingLabel={t("sending")}
                 className="group mt-2 w-full rounded-full bg-firefly px-6 py-3.5 text-sm font-medium text-primary-foreground transition-all hover:scale-[1.01] hover:firefly-glow"
               >
-                Send reset link
+                {t("sendResetLink")}
                 {!pending ? (
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 ) : null}

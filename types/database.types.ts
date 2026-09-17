@@ -77,6 +77,8 @@ export type Database = {
           stripe_customer_id: string | null;
           rejection_reason: string | null;
           approved_at: string | null;
+          addon_feed_posts_quota: number;
+          addon_feed_posts_used: number;
           created_at: string;
           updated_at: string;
         };
@@ -96,6 +98,8 @@ export type Database = {
           stripe_customer_id?: string | null;
           rejection_reason?: string | null;
           approved_at?: string | null;
+          addon_feed_posts_quota?: number;
+          addon_feed_posts_used?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -115,6 +119,8 @@ export type Database = {
           stripe_customer_id?: string | null;
           rejection_reason?: string | null;
           approved_at?: string | null;
+          addon_feed_posts_quota?: number;
+          addon_feed_posts_used?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -639,18 +645,21 @@ export type Database = {
           id: number;
           prelaunch_active: boolean;
           prelaunch_ends_at: string | null;
+          landing_stats_enabled: boolean;
           updated_at: string;
         };
         Insert: {
           id?: number;
           prelaunch_active?: boolean;
           prelaunch_ends_at?: string | null;
+          landing_stats_enabled?: boolean;
           updated_at?: string;
         };
         Update: {
           id?: number;
           prelaunch_active?: boolean;
           prelaunch_ends_at?: string | null;
+          landing_stats_enabled?: boolean;
           updated_at?: string;
         };
         Relationships: [];
@@ -667,6 +676,18 @@ export type Database = {
           p_distance_km: number;
         };
         Returns: Database["public"]["Tables"]["events"]["Row"][];
+      };
+      consume_feed_post_credit: {
+        Args: { p_business_id: string };
+        Returns: string | null;
+      };
+      restore_feed_post_credit: {
+        Args: { p_business_id: string };
+        Returns: string | null;
+      };
+      grant_feed_post_pack: {
+        Args: { p_business_id: string; p_count: number };
+        Returns: undefined;
       };
     };
   };

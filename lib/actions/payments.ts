@@ -65,7 +65,7 @@ type SubscriptionRow = {
 const SUBSCRIPTION_SELECT =
   "id, status, current_period_end, quota_promoted_events, used_promoted_events, quota_feed_posts, used_feed_posts, quota_newsletters, used_newsletters, quota_social_posts, used_social_posts";
 
-const TARGET_REQUIRED_TYPES: PromotionType[] = ["event_boost", "feed_post"];
+const TARGET_REQUIRED_TYPES: PromotionType[] = ["event_boost"];
 
 async function validatePromotionTarget(
   businessAccountId: string,
@@ -84,16 +84,6 @@ async function validatePromotionTarget(
       .maybeSingle();
 
     if (!data) return failure("Published event not found");
-  } else if (type === "feed_post") {
-    const { data } = await supabase
-      .from("feed_posts")
-      .select("id")
-      .eq("id", targetId)
-      .eq("business_account_id", businessAccountId)
-      .eq("status", "published")
-      .maybeSingle();
-
-    if (!data) return failure("Published What Did You Miss post not found");
   } else {
     return success(undefined);
   }
@@ -153,10 +143,12 @@ export async function createCheckoutSession(
     if (!price) return failure("Invalid promotion type");
 
     const resolvedTargetId =
-      targetId ??
-      (TARGET_REQUIRED_TYPES.includes(type)
+      type === "feed_post"
         ? undefined
-        : session.businessAccountId);
+        : (targetId ??
+          (TARGET_REQUIRED_TYPES.includes(type)
+            ? undefined
+            : session.businessAccountId));
 
     if (TARGET_REQUIRED_TYPES.includes(type) && !resolvedTargetId) {
       return failure("Target selection required");
@@ -207,7 +199,10 @@ export async function createCheckoutSession(
         accepted_terms: "true",
         terms_accepted_at: acceptedAt,
       },
-      success_url: `${promotionsPath}?success=true`,
+      success_url:
+        type === "feed_post"
+          ? `${promotionsPath}?success=true&pack=feed_post`
+          : `${promotionsPath}?success=true`,
       cancel_url: `${promotionsPath}?canceled=true`,
     });
 
@@ -420,6 +415,12 @@ export async function useSubscriptionQuota(
         ? undefined
         : session.businessAccountId);
 
+    if (type === "feed_post") {
+      return failure(
+        "What Did You Miss slots are used when you submit a post"
+      );
+    }
+
     if (TARGET_REQUIRED_TYPES.includes(type) && !resolvedTargetId) {
       return failure("Target selection required");
     }
@@ -446,11 +447,9 @@ export async function useSubscriptionQuota(
     const updatePayload =
       type === "event_boost"
         ? { used_promoted_events: used + 1 }
-        : type === "feed_post"
-          ? { used_feed_posts: used + 1 }
-          : type === "newsletter"
-            ? { used_newsletters: used + 1 }
-            : { used_social_posts: used + 1 };
+        : type === "newsletter"
+          ? { used_newsletters: used + 1 }
+          : { used_social_posts: used + 1 };
 
     const admin = createAdminClient();
     const { error } = await admin
@@ -498,16 +497,18 @@ export async function purchasePromotion(
     }
 
     const resolvedTargetId =
-      targetId ??
-      (TARGET_REQUIRED_TYPES.includes(type)
+      type === "feed_post"
         ? undefined
-        : session.businessAccountId);
+        : (targetId ??
+          (TARGET_REQUIRED_TYPES.includes(type)
+            ? undefined
+            : session.businessAccountId));
 
     if (TARGET_REQUIRED_TYPES.includes(type) && !resolvedTargetId) {
       return failure("Target selection required");
     }
 
-    if (!options?.forceCheckout) {
+    if (type !== "feed_post" && !options?.forceCheckout) {
       const sub = await getActiveSubscription(session.businessAccountId);
       if (sub && hasQuotaRemaining(sub, type)) {
         const quotaResult = await useSubscriptionQuota(type, resolvedTargetId, {

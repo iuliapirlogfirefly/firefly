@@ -1,14 +1,15 @@
+"use client";
+
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { BusinessDeleteButton } from "@/components/business/business-delete-button";
 import { getCategoryMeta } from "@/lib/constants/feed-categories";
 import { landingImages } from "@/lib/landing/images";
 import type { BusinessFeedPostItem } from "@/lib/queries/feed";
-import type { Locale } from "@/types";
 
 type Props = {
   posts: BusinessFeedPostItem[];
-  locale: Locale;
 };
 
 function statusClass(status: string) {
@@ -17,16 +18,21 @@ function statusClass(status: string) {
   return "bg-amber-warm/15 text-amber-warm";
 }
 
-export function BusinessPostsList({ posts, locale }: Props) {
+export function BusinessPostsList({ posts }: Props) {
+  const t = useTranslations("business");
+  const tCommon = useTranslations("common");
+  const tStatus = useTranslations("common.status");
+  const tCategories = useTranslations("feedCategories");
+
   return (
     <ul className="mt-10 space-y-3">
       {posts.length === 0 ? (
         <li className="glass rounded-2xl p-8 text-center text-sm text-foreground/50">
-          No posts yet — submit your first nightlife update.
+          {t("emptyPosts")}
         </li>
       ) : null}
       {posts.map((post) => {
-        const category = getCategoryMeta(post.category, locale);
+        const category = getCategoryMeta(post.category, tCategories);
         return (
           <li key={post.id} className="glass rounded-2xl p-4">
             <div className="flex gap-4">
@@ -59,11 +65,8 @@ export function BusinessPostsList({ posts, locale }: Props) {
                   <span
                     className={`rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider-2 ${statusClass(post.status)}`}
                   >
-                    {post.status}
+                    {tStatus(post.status)}
                   </span>
-                  {post.isPromoted ? (
-                    <span className="text-[10px] text-amber-warm">Boosted</span>
-                  ) : null}
                 </div>
                 <div className="mt-1 font-heading font-semibold">{post.title}</div>
                 <p className="mt-1 text-sm text-foreground/65">{post.description}</p>
@@ -74,24 +77,16 @@ export function BusinessPostsList({ posts, locale }: Props) {
                 ) : null}
               </div>
               <div className="flex shrink-0 flex-col gap-2 self-start">
-                {post.status === "published" && !post.isPromoted ? (
-                  <Link
-                    href={`/business/promotions?boost=feed_post&target=${post.id}`}
-                    className="rounded-full border border-firefly/30 px-3 py-1.5 text-xs text-firefly transition-colors hover:bg-firefly/10"
-                  >
-                    Boost
-                  </Link>
-                ) : null}
                 <Link
                   href={`/business/posts/${post.id}/edit`}
                   className="rounded-full border border-firefly/30 px-3 py-1.5 text-xs text-firefly transition-colors hover:bg-firefly/10"
                 >
-                  Edit
+                  {tCommon("edit")}
                 </Link>
                 <BusinessDeleteButton
                   kind="post"
                   id={post.id}
-                  isLive={post.status === "published" || post.isPromoted}
+                  isLive={post.status === "published"}
                 />
               </div>
             </div>

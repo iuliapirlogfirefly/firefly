@@ -1,10 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { useLocale, useTranslations } from "next-intl";
 import { useSavedEvents } from "@/hooks/use-saved-events";
 import { Link } from "@/i18n/navigation";
 import { Spinner } from "@/components/ui/spinner";
 import { formatEventTypeLabel } from "@/lib/constants/event-types";
+import { formatGenreLabel } from "@/lib/constants/genres";
+import { dateTimeLocale } from "@/lib/i18n/date-locale";
 import { landingImages } from "@/lib/landing/images";
 import { formatPrice } from "@/lib/utils/event-format";
 import type { EventListItem } from "@/types/events";
@@ -15,8 +18,8 @@ type Props = {
   showSave?: boolean;
 };
 
-function formatWhen(iso: string) {
-  return new Intl.DateTimeFormat("en-GB", {
+function formatWhen(iso: string, locale: string) {
+  return new Intl.DateTimeFormat(dateTimeLocale(locale), {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -25,15 +28,16 @@ function formatWhen(iso: string) {
   }).format(new Date(iso));
 }
 
-function formatGenre(genre: EventListItem["genre"]) {
-  return genre.replace(/_/g, " ");
-}
-
 export function EventCard({
   event,
   featured = false,
   showSave = true,
 }: Props) {
+  const locale = useLocale();
+  const t = useTranslations("event");
+  const tCommon = useTranslations("common");
+  const tGenres = useTranslations("genres");
+  const tTypes = useTranslations("eventTypes");
   const image = event.coverImageUrl ?? landingImages.editorialCrowd;
   const { has, toggle, pending } = useSavedEvents();
   const saved = has(event.id);
@@ -63,25 +67,24 @@ export function EventCard({
           <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/10 to-transparent" />
           {event.isPromoted && (
             <span className="absolute left-4 top-4 rounded-full bg-firefly/15 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider-2 text-firefly">
-              Promoted
+              {t("promoted")}
             </span>
           )}
         </div>
 
         <div className="shrink-0 space-y-2 p-5">
           <div className="font-mono text-[10px] uppercase tracking-wider-2 text-firefly">
-            {formatWhen(event.startsAt)}
+            {formatWhen(event.startsAt, locale)}
           </div>
           <h3 className="font-heading text-xl font-bold leading-tight transition-colors group-hover:text-firefly">
             {event.title}
           </h3>
           <div className="flex items-center justify-between gap-3 text-sm text-foreground/60">
             <span className="min-w-0 truncate">
-              {event.venueName} · {formatEventTypeLabel(event.eventType)} ·{" "}
-              {formatGenre(event.genre)}
+              {event.venueName} · {formatEventTypeLabel(event.eventType, tTypes)} · {formatGenreLabel(event.genre, tGenres)}
             </span>
             <span className="shrink-0 whitespace-nowrap rounded-full bg-amber-warm/15 px-2 py-0.5 text-[10px] font-medium text-amber-warm">
-              {formatPrice(event.price)}
+              {formatPrice(event.price, tCommon)}
             </span>
           </div>
         </div>
@@ -98,7 +101,7 @@ export function EventCard({
           disabled={pending}
           aria-busy={pending || undefined}
           className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-firefly/40 bg-background/60 text-firefly backdrop-blur-sm transition-colors hover:bg-firefly/10 disabled:opacity-50"
-          aria-label={saved ? "Unsave event" : "Save event"}
+          aria-label={saved ? t("unsaveEvent") : t("saveEvent")}
         >
           {pending ? (
             <Spinner className="h-4 w-4" />

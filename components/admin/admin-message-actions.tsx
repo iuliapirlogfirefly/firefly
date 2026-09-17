@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import {
   archiveContactMessage,
@@ -22,6 +23,8 @@ export function AdminMessageActions({
   replyEmail,
   subject,
 }: Props) {
+  const t = useTranslations("admin");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
@@ -41,7 +44,7 @@ export function AdminMessageActions({
       } else {
         setFeedback({
           type: "error",
-          message: result.error ?? "Action failed",
+          message: result.error ?? tCommon("actionFailed"),
         });
       }
     });
@@ -57,30 +60,30 @@ export function AdminMessageActions({
         {status === "unread" ? (
           <AdminButton
             onClick={() =>
-              run(() => markContactMessageRead(messageId), "Marked as read")
+              run(() => markContactMessageRead(messageId), t("markedAsRead"))
             }
             pending={pending}
-            pendingLabel="Marking…"
+            pendingLabel={t("marking")}
           >
-            Mark read
+            {t("markRead")}
           </AdminButton>
         ) : null}
         <AdminButton
           variant="secondary"
           onClick={() =>
-            run(() => archiveContactMessage(messageId), "Archived")
+            run(() => archiveContactMessage(messageId), t("archived"))
           }
           pending={pending}
-          pendingLabel="Archiving…"
+          pendingLabel={t("archiving")}
         >
-          Archive
+          {t("archive")}
         </AdminButton>
         {mailtoHref ? (
           <a
             href={mailtoHref}
             className="inline-flex items-center rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
           >
-            Reply by email
+            {t("replyByEmail")}
           </a>
         ) : null}
       </div>

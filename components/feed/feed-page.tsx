@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Menu, Search, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
@@ -29,19 +30,22 @@ type Props = {
 const BUCHAREST_CENTER = { lat: 44.4268, lng: 26.1025 };
 
 const DATE_PRESETS = [
-  ["tonight", "Tonight"],
-  ["tomorrow", "Tomorrow"],
-  ["this_weekend", "This Weekend"],
-  ["this_week", "This Week"],
-  ["custom", "Custom"],
-] as const satisfies ReadonlyArray<[DatePreset, string]>;
+  "tonight",
+  "tomorrow",
+  "this_weekend",
+  "this_week",
+  "custom",
+] as const satisfies ReadonlyArray<DatePreset>;
 
-const DISTANCE_OPTIONS = [
-  [null, "Off"],
-  [2, "2 km"],
-  [5, "5 km"],
-  [10, "10 km"],
-] as const;
+const DATE_PRESET_MESSAGE = {
+  tonight: "tonight",
+  tomorrow: "tomorrow",
+  this_weekend: "thisWeekend",
+  this_week: "thisWeek",
+  custom: "custom",
+} as const;
+
+const DISTANCE_OPTIONS = [null, 2, 5, 10] as const;
 
 const CLEARED_FILTERS: Partial<EventFilters> = {
   genre: undefined,
@@ -89,7 +93,6 @@ function requestLocation(): Promise<{ lat: number; lng: number }> {
 }
 
 function FeedFilters({
-  locale,
   filters,
   searchDraft,
   setSearchDraft,
@@ -101,7 +104,6 @@ function FeedFilters({
   onClose,
   eventTypeId,
 }: {
-  locale: Locale;
   filters: EventFilters;
   searchDraft: string;
   setSearchDraft: (value: string) => void;
@@ -113,18 +115,22 @@ function FeedFilters({
   onClose?: () => void;
   eventTypeId: string;
 }) {
+  const t = useTranslations("discovery");
+  const tGenres = useTranslations("genres");
+  const tTypes = useTranslations("eventTypes");
+
   return (
     <div className="flex flex-col">
       <div className="mb-4 flex items-center justify-between">
         <div className="font-mono text-xs uppercase tracking-wider-2 text-firefly">
-          ◦ {locale === "ro" ? "Ajustează noaptea" : "Tune the night"}
+          ◦ {t("tuneNight")}
         </div>
         {onClose ? (
           <button
             type="button"
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-full border border-firefly/20 transition-colors hover:border-firefly/50"
-            aria-label="Close filters"
+            aria-label={t("closeFilters")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -137,18 +143,14 @@ function FeedFilters({
           type="search"
           value={searchDraft}
           onChange={(event) => setSearchDraft(event.target.value)}
-          placeholder={
-            locale === "ro"
-              ? "Caută locații, petreceri…"
-              : "Search venues, parties…"
-          }
+          placeholder={t("searchPlaceholder")}
           className="w-full rounded-xl border border-firefly/10 bg-surface-2/60 py-3 pl-10 pr-3 text-sm transition-colors placeholder:text-foreground/40 focus:border-firefly/50 focus:outline-none"
         />
       </div>
 
       <div className="mb-5">
         <div className="mb-2 font-mono text-xs uppercase tracking-wider text-foreground/50">
-          {locale === "ro" ? "Când" : "When"}
+          {t("when")}
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -158,16 +160,16 @@ function FeedFilters({
             }
             className={`rounded-full border px-3 py-1.5 text-xs transition-all ${pillClass(!filters.datePreset)}`}
           >
-            {locale === "ro" ? "Oricând" : "Any time"}
+            {t("anyTime")}
           </button>
-          {DATE_PRESETS.map(([preset, label]) => (
+          {DATE_PRESETS.map((preset) => (
             <button
               key={preset}
               type="button"
               onClick={() => applyFilters({ datePreset: preset })}
               className={`rounded-full border px-3 py-1.5 text-xs transition-all ${pillClass(filters.datePreset === preset)}`}
             >
-              {label}
+              {t(DATE_PRESET_MESSAGE[preset])}
             </button>
           ))}
         </div>
@@ -188,7 +190,7 @@ function FeedFilters({
 
       <div className="mb-5">
         <div className="mb-2 font-mono text-xs uppercase tracking-wider text-foreground/50">
-          Genre
+          {t("genre")}
         </div>
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -200,7 +202,7 @@ function FeedFilters({
                 : "border-firefly/10 bg-surface-2/40 text-foreground/70 hover:border-firefly/30"
             }`}
           >
-            All
+            {t("all")}
           </button>
           {GENRES.map((genre) => {
             const on = filters.genre === genre;
@@ -216,7 +218,7 @@ function FeedFilters({
                     : "border-firefly/10 bg-surface-2/40 text-foreground/70 hover:border-firefly/30"
                 }`}
               >
-                {formatGenreLabel(genre)}
+                {formatGenreLabel(genre, tGenres)}
               </button>
             );
           })}
@@ -228,7 +230,7 @@ function FeedFilters({
           htmlFor={eventTypeId}
           className="mb-2 block font-mono text-xs uppercase tracking-wider text-foreground/50"
         >
-          {locale === "ro" ? "Tip eveniment" : "Event type"}
+          {t("eventType")}
         </label>
         <select
           id={eventTypeId}
@@ -242,12 +244,10 @@ function FeedFilters({
           }
           className="w-full rounded-xl border border-firefly/10 bg-surface-2/60 px-3 py-2 text-sm focus:border-firefly/50 focus:outline-none"
         >
-          <option value="">
-            {locale === "ro" ? "Toate tipurile" : "All types"}
-          </option>
+          <option value="">{t("allTypes")}</option>
           {EVENT_TYPES.map((type) => (
             <option key={type} value={type}>
-              {formatEventTypeLabel(type)}
+              {formatEventTypeLabel(type, tTypes)}
             </option>
           ))}
         </select>
@@ -255,12 +255,12 @@ function FeedFilters({
 
       <div className="mb-5">
         <div className="mb-2 font-mono text-xs uppercase tracking-wider text-foreground/50">
-          {locale === "ro" ? "Distanță" : "Distance"}
+          {t("distance")}
         </div>
         <div className="flex flex-wrap gap-2">
-          {DISTANCE_OPTIONS.map(([km, label]) => (
+          {DISTANCE_OPTIONS.map((km) => (
             <button
-              key={label}
+              key={km ?? "off"}
               type="button"
               onClick={() => void setDistance(km)}
               className={`rounded-full border px-3 py-1.5 text-xs transition-all ${pillClass(
@@ -269,7 +269,7 @@ function FeedFilters({
                   : filters.distanceKm === km
               )}`}
             >
-              {label}
+              {km == null ? t("off") : t("km", { km })}
             </button>
           ))}
         </div>
@@ -288,21 +288,20 @@ function FeedFilters({
           }
           className={`rounded-full border px-4 py-2 text-sm transition-all ${pillClass(!!filters.promotedOnly)}`}
         >
-          {locale === "ro" ? "Doar promovate" : "Promoted only"}
+          {t("promotedOnly")}
         </button>
       </div>
 
       <div className="flex items-center justify-between border-t border-firefly/10 pt-4">
         <div className="text-sm text-foreground/60">
-          <span className="font-medium text-firefly">{filteredCount}</span>{" "}
-          {locale === "ro" ? "evenimente strălucesc" : "events glowing"}
+          {t("eventsGlowing", { count: filteredCount })}
         </div>
         <button
           type="button"
           onClick={resetFilters}
           className="font-mono text-xs uppercase tracking-wider-2 text-foreground/50 transition-colors hover:text-firefly"
         >
-          Reset
+          {t("reset")}
         </button>
       </div>
     </div>
@@ -338,6 +337,7 @@ function FeedEventSection({
 }
 
 export function FeedPageClient({ events, locale, filters }: Props) {
+  const t = useTranslations("discovery");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -402,12 +402,8 @@ export function FeedPageClient({ events, locale, filters }: Props) {
   const distanceHint =
     filters.distanceKm != null
       ? isBucharestFallback(filters.lat, filters.lng)
-        ? locale === "ro"
-          ? "Lângă București"
-          : "Near Bucharest"
-        : locale === "ro"
-          ? "Lângă tine"
-          : "Near you"
+        ? t("nearBucharest")
+        : t("nearYou")
       : null;
 
   return (
@@ -416,18 +412,14 @@ export function FeedPageClient({ events, locale, filters }: Props) {
 
       <section className="mx-auto max-w-7xl px-6 pt-32">
         <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-          ◦ {locale === "ro" ? "Feed" : "The feed"}
+          ◦ {t("feedEyebrow")}
         </div>
         <h1 className="text-balance font-heading text-5xl font-bold leading-[0.95] md:text-7xl">
-          Tonight, tomorrow,
+          {t("feedTitle")}
           <br />{" "}
-          <span className="text-gradient-firefly">and beyond.</span>
+          <span className="text-gradient-firefly">{t("feedTitleAccent")}</span>
         </h1>
-        <p className="mt-6 max-w-xl text-foreground/65">
-          {locale === "ro"
-            ? "Toate petrecerile care strălucesc pe hartă — atinge pentru detalii."
-            : "Every party glowing on the map — tap for details."}
-        </p>
+        <p className="mt-6 max-w-xl text-foreground/65">{t("feedSubtitle")}</p>
 
         <div className="mt-10 lg:hidden">
           <div className="flex items-center gap-2">
@@ -436,11 +428,11 @@ export function FeedPageClient({ events, locale, filters }: Props) {
               onClick={() => setFiltersOpen((open) => !open)}
               className="glass flex items-center gap-2 rounded-full px-4 py-2.5 text-sm transition-colors hover:bg-surface-1/80"
               aria-expanded={filtersOpen}
-              aria-label={filtersOpen ? "Hide filters" : "Show filters"}
+              aria-label={filtersOpen ? t("hideFilters") : t("showFilters")}
             >
               <Menu className="h-4 w-4 text-firefly" />
               <span className="font-mono text-[11px] uppercase tracking-wider-2">
-                Filters
+                {t("filters")}
               </span>
               {hasFilters ? (
                 <span className="h-2 w-2 rounded-full bg-firefly" />
@@ -448,14 +440,13 @@ export function FeedPageClient({ events, locale, filters }: Props) {
             </button>
             <span className="font-mono text-[10px] uppercase tracking-wider-2 text-foreground/50">
               <span className="font-medium text-firefly">{events.length}</span>
-              <span className="ml-1.5">glowing</span>
+              <span className="ml-1.5">{t("glowing")}</span>
             </span>
           </div>
 
           {filtersOpen ? (
             <aside className="glass mt-3 rounded-2xl p-4 animate-fade-up">
               <FeedFilters
-                locale={locale}
                 filters={filters}
                 searchDraft={searchDraft}
                 setSearchDraft={setSearchDraft}
@@ -501,22 +492,14 @@ export function FeedPageClient({ events, locale, filters }: Props) {
         </div>
 
         <FeedEventSection
-          eyebrow={locale === "ro" ? "Promovate" : "Promoted"}
-          title={
-            locale === "ro"
-              ? "Cele mai hot petreceri din București"
-              : "Hottest parties in Bucharest"
-          }
+          eyebrow={t("promotedEyebrow")}
+          title={t("promotedTitle")}
           events={hottest}
         />
 
         <FeedEventSection
-          eyebrow={locale === "ro" ? "Nu rata" : "Don't miss"}
-          title={
-            locale === "ro"
-              ? "Nu rata aceste petreceri"
-              : "Don't miss these parties"
-          }
+          eyebrow={t("dontMissEyebrow")}
+          title={t("dontMissTitle")}
           events={rest}
         />
 
@@ -524,13 +507,7 @@ export function FeedPageClient({ events, locale, filters }: Props) {
           <div className="mt-20 text-center">
             <div className="mb-4 inline-block h-12 w-12 animate-firefly-pulse rounded-full border border-firefly/30 bg-firefly/10" />
             <p className="text-foreground/60">
-              {hasFilters
-                ? locale === "ro"
-                  ? "Nicio petrecere nu se potrivește filtrelor tale… încă."
-                  : "No parties match your filters… yet."
-                : locale === "ro"
-                  ? "Nicio petrecere… încă."
-                  : "No parties… yet."}
+              {hasFilters ? t("feedEmptyFiltered") : t("feedEmpty")}
             </p>
           </div>
         ) : null}

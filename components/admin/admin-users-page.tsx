@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { AdminUserActions } from "@/components/admin/admin-user-actions";
 import { AdminBadge } from "@/components/admin/ui/admin-badge";
@@ -20,6 +21,7 @@ function isBusinessUser(user: AdminUserRow) {
 }
 
 export function AdminUsersPage({ users }: Props) {
+  const t = useTranslations("admin");
   const [tab, setTab] = useState<Tab>("businesses");
   const [search, setSearch] = useState("");
 
@@ -48,17 +50,16 @@ export function AdminUsersPage({ users }: Props) {
   return (
     <div data-route="admin-users">
       <h1 className="font-heading text-2xl font-semibold md:text-3xl">
-        Users & businesses
+        {t("usersTitle")}
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Manage business account approvals and user access.
+        {t("usersSubtitle")}
       </p>
 
       {pendingBusinesses.length > 0 ? (
         <AdminCard className="mt-6 border-amber-500/30 p-4">
           <p className="text-sm font-medium text-amber-400">
-            {pendingBusinesses.length} business account
-            {pendingBusinesses.length === 1 ? "" : "s"} awaiting approval
+            {t("pendingBanner", { count: pendingBusinesses.length })}
           </p>
         </AdminCard>
       ) : null}
@@ -73,7 +74,7 @@ export function AdminUsersPage({ users }: Props) {
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          Businesses ({businesses.length})
+          {t("tabBusinesses", { count: businesses.length })}
         </button>
         <button
           type="button"
@@ -84,14 +85,14 @@ export function AdminUsersPage({ users }: Props) {
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          Users ({standardUsers.length})
+          {t("tabUsers", { count: standardUsers.length })}
         </button>
       </div>
 
       <div className="mt-4">
         <input
           type="search"
-          placeholder="Search by name or email..."
+          placeholder={t("searchUsers")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full max-w-md rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-foreground/30"
@@ -102,12 +103,12 @@ export function AdminUsersPage({ users }: Props) {
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="border-b border-border bg-surface-1 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Email</th>
-              <th className="px-4 py-3 font-medium">Role</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Joined</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
+              <th className="px-4 py-3 font-medium">{t("colName")}</th>
+              <th className="px-4 py-3 font-medium">{t("colEmail")}</th>
+              <th className="px-4 py-3 font-medium">{t("colRole")}</th>
+              <th className="px-4 py-3 font-medium">{t("colStatus")}</th>
+              <th className="px-4 py-3 font-medium">{t("colJoined")}</th>
+              <th className="px-4 py-3 font-medium">{t("colActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -136,7 +137,7 @@ export function AdminUsersPage({ users }: Props) {
                         href={`/admin/users/${user.businessAccountId}`}
                         className="inline-flex items-center justify-center rounded-lg border border-border bg-transparent px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-surface-2"
                       >
-                        View details
+                        {t("viewDetails")}
                       </Link>
                     ) : null}
                     <AdminUserActions

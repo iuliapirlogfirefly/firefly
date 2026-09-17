@@ -38,7 +38,7 @@ const ro: LegalDocument = {
   { type: "p", text: "Serviciile disponibile includ:" },
   { type: "ul", items: [
     "Promoted Event – 150 lei / eveniment Promovarea unui eveniment în feed-ul și pe harta Firefly.",
-    "“What Did You Miss?” Post – 100 lei / postare Publicarea unei postări promoționale în secțiunea „What Did You Miss?”, sub rezerva aprobării Firefly.",
+    "“What Did You Miss?” Pack – 100 lei / pachet (4 postări) Publicarea a până la 4 postări în secțiunea „What Did You Miss?”, sub rezerva aprobării Firefly. Achizițiile suplimentare adaugă încă 4 postări.",
     "Newsletter – 150 lei / includere Includerea unui business, eveniment sau material promoțional într-o ediție a newsletterului Firefly, sub rezerva aprobării.",
     "Social Media Content – 150 lei / postare Includerea business-ului sau a materialului promoțional într-o postare pe canalele oficiale de social media Firefly, sub rezerva aprobării.",
     "Premium Subscription – 500 lei / lună, care include:",
@@ -130,7 +130,7 @@ const en: LegalDocument = {
   { type: "p", text: "Available services include:" },
   { type: "ul", items: [
     "Promoted Event – RON 150 / event Promotion of an event in the Firefly feed and on the Firefly map.",
-    "“What Did You Miss?” Post – RON 100 / post Publication of a promotional post in the “What Did You Miss?” section, subject to Firefly approval.",
+    "“What Did You Miss?” Pack – RON 100 / pack (4 posts) Publication of up to 4 posts in the “What Did You Miss?” section, subject to Firefly approval. Additional purchases add 4 more posts.",
     "Newsletter – RON 150 / inclusion Inclusion of a business, event, or promotional material in one edition of the Firefly newsletter, subject to approval.",
     "Social Media Content – RON 150 / post Inclusion of the business or promotional material in a post on Firefly's official social media channels, subject to approval.",
     "Premium Subscription – RON 500 / month, including:",

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { ImagePlus, Loader2, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { getUploadUrl } from "@/lib/actions/business";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -46,6 +47,7 @@ type Props = SingleProps | MultiProps;
 
 export function ImageUploader(props: Props) {
   const { bucket = "event-images", label } = props;
+  const t = useTranslations("event");
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +69,7 @@ export function ImageUploader(props: Props) {
         props.onChange(url);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
+      setError(e instanceof Error ? e.message : t("uploadFailed"));
     } finally {
       setPending(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -110,7 +112,7 @@ export function ImageUploader(props: Props) {
                 disabled={disabled}
                 className="rounded-full bg-firefly px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
               >
-                Replace
+                {t("replace")}
               </button>
               <button
                 type="button"
@@ -118,7 +120,7 @@ export function ImageUploader(props: Props) {
                 disabled={disabled}
                 className="rounded-full border border-firefly/40 px-3 py-1.5 text-xs text-foreground disabled:opacity-50"
               >
-                Remove
+                {t("remove")}
               </button>
             </div>
           </div>
@@ -134,7 +136,7 @@ export function ImageUploader(props: Props) {
             ) : (
               <ImagePlus className="h-5 w-5" />
             )}
-            {pending ? "Uploading…" : "Click to upload an image"}
+            {pending ? t("uploading") : t("clickToUpload")}
           </button>
         )
       ) : (
@@ -151,7 +153,7 @@ export function ImageUploader(props: Props) {
                   props.onChange(props.value.filter((_, i) => i !== index))
                 }
                 className="absolute right-1 top-1 rounded-full bg-background/80 p-1 opacity-0 transition-opacity group-hover:opacity-100"
-                aria-label="Remove image"
+                aria-label={t("removeImage")}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -169,17 +171,14 @@ export function ImageUploader(props: Props) {
             ) : (
               <ImagePlus className="h-4 w-4" />
             )}
-            <span className="text-[10px]">{pending ? "…" : "Add"}</span>
+            <span className="text-[10px]">{pending ? t("uploading") : t("add")}</span>
           </button>
         </div>
       )}
 
       {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
       {!isSupabaseConfigured() ? (
-        <p className="mt-2 text-xs text-foreground/40">
-          Image upload requires Supabase to be configured (mock-data mode
-          can&apos;t store files).
-        </p>
+        <p className="mt-2 text-xs text-foreground/40">{t("mockModeHint")}</p>
       ) : null}
     </div>
   );

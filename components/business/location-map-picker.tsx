@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import {
@@ -41,6 +42,8 @@ export function LocationMapPicker({
   inputClassName = "",
   labelClassName = "",
 }: Props) {
+  const t = useTranslations("business");
+  const tCommon = useTranslations("common");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
@@ -162,9 +165,7 @@ export function LocationMapPicker({
     try {
       const result = await searchAddressAction(q);
       if (!result) {
-        setSearchError(
-          "No location found for that address. Try again or pin the map."
-        );
+        setSearchError(t("addressNotFound"));
         return;
       }
       skipReverseRef.current = true;
@@ -181,7 +182,7 @@ export function LocationMapPicker({
     <div className="space-y-3">
       <div>
         <label className={labelClassName} htmlFor="event-location-address">
-          Address
+          {t("address")}
         </label>
         <div className="flex gap-2">
           <input
@@ -201,7 +202,7 @@ export function LocationMapPicker({
                 void runSearch(true);
               }
             }}
-            placeholder="Search an address…"
+            placeholder={t("searchAddress")}
             required
             disabled={disabled}
           />
@@ -211,14 +212,14 @@ export function LocationMapPicker({
             onClick={() => void runSearch(true)}
             className="shrink-0 rounded-xl border border-firefly/30 px-3.5 py-2.5 text-sm font-medium text-firefly transition-all hover:bg-firefly/10 disabled:opacity-50"
           >
-            {searching ? "…" : "Search"}
+            {searching ? t("searching") : tCommon("search")}
           </button>
         </div>
         {searchError ? (
           <p className="mt-1.5 text-xs text-destructive">{searchError}</p>
         ) : (
           <p className="mt-1.5 text-xs text-foreground/40">
-            Search an address or click / drag the pin on the map.
+            {t("pinHint")}
           </p>
         )}
       </div>
@@ -226,7 +227,7 @@ export function LocationMapPicker({
       <div
         ref={containerRef}
         className="h-[240px] w-full overflow-hidden rounded-xl border border-firefly/20"
-        aria-label="Location map"
+        aria-label={t("locationMap")}
       />
     </div>
   );

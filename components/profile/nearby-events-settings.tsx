@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import {
   updateNearbyPreferences,
   type NearbyPreferences,
@@ -10,11 +11,7 @@ type Props = {
   initial: NearbyPreferences | null;
 };
 
-const RADIUS_OPTIONS = [
-  [2, "2 km"],
-  [5, "5 km"],
-  [10, "10 km"],
-] as const;
+const RADIUS_OPTIONS = [2, 5, 10] as const;
 
 function requestLocation(): Promise<{ lat: number; lng: number }> {
   return new Promise((resolve, reject) => {
@@ -36,6 +33,9 @@ function requestLocation(): Promise<{ lat: number; lng: number }> {
 }
 
 export function NearbyEventsSettings({ initial }: Props) {
+  const t = useTranslations("profile");
+  const tCommon = useTranslations("common");
+  const tDiscovery = useTranslations("discovery");
   const [optIn, setOptIn] = useState(initial?.optIn ?? false);
   const [lat, setLat] = useState<number | null>(initial?.lat ?? null);
   const [lng, setLng] = useState<number | null>(initial?.lng ?? null);
@@ -52,9 +52,9 @@ export function NearbyEventsSettings({ initial }: Props) {
       const coords = await requestLocation();
       setLat(coords.lat);
       setLng(coords.lng);
-      setMessage("Location updated.");
+      setMessage(t("locationUpdated"));
     } catch {
-      setError("Could not access your location. Check browser permissions.");
+      setError(t("locationError"));
     } finally {
       setLocating(false);
     }
@@ -77,21 +77,18 @@ export function NearbyEventsSettings({ initial }: Props) {
         return;
       }
 
-      setMessage("Preferences saved.");
+      setMessage(t("preferencesSaved"));
     });
   };
 
   return (
     <div className="mt-10 glass rounded-3xl p-6">
       <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
-        ◦ Nearby events
+        {t("nearbyEyebrow")}
       </div>
-      <h2 className="font-heading text-2xl font-semibold">
-        Daily digest near you
-      </h2>
+      <h2 className="font-heading text-2xl font-semibold">{t("nearbyTitle")}</h2>
       <p className="mt-2 max-w-lg text-sm text-foreground/60">
-        Get a daily email when new events are published within your chosen
-        radius.
+        {t("nearbyDescription")}
       </p>
 
       <label className="mt-6 flex cursor-pointer items-center gap-3">
@@ -101,15 +98,15 @@ export function NearbyEventsSettings({ initial }: Props) {
           onChange={(e) => setOptIn(e.target.checked)}
           className="h-4 w-4 rounded border-firefly/30 accent-firefly"
         />
-        <span className="text-sm">Email me about nearby events</span>
+        <span className="text-sm">{t("nearbyOptIn")}</span>
       </label>
 
       <div className="mt-4">
         <span className="mb-2 block text-xs font-medium text-foreground/50">
-          Radius
+          {t("radius")}
         </span>
         <div className="flex flex-wrap gap-2">
-          {RADIUS_OPTIONS.map(([value, label]) => (
+          {RADIUS_OPTIONS.map((value) => (
             <button
               key={value}
               type="button"
@@ -120,7 +117,7 @@ export function NearbyEventsSettings({ initial }: Props) {
                   : "border-firefly/20 text-foreground/70 hover:border-firefly/50"
               }`}
             >
-              {label}
+              {tDiscovery("km", { km: value })}
             </button>
           ))}
         </div>
@@ -133,14 +130,14 @@ export function NearbyEventsSettings({ initial }: Props) {
           disabled={locating}
           className="rounded-full border border-firefly/30 px-4 py-2 text-sm text-firefly hover:bg-firefly/10 disabled:opacity-50"
         >
-          {locating ? "Locating…" : "Use my location"}
+          {locating ? t("locating") : t("useMyLocation")}
         </button>
         {lat != null && lng != null ? (
           <span className="text-xs text-foreground/50">
             {lat.toFixed(4)}, {lng.toFixed(4)}
           </span>
         ) : (
-          <span className="text-xs text-foreground/40">No location set</span>
+          <span className="text-xs text-foreground/40">{t("noLocation")}</span>
         )}
       </div>
 
@@ -150,7 +147,7 @@ export function NearbyEventsSettings({ initial }: Props) {
         disabled={pending}
         className="mt-6 rounded-full bg-firefly px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
       >
-        {pending ? "Saving…" : "Save preferences"}
+        {pending ? tCommon("saving") : t("savePreferences")}
       </button>
 
       {message ? (

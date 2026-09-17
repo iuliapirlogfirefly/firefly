@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { AdminDeliveryActions } from "@/components/admin/admin-delivery-actions";
 import { AdminBadge } from "@/components/admin/ui/admin-badge";
 import { AdminCard } from "@/components/admin/ui/admin-card";
@@ -14,16 +15,16 @@ type Props = {
 type StatusTab = "pending" | "done" | "all";
 type TypeFilter = "all" | "social_media" | "newsletter";
 
-function formatType(type: string) {
-  return type.replace(/_/g, " ");
-}
-
 function truncate(text: string, max = 48) {
   if (text.length <= max) return text;
   return `${text.slice(0, max)}…`;
 }
 
 export function AdminDeliveriesTable({ deliveries }: Props) {
+  const t = useTranslations("admin");
+  const tCommon = useTranslations("common");
+  const tProducts = useTranslations("common.products");
+  const tStatus = useTranslations("common.status");
   const [statusTab, setStatusTab] = useState<StatusTab>("pending");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
@@ -39,25 +40,30 @@ export function AdminDeliveriesTable({ deliveries }: Props) {
     });
   }, [deliveries, statusTab, typeFilter]);
 
+  const statusTabs = [
+    ["pending", t("tabPending", { count: pendingCount })],
+    ["done", t("tabDone", { count: doneCount })],
+    ["all", t("tabAllCount", { count: deliveries.length })],
+  ] as const;
+
+  const typeFilters = [
+    ["all", t("filterAllTypes")],
+    ["social_media", t("filterSocial")],
+    ["newsletter", t("filterNewsletter")],
+  ] as const;
+
   return (
     <div data-route="admin-deliveries">
       <h1 className="font-heading text-2xl font-semibold md:text-3xl">
-        Deliveries
+        {t("deliveries")}
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Track social media posts and newsletter inclusions for purchased
-        promotions.
+        {t("deliveriesSubtitle")}
       </p>
 
       <div className="mt-6 flex flex-wrap items-center gap-4">
         <div className="flex gap-2 border-b border-border">
-          {(
-            [
-              ["pending", `Pending (${pendingCount})`],
-              ["done", `Done (${doneCount})`],
-              ["all", `All (${deliveries.length})`],
-            ] as const
-          ).map(([key, label]) => (
+          {statusTabs.map(([key, label]) => (
             <button
               key={key}
               type="button"
@@ -74,13 +80,7 @@ export function AdminDeliveriesTable({ deliveries }: Props) {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {(
-            [
-              ["all", "All types"],
-              ["social_media", "Social"],
-              ["newsletter", "Newsletter"],
-            ] as const
-          ).map(([key, label]) => (
+          {typeFilters.map(([key, label]) => (
             <button
               key={key}
               type="button"
@@ -101,12 +101,12 @@ export function AdminDeliveriesTable({ deliveries }: Props) {
         {filtered.length === 0 ? (
           <AdminEmptyState
             title={
-              statusTab === "pending" ? "All caught up" : "Nothing here"
+              statusTab === "pending" ? t("allCaughtUp") : t("nothingHere")
             }
             description={
               statusTab === "pending"
-                ? "No social or newsletter promotions waiting for delivery."
-                : "No deliveries match these filters."
+                ? t("noPendingDeliveries")
+                : t("noDeliveriesMatch")
             }
           />
         ) : (
@@ -114,14 +114,14 @@ export function AdminDeliveriesTable({ deliveries }: Props) {
             <table className="w-full min-w-[960px] text-left text-sm">
               <thead className="border-b border-border bg-surface-1 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Business</th>
-                  <th className="px-4 py-3 font-medium">Type</th>
-                  <th className="px-4 py-3 font-medium">Created</th>
-                  <th className="px-4 py-3 font-medium">Expires</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">URL</th>
-                  <th className="px-4 py-3 font-medium">Notes</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
+                  <th className="px-4 py-3 font-medium">{t("colBusiness")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colType")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colCreated")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colExpires")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colStatus")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colUrl")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colNotes")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colActions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -136,7 +136,9 @@ export function AdminDeliveriesTable({ deliveries }: Props) {
                         {row.businessName}
                       </td>
                       <td className="px-4 py-3 capitalize text-muted-foreground">
-                        {formatType(row.type)}
+                        {tProducts.has(row.type)
+                          ? tProducts(row.type)
+                          : row.type.replace(/_/g, " ")}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
                         {row.createdAt.slice(0, 10)}
@@ -146,7 +148,7 @@ export function AdminDeliveriesTable({ deliveries }: Props) {
                       </td>
                       <td className="px-4 py-3">
                         <AdminBadge status={done ? "approved" : "pending"}>
-                          {done ? "done" : "pending"}
+                          {done ? tCommon("done") : tStatus("pending")}
                         </AdminBadge>
                       </td>
                       <td className="max-w-[180px] px-4 py-3">
@@ -188,8 +190,7 @@ export function AdminDeliveriesTable({ deliveries }: Props) {
       {pendingCount > 0 && statusTab !== "pending" ? (
         <AdminCard className="mt-6 border-amber-500/30 p-4">
           <p className="text-sm font-medium text-amber-400">
-            {pendingCount} deliver
-            {pendingCount === 1 ? "y" : "ies"} still pending
+            {t("stillPending", { count: pendingCount })}
           </p>
         </AdminCard>
       ) : null}

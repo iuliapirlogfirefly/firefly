@@ -264,11 +264,17 @@ const MOCK_PENDING_EVENT_ROWS: EventRow[] = [
     id: "mock-pending-1",
     slug: "pending-minimal-monday",
     status: "pending",
+    source: "business",
+    business_account_id: MOCK_BUSINESS_ACCOUNT_ID,
     genre: "minimal",
     event_type: "club_night",
     venue_name: "Guest House",
     price: 40,
+    special_guest: "DJ Ion",
+    ticket_url: "https://example.com/tickets/minimal-monday",
+    website_url: "https://example.com/guesthouse",
     cover_image_url: eventImages.event3,
+    images: [eventImages.event1, eventImages.event2],
     starts_at: new Date(weekend.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
     translations: {
       en: {
@@ -285,6 +291,8 @@ const MOCK_PENDING_EVENT_ROWS: EventRow[] = [
     id: "mock-pending-2",
     slug: "pending-breakfast-club",
     status: "pending",
+    source: "business",
+    business_account_id: MOCK_BUSINESS_ACCOUNT_ID,
     genre: "house",
     event_type: "party",
     venue_name: "Kulturhaus",
@@ -496,7 +504,6 @@ export function getMockFeedPosts(locale: Locale): FeedPostItem[] {
         : "Last tickets gone in 40 minutes. Watch the feed for door surprises.",
       mediaUrl: eventImages.event1,
       publishedAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-      isPromoted: true,
     },
     {
       id: "mock-post-2",
@@ -507,7 +514,6 @@ export function getMockFeedPosts(locale: Locale): FeedPostItem[] {
         : "The queue wraps around the corner on Academiei. If you're not on the list, budget time.",
       mediaUrl: landingImages.editorialCrowd,
       publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      isPromoted: false,
     },
     {
       id: "mock-post-3",
@@ -518,7 +524,6 @@ export function getMockFeedPosts(locale: Locale): FeedPostItem[] {
         : "Subterra's lineup just got an unannounced upgrade. Closing set incoming.",
       mediaUrl: eventImages.event2,
       publishedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      isPromoted: false,
     },
     {
       id: "mock-post-4",
@@ -529,7 +534,6 @@ export function getMockFeedPosts(locale: Locale): FeedPostItem[] {
         : "Sky Lounge kicks off summer season Friday. Opening night: sunset afro house.",
       mediaUrl: eventImages.event4,
       publishedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-      isPromoted: false,
     },
     {
       id: "mock-post-5",
@@ -540,7 +544,6 @@ export function getMockFeedPosts(locale: Locale): FeedPostItem[] {
         : "Vote in stories — winner gets on the list for the next party.",
       mediaUrl: null,
       publishedAt: new Date(Date.now() - 14 * 60 * 60 * 1000).toISOString(),
-      isPromoted: false,
     },
     {
       id: "mock-post-6",
@@ -551,7 +554,6 @@ export function getMockFeedPosts(locale: Locale): FeedPostItem[] {
         : "3 tables left for tonight's party. Reserve before 10pm.",
       mediaUrl: eventImages.event3,
       publishedAt: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
-      isPromoted: false,
     },
     {
       id: "mock-post-7",
@@ -562,7 +564,6 @@ export function getMockFeedPosts(locale: Locale): FeedPostItem[] {
         : "A 4-night garden series starts next month. Full lineup drops Thursday.",
       mediaUrl: landingImages.editorialDj,
       publishedAt: new Date(Date.now() - 28 * 60 * 60 * 1000).toISOString(),
-      isPromoted: false,
     },
     {
       id: "mock-post-8",
@@ -573,7 +574,6 @@ export function getMockFeedPosts(locale: Locale): FeedPostItem[] {
         : "Heated debate in the comments. Team Firefly stays neutral — but dancing.",
       mediaUrl: landingImages.editorialStreet,
       publishedAt: new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString(),
-      isPromoted: false,
     },
     {
       id: "mock-post-9",
@@ -584,7 +584,6 @@ export function getMockFeedPosts(locale: Locale): FeedPostItem[] {
         : "Doors closes at 5am. Continue on Academiei — list until 5:30.",
       mediaUrl: landingImages.heroCrowd,
       publishedAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
-      isPromoted: false,
     },
     {
       id: "mock-post-10",
@@ -595,7 +594,6 @@ export function getMockFeedPosts(locale: Locale): FeedPostItem[] {
         : "Sky Lounge stayed open. The crowd danced wet, nobody left.",
       mediaUrl: landingImages.editorialStreet,
       publishedAt: new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString(),
-      isPromoted: false,
     },
     {
       id: "mock-post-11",
@@ -606,7 +604,6 @@ export function getMockFeedPosts(locale: Locale): FeedPostItem[] {
         : "Two headliners on the same decks after 3. No announcement, no encore — just the mix.",
       mediaUrl: landingImages.editorialDj,
       publishedAt: new Date(Date.now() - 11 * 60 * 60 * 1000).toISOString(),
-      isPromoted: false,
     },
   ];
 }
@@ -626,6 +623,88 @@ export function getMockPendingEvents(locale: Locale) {
   }));
 }
 
+export function getMockAdminEventRow(id: string): EventRow | null {
+  return (
+    MOCK_PENDING_EVENT_ROWS.find((e) => e.id === id) ??
+    MOCK_BUSINESS_EVENT_ROWS.find((e) => e.id === id) ??
+    MOCK_EVENT_ROWS.find((e) => e.id === id) ??
+    null
+  );
+}
+
+const MOCK_ADMIN_FEED_POSTS = [
+  {
+    id: "mock-pending-post-1",
+    category: "nightlife_news" as const,
+    status: "pending",
+    mediaUrl: landingImages.editorialDj,
+    createdAt: new Date().toISOString(),
+    publishedAt: null as string | null,
+    rejectionReason: null as string | null,
+    businessAccountId: MOCK_BUSINESS_ACCOUNT_ID,
+    businessName: "Control Club",
+    translations: {
+      en: {
+        title: "Resident DJ announcement",
+        description: "A new resident joins the Friday lineup.",
+      },
+      ro: {
+        title: "Anunț DJ resident",
+        description: "Un nou resident se alătură lineup-ului de vineri.",
+      },
+    },
+  },
+  {
+    id: "mock-pending-post-2",
+    category: "party_updates" as const,
+    status: "pending",
+    mediaUrl: null as string | null,
+    createdAt: new Date().toISOString(),
+    publishedAt: null as string | null,
+    rejectionReason: null as string | null,
+    businessAccountId: MOCK_BUSINESS_ACCOUNT_ID,
+    businessName: "Control Club",
+    translations: {
+      en: {
+        title: "Doors time change",
+        description: "Party now starts at 11:30pm instead of 11pm.",
+      },
+      ro: {
+        title: "Schimbare oră deschidere",
+        description: "Petrecerea începe la 23:30 în loc de 23:00.",
+      },
+    },
+  },
+];
+
+export function getMockAdminFeedPost(id: string) {
+  const pending = MOCK_ADMIN_FEED_POSTS.find((post) => post.id === id);
+  if (pending) return pending;
+
+  const published = getMockFeedPosts("en").find((post) => post.id === id);
+  if (!published) return null;
+
+  const ro = getMockFeedPosts("ro").find((post) => post.id === id);
+
+  return {
+    id: published.id,
+    category: published.category,
+    status: "published",
+    mediaUrl: published.mediaUrl,
+    createdAt: published.publishedAt,
+    publishedAt: published.publishedAt,
+    rejectionReason: null as string | null,
+    businessAccountId: MOCK_BUSINESS_ACCOUNT_ID,
+    businessName: "Control Club",
+    translations: {
+      en: { title: published.title, description: published.description },
+      ro: ro
+        ? { title: ro.title, description: ro.description }
+        : undefined,
+    },
+  };
+}
+
 export function getMockBusinessEvents(locale: Locale) {
   return MOCK_BUSINESS_EVENT_ROWS.map((e) => ({
     ...mapRowToListItem(e, locale),
@@ -635,35 +714,23 @@ export function getMockBusinessEvents(locale: Locale) {
 }
 
 export function getMockPendingFeedPosts(locale: Locale) {
-  const ro = locale === "ro";
-  return [
-    {
-      id: "mock-pending-post-1",
-      category: "nightlife_news" as const,
-      title: ro ? "Anunț DJ resident" : "Resident DJ announcement",
-      description: ro
-        ? "Un nou resident se alătură lineup-ului de vineri."
-        : "A new resident joins the Friday lineup.",
-      mediaUrl: landingImages.editorialDj,
-      publishedAt: new Date().toISOString(),
-      isPromoted: false,
-      status: "pending",
-      rejectionReason: null,
-    },
-    {
-      id: "mock-pending-post-2",
-      category: "party_updates" as const,
-      title: ro ? "Schimbare oră deschidere" : "Doors time change",
-      description: ro
-        ? "Petrecerea începe la 23:30 în loc de 23:00."
-        : "Party now starts at 11:30pm instead of 11pm.",
-      mediaUrl: null,
-      publishedAt: new Date().toISOString(),
-      isPromoted: false,
-      status: "pending",
-      rejectionReason: null,
-    },
-  ];
+  return MOCK_ADMIN_FEED_POSTS.map((post) => {
+    const localized = locale === "ro" && post.translations.ro
+      ? post.translations.ro
+      : post.translations.en;
+
+    return {
+      id: post.id,
+      category: post.category,
+      title: localized.title,
+      description: localized.description,
+      mediaUrl: post.mediaUrl,
+      publishedAt: post.createdAt,
+      status: post.status,
+      rejectionReason: post.rejectionReason,
+      businessName: post.businessName,
+    };
+  });
 }
 
 export function getMockAdminAnalytics() {

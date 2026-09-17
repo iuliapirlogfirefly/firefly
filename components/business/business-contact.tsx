@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { Mail, Phone } from "lucide-react";
 import { submitContactMessage } from "@/lib/actions/business";
@@ -22,6 +23,9 @@ export function BusinessContact({
   supportPhone,
   messages,
 }: Props) {
+  const t = useTranslations("business");
+  const tStatus = useTranslations("common.status");
+  const locale = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [subject, setSubject] = useState("");
@@ -41,13 +45,13 @@ export function BusinessContact({
         setBody("");
         setFeedback({
           type: "success",
-          message: "Message sent. We'll get back to you soon.",
+          message: t("messageSuccess"),
         });
         router.refresh();
       } else {
         setFeedback({
           type: "error",
-          message: result.error ?? "Failed to send message",
+          message: result.error ?? t("messageFailed"),
         });
       }
     });
@@ -57,9 +61,9 @@ export function BusinessContact({
     <div className="mt-8 space-y-6">
       {(supportEmail || supportPhone) && (
         <div className="glass rounded-2xl p-6">
-          <h2 className="font-heading text-lg font-semibold">Reach us directly</h2>
+          <h2 className="font-heading text-lg font-semibold">{t("reachTitle")}</h2>
           <p className="mt-1 text-sm text-foreground/60">
-            Prefer email or phone? Use the contacts below anytime.
+            {t("reachBody")}
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:gap-6">
             {supportEmail ? (
@@ -86,18 +90,18 @@ export function BusinessContact({
 
       <div className="glass rounded-2xl p-6">
         <div className="mb-4 space-y-2">
-          <h2 className="font-heading text-lg font-semibold">Send a message</h2>
+          <h2 className="font-heading text-lg font-semibold">{t("sendTitle")}</h2>
           <p className="text-xs text-foreground/50">
-            Tell us about a problem or question. Our team will see it in the
-            admin inbox
-            {supportEmail ? " and receive an email too" : ""}.
+            {t("sendBody", {
+              emailHint: supportEmail ? t("sendBodyEmailHint") : "",
+            })}
           </p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label htmlFor="contact-subject" className={labelClass}>
-              Subject
+              {t("subject")}
             </label>
             <input
               id="contact-subject"
@@ -107,12 +111,12 @@ export function BusinessContact({
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               className={inputClass}
-              placeholder="What's this about?"
+              placeholder={t("subjectPlaceholder")}
             />
           </div>
           <div>
             <label htmlFor="contact-body" className={labelClass}>
-              Message
+              {t("message")}
             </label>
             <textarea
               id="contact-body"
@@ -122,7 +126,7 @@ export function BusinessContact({
               value={body}
               onChange={(e) => setBody(e.target.value)}
               className={`${inputClass} resize-y`}
-              placeholder="Describe the issue or question…"
+              placeholder={t("messagePlaceholder")}
             />
           </div>
 
@@ -143,14 +147,14 @@ export function BusinessContact({
             disabled={pending}
             className="rounded-full bg-firefly px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity disabled:opacity-60"
           >
-            {pending ? "Sending…" : "Send message"}
+            {pending ? t("sending") : t("sendMessage")}
           </button>
         </form>
       </div>
 
       {messages.length > 0 ? (
         <div className="glass rounded-2xl p-6">
-          <h2 className="font-heading text-lg font-semibold">Your recent messages</h2>
+          <h2 className="font-heading text-lg font-semibold">{t("recentMessages")}</h2>
           <ul className="mt-4 space-y-4">
             {messages.map((message) => (
               <li
@@ -160,14 +164,14 @@ export function BusinessContact({
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p className="font-medium text-sm">{message.subject}</p>
                   <span className="text-xs text-foreground/40">
-                    {new Date(message.createdAt).toLocaleString()}
+                    {new Date(message.createdAt).toLocaleString(locale)}
                   </span>
                 </div>
                 <p className="mt-1 whitespace-pre-wrap text-sm text-foreground/60">
                   {message.body}
                 </p>
                 <p className="mt-2 text-xs uppercase tracking-wider text-foreground/40">
-                  {message.status}
+                  {tStatus(message.status)}
                 </p>
               </li>
             ))}
