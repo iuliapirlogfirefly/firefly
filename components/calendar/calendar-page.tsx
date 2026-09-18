@@ -385,7 +385,7 @@ export function CalendarPageClient({
                           />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="truncate font-heading font-semibold transition-colors group-hover:text-firefly">
+                          <div className="line-clamp-2 font-heading font-semibold leading-tight transition-colors group-hover:text-firefly">
                             {event.title}
                           </div>
                           <div className="mt-1 flex min-w-0 items-center gap-1 text-xs text-foreground/55">
