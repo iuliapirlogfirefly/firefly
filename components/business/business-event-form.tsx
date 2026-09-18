@@ -8,6 +8,7 @@ import { GENRES, formatGenreLabel } from "@/lib/constants/genres";
 import { EVENT_TYPES, formatEventTypeLabel } from "@/lib/constants/event-types";
 import { ImageUploader } from "@/components/events/image-uploader";
 import { LocationMapPicker } from "@/components/business/location-map-picker";
+import { datetimeLocalToIso, isoToDatetimeLocal } from "@/lib/utils/datetime";
 import { BUCHAREST_CENTER } from "@/lib/utils/map-coords";
 import type { CreateEventInput } from "@/types/events";
 import type { EventType, Genre } from "@/types";
@@ -93,8 +94,8 @@ export function BusinessEventForm({
   const [descEn, setDescEn] = useState(initial?.translations?.en?.description ?? "");
   const [titleRo, setTitleRo] = useState(initial?.translations?.ro?.title ?? "");
   const [descRo, setDescRo] = useState(initial?.translations?.ro?.description ?? "");
-  const [startsAt, setStartsAt] = useState(initial?.startsAt?.slice(0, 16) ?? "");
-  const [endsAt, setEndsAt] = useState(initial?.endsAt?.slice(0, 16) ?? "");
+  const [startsAt, setStartsAt] = useState(isoToDatetimeLocal(initial?.startsAt));
+  const [endsAt, setEndsAt] = useState(isoToDatetimeLocal(initial?.endsAt));
   const [genre, setGenre] = useState<Genre>(initial?.genre ?? "techno");
   const [eventType, setEventType] = useState<EventType>(
     initial?.eventType ?? "party"
@@ -145,8 +146,8 @@ export function BusinessEventForm({
           ? { title: titleRo || undefined, description: descRo || undefined }
           : undefined,
     },
-    startsAt: new Date(startsAt).toISOString(),
-    endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
+    startsAt: datetimeLocalToIso(startsAt),
+    endsAt: endsAt ? datetimeLocalToIso(endsAt) : undefined,
     genre,
     eventType,
     price: price ? Number(price) : undefined,

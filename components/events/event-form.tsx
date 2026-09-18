@@ -13,6 +13,7 @@ import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { ImageUploader } from "@/components/events/image-uploader";
 import { LocationMapPicker } from "@/components/business/location-map-picker";
+import { datetimeLocalToIso, isoToDatetimeLocal } from "@/lib/utils/datetime";
 import { BUCHAREST_CENTER } from "@/lib/utils/map-coords";
 import type { CreateEventInput } from "@/types/events";
 import type { EventType, Genre } from "@/types";
@@ -50,9 +51,9 @@ export function EventForm({ mode, eventId, initial }: Props) {
     initial?.translations?.ro?.description ?? ""
   );
   const [startsAt, setStartsAt] = useState(
-    initial?.startsAt?.slice(0, 16) ?? ""
+    isoToDatetimeLocal(initial?.startsAt)
   );
-  const [endsAt, setEndsAt] = useState(initial?.endsAt?.slice(0, 16) ?? "");
+  const [endsAt, setEndsAt] = useState(isoToDatetimeLocal(initial?.endsAt));
   const [genre, setGenre] = useState<Genre>(initial?.genre ?? "techno");
   const [eventType, setEventType] = useState<EventType>(
     initial?.eventType ?? "party"
@@ -104,8 +105,8 @@ export function EventForm({ mode, eventId, initial }: Props) {
             ? { title: titleRo || undefined, description: descRo || undefined }
             : undefined,
       },
-      startsAt: new Date(startsAt).toISOString(),
-      endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
+      startsAt: datetimeLocalToIso(startsAt),
+      endsAt: endsAt ? datetimeLocalToIso(endsAt) : undefined,
       genre,
       eventType,
       price: price ? Number(price) : undefined,

@@ -9,6 +9,7 @@ import { formatEventTypeLabel } from "@/lib/constants/event-types";
 import { formatGenreLabel } from "@/lib/constants/genres";
 import { dateTimeLocale } from "@/lib/i18n/date-locale";
 import { landingImages } from "@/lib/landing/images";
+import { LAUNCH_TIME_ZONE } from "@/lib/launch/config";
 import { formatPrice } from "@/lib/utils/event-format";
 import type { EventListItem } from "@/types/events";
 
@@ -25,6 +26,7 @@ function formatWhen(iso: string, locale: string) {
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: LAUNCH_TIME_ZONE,
   }).format(new Date(iso));
 }
 
