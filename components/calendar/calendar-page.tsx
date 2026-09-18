@@ -251,8 +251,8 @@ export function CalendarPageClient({
           />
         </div>
 
-        <div className="mt-12 grid gap-10 lg:grid-cols-[1fr_380px]">
-          <div>
+        <div className="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
+          <div className="min-w-0">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="font-heading text-2xl">{monthName}</h2>
               <div className="flex items-center gap-2">
@@ -348,7 +348,7 @@ export function CalendarPageClient({
             </div>
           </div>
 
-          <aside className="glass self-start rounded-3xl p-6">
+          <aside className="glass min-w-0 w-full self-start rounded-3xl p-6">
             <div className="mb-2 font-mono text-xs uppercase tracking-wider-2 text-firefly">
               {selectedDate.toLocaleDateString(dtLocale, { weekday: "long" })}
             </div>
@@ -370,10 +370,10 @@ export function CalendarPageClient({
                     event.coverImageUrl ?? landingImages.editorialCrowd;
 
                   return (
-                    <li key={event.id}>
+                    <li key={event.id} className="min-w-0 w-full">
                       <Link
                         href={`/events/${event.slug}`}
-                        className="group flex gap-3 rounded-2xl border-l-2 border-firefly bg-surface-2/50 p-3 transition-colors hover:bg-firefly/10"
+                        className="group flex min-w-0 w-full gap-3 rounded-2xl border-l-2 border-firefly bg-surface-2/50 p-3 transition-colors hover:bg-firefly/10"
                       >
                         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl">
                           <Image
@@ -388,13 +388,15 @@ export function CalendarPageClient({
                           <div className="truncate font-heading font-semibold transition-colors group-hover:text-firefly">
                             {event.title}
                           </div>
-                          <div className="mt-1 flex items-center gap-1 text-xs text-foreground/55">
-                            <MapPin className="h-3 w-3" />
-                            {event.venueName}
+                          <div className="mt-1 flex min-w-0 items-center gap-1 text-xs text-foreground/55">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span className="min-w-0 truncate">{event.venueName}</span>
                           </div>
-                          <div className="mt-1 flex items-center gap-1 font-mono text-xs text-firefly">
-                            <Clock className="h-3 w-3" />
-                            {formatTimeRange(event.startsAt, event.endsAt, locale)}
+                          <div className="mt-1 flex min-w-0 items-center gap-1 font-mono text-xs text-firefly">
+                            <Clock className="h-3 w-3 shrink-0" />
+                            <span className="min-w-0 truncate">
+                              {formatTimeRange(event.startsAt, event.endsAt, locale)}
+                            </span>
                           </div>
                         </div>
                       </Link>
