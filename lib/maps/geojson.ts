@@ -2,6 +2,7 @@ import type { EventsGeoJSON, EventMapPoint } from "@/types/events";
 import type { Tables } from "@/types/database.types";
 import { getLocalizedField } from "@/lib/i18n/content";
 import type { Locale } from "@/types";
+import { normalizeGenres } from "@/lib/constants/genres";
 
 type EventRow = Tables<"events">;
 
@@ -26,7 +27,7 @@ export function eventToMapPoint(
       isPromoted: event.is_promoted,
       promotionIntensity: event.promotion_intensity as 1 | 2 | 3,
       startsAt: event.starts_at,
-      genre: event.genre as EventMapPoint["properties"]["genre"],
+      genres: normalizeGenres(event.genres),
     },
   };
 }

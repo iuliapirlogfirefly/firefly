@@ -10,6 +10,9 @@ import { eventImages, landingImages } from "@/lib/landing/images";
 import type { FeedPostItem } from "@/lib/queries/feed";
 import { getDateRange } from "@/lib/filters/event-filters";
 import { eventsToGeoJSON } from "@/lib/maps/geojson";
+import { isEventExpired } from "@/lib/utils/event-expiry";
+import { normalizeGenres } from "@/lib/constants/genres";
+import { parsePriceOptions } from "@/lib/utils/event-prices";
 import type { Tables } from "@/types/database.types";
 
 type EventRow = Tables<"events">;
@@ -41,9 +44,11 @@ function row(
     status: "published",
     source: "admin",
     ends_at: dayAfter.toISOString(),
-    genre: "techno",
+    genres: ["techno"],
+    genre_other: null,
     event_type: "club_night",
     price: 50,
+    price_options: [],
     ticket_url: "https://example.com/tickets",
     website_url: "https://example.com",
     special_guest: null,
@@ -70,13 +75,13 @@ const MOCK_EVENT_ROWS: EventRow[] = [
   row({
     id: "mock-1",
     slug: "techno-night-control-club",
-    genre: "techno",
-    event_type: "club_night",
-    is_promoted: true,
-    promotion_intensity: 3,
-    special_guest: "DJ Ion Popescu",
+    genres: ["techno", "minimal"],
     organizer_name: "Nightshift Collective",
     cover_image_url: eventImages.event1,
+    price_options: [
+      { name: "Standard", price: 50 },
+      { name: "VIP", price: 80 },
+    ],
     translations: {
       en: {
         title: "Techno Night at Control Club",
@@ -91,7 +96,7 @@ const MOCK_EVENT_ROWS: EventRow[] = [
   row({
     id: "mock-2",
     slug: "house-garden-kulturhaus",
-    genre: "house",
+    genres: ["house"],
     event_type: "party",
     lat: 44.4268,
     lng: 26.1025,
@@ -115,7 +120,7 @@ const MOCK_EVENT_ROWS: EventRow[] = [
   row({
     id: "mock-3",
     slug: "afro-house-rooftop",
-    genre: "afro_house",
+    genres: ["afro_house"],
     event_type: "rooftop",
     is_promoted: true,
     promotion_intensity: 2,
@@ -140,7 +145,7 @@ const MOCK_EVENT_ROWS: EventRow[] = [
   row({
     id: "mock-4",
     slug: "subterra-all-night-long",
-    genre: "techno",
+    genres: ["techno"],
     event_type: "club_night",
     is_promoted: true,
     promotion_intensity: 3,
@@ -165,7 +170,7 @@ const MOCK_EVENT_ROWS: EventRow[] = [
   row({
     id: "mock-5",
     slug: "jazz-cellar-friday",
-    genre: "jazz",
+    genres: ["jazz"],
     event_type: "live_performance",
     lat: 44.4298,
     lng: 26.1042,
@@ -188,7 +193,7 @@ const MOCK_EVENT_ROWS: EventRow[] = [
   row({
     id: "mock-6",
     slug: "disco-edits-tonight",
-    genre: "house",
+    genres: ["house"],
     event_type: "club_night",
     lat: 44.4321,
     lng: 26.0945,
@@ -211,7 +216,7 @@ const MOCK_EVENT_ROWS: EventRow[] = [
   row({
     id: "mock-7",
     slug: "warehouse-rave-friday",
-    genre: "techno",
+    genres: ["techno"],
     event_type: "club_night",
     is_promoted: true,
     promotion_intensity: 2,
@@ -236,7 +241,7 @@ const MOCK_EVENT_ROWS: EventRow[] = [
   row({
     id: "mock-8",
     slug: "sunset-sessions-rooftop",
-    genre: "house",
+    genres: ["house"],
     event_type: "rooftop",
     lat: 44.4412,
     lng: 26.0898,
@@ -268,7 +273,7 @@ const MOCK_PENDING_EVENT_ROWS: EventRow[] = [
     status: "pending",
     source: "business",
     business_account_id: MOCK_BUSINESS_ACCOUNT_ID,
-    genre: "minimal",
+    genres: ["minimal"],
     event_type: "club_night",
     venue_name: "Guest House",
     price: 40,
@@ -295,7 +300,7 @@ const MOCK_PENDING_EVENT_ROWS: EventRow[] = [
     status: "pending",
     source: "business",
     business_account_id: MOCK_BUSINESS_ACCOUNT_ID,
-    genre: "house",
+    genres: ["house"],
     event_type: "party",
     venue_name: "Kulturhaus",
     price: 35,
@@ -318,12 +323,13 @@ const MOCK_BUSINESS_EVENT_ROWS: EventRow[] = [
   ...MOCK_EVENT_ROWS.filter((e) =>
     ["mock-1", "mock-4", "mock-6"].includes(e.id)
   ).map((e) => ({ ...e, business_account_id: MOCK_BUSINESS_ACCOUNT_ID })),
+  ...MOCK_PENDING_EVENT_ROWS,
   row({
     id: "mock-biz-draft",
     slug: "draft-summer-series",
     business_account_id: MOCK_BUSINESS_ACCOUNT_ID,
     status: "draft",
-    genre: "house",
+    genres: ["house"],
     event_type: "party",
     venue_name: "Control Club",
     price: 45,
@@ -345,7 +351,7 @@ const MOCK_BUSINESS_EVENT_ROWS: EventRow[] = [
     slug: "rejected-warehouse-night",
     business_account_id: MOCK_BUSINESS_ACCOUNT_ID,
     status: "rejected",
-    genre: "techno",
+    genres: ["techno"],
     event_type: "party",
     venue_name: "Control Club",
     price: 40,
@@ -374,10 +380,12 @@ function mapRowToListItem(event: EventRow, locale: Locale): EventListItem {
     title: t[locale]?.title ?? t.en?.title ?? "",
     venueName: event.venue_name ?? "",
     price: event.price,
+    priceOptions: parsePriceOptions(event.price_options),
     startsAt: event.starts_at,
     endsAt: event.ends_at,
     coverImageUrl: event.cover_image_url,
-    genre: event.genre as EventListItem["genre"],
+    genres: normalizeGenres(event.genres),
+    genreOther: event.genre_other,
     eventType: event.event_type as EventListItem["eventType"],
     isPromoted: event.is_promoted,
     promotionIntensity: event.promotion_intensity as 1 | 2 | 3,
@@ -393,7 +401,8 @@ function filterMockEvents(
   let result = [...events];
 
   if (filters.genre) {
-    result = result.filter((e) => e.genre === filters.genre);
+    const genre = filters.genre;
+    result = result.filter((e) => e.genres.includes(genre));
   }
   if (filters.eventType) {
     result = result.filter((e) => e.event_type === filters.eventType);
@@ -425,20 +434,32 @@ function filterMockEvents(
   });
 }
 
+function excludeExpiredMockEvents(events: EventRow[]): EventRow[] {
+  return events.filter(
+    (event) =>
+      !isEventExpired({ startsAt: event.starts_at, endsAt: event.ends_at })
+  );
+}
+
 export function getMockEvents(
   locale: Locale,
-  filters: EventFilters = {}
+  filters: EventFilters = {},
+  includeExpired = false
 ): EventListItem[] {
-  return filterMockEvents(MOCK_EVENT_ROWS, filters).map((e) =>
-    mapRowToListItem(e, locale)
-  );
+  const filtered = filterMockEvents(MOCK_EVENT_ROWS, filters);
+  const events = includeExpired
+    ? filtered
+    : excludeExpiredMockEvents(filtered);
+  return events.map((e) => mapRowToListItem(e, locale));
 }
 
 export function getMockEventsGeoJSON(
   locale: Locale,
   filters: EventFilters = {}
 ): EventsGeoJSON {
-  const filtered = filterMockEvents(MOCK_EVENT_ROWS, filters);
+  const filtered = excludeExpiredMockEvents(
+    filterMockEvents(MOCK_EVENT_ROWS, filters)
+  );
   return eventsToGeoJSON(filtered, locale);
 }
 
@@ -448,6 +469,9 @@ export function getMockEventBySlug(
 ): EventDetail | null {
   const event = MOCK_EVENT_ROWS.find((e) => e.slug === slug);
   if (!event) return null;
+  if (isEventExpired({ startsAt: event.starts_at, endsAt: event.ends_at })) {
+    return null;
+  }
 
   const t = event.translations as Record<
     string,
@@ -474,7 +498,9 @@ export function getMockCalendarEvents(
   year: number,
   filters: EventFilters = {}
 ): CalendarDayEvents[] {
-  const filtered = filterMockEvents(MOCK_EVENT_ROWS, filters).filter((e) => {
+  const filtered = excludeExpiredMockEvents(
+    filterMockEvents(MOCK_EVENT_ROWS, filters)
+  ).filter((e) => {
     const d = new Date(e.starts_at);
     return d.getMonth() + 1 === month && d.getFullYear() === year;
   });
@@ -611,10 +637,13 @@ export function getMockFeedPosts(locale: Locale): FeedPostItem[] {
 }
 
 export function getMockSavedEvents(locale: Locale): EventListItem[] {
-  return ["mock-1", "mock-4", "mock-7"].map((id) => {
-    const event = MOCK_EVENT_ROWS.find((e) => e.id === id)!;
-    return mapRowToListItem(event, locale);
-  });
+  return ["mock-1", "mock-4", "mock-7"]
+    .map((id) => MOCK_EVENT_ROWS.find((e) => e.id === id)!)
+    .filter(
+      (event) =>
+        !isEventExpired({ startsAt: event.starts_at, endsAt: event.ends_at })
+    )
+    .map((event) => mapRowToListItem(event, locale));
 }
 
 export function getMockPendingEvents(locale: Locale) {
@@ -677,6 +706,48 @@ const MOCK_ADMIN_FEED_POSTS = [
       },
     },
   },
+  {
+    id: "mock-draft-post-1",
+    category: "club_moments" as const,
+    status: "draft",
+    mediaUrl: landingImages.editorialStreet,
+    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+    publishedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+    rejectionReason: null as string | null,
+    businessAccountId: null as string | null,
+    businessName: null as string | null,
+    translations: {
+      en: {
+        title: "Unpublished club moment",
+        description: "Taken off the missed feed until it is ready again.",
+      },
+      ro: {
+        title: "Moment de club nepublicat",
+        description: "Scos din feed-ul missed până e gata din nou.",
+      },
+    },
+  },
+  {
+    id: "mock-rejected-post-1",
+    category: "nightlife_chaos" as const,
+    status: "rejected",
+    mediaUrl: null as string | null,
+    createdAt: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
+    publishedAt: null as string | null,
+    rejectionReason: "Needs a clearer photo and less promotional copy.",
+    businessAccountId: MOCK_BUSINESS_ACCOUNT_ID,
+    businessName: "Control Club",
+    translations: {
+      en: {
+        title: "Promo dump",
+        description: "Come tonight, best night ever, tickets in bio.",
+      },
+      ro: {
+        title: "Promo generic",
+        description: "Vino diseară, cea mai tare noapte, bilete în bio.",
+      },
+    },
+  },
 ];
 
 export function getMockAdminFeedPost(id: string) {
@@ -715,24 +786,53 @@ export function getMockBusinessEvents(locale: Locale) {
   }));
 }
 
-export function getMockPendingFeedPosts(locale: Locale) {
-  return MOCK_ADMIN_FEED_POSTS.map((post) => {
-    const localized = locale === "ro" && post.translations.ro
+function localizeAdminFeedPost(
+  post: (typeof MOCK_ADMIN_FEED_POSTS)[number],
+  locale: Locale
+) {
+  const localized =
+    locale === "ro" && post.translations.ro
       ? post.translations.ro
       : post.translations.en;
 
-    return {
-      id: post.id,
-      category: post.category,
-      title: localized.title,
-      description: localized.description,
-      mediaUrl: post.mediaUrl,
-      publishedAt: post.createdAt,
-      status: post.status,
-      rejectionReason: post.rejectionReason,
-      businessName: post.businessName,
-    };
-  });
+  return {
+    id: post.id,
+    category: post.category,
+    title: localized.title,
+    description: localized.description,
+    mediaUrl: post.mediaUrl,
+    publishedAt: post.publishedAt,
+    createdAt: post.createdAt,
+    status: post.status,
+    rejectionReason: post.rejectionReason,
+    businessName: post.businessName,
+  };
+}
+
+export function getMockPendingFeedPosts(locale: Locale) {
+  return MOCK_ADMIN_FEED_POSTS.filter((post) => post.status === "pending").map(
+    (post) => localizeAdminFeedPost(post, locale)
+  );
+}
+
+export function getMockAllAdminFeedPosts(locale: Locale) {
+  const catalog = MOCK_ADMIN_FEED_POSTS.map((post) =>
+    localizeAdminFeedPost(post, locale)
+  );
+  const published = getMockFeedPosts(locale).map((post) => ({
+    id: post.id,
+    category: post.category,
+    title: post.title,
+    description: post.description,
+    mediaUrl: post.mediaUrl,
+    publishedAt: post.publishedAt,
+    createdAt: post.publishedAt,
+    status: "published",
+    rejectionReason: null as string | null,
+    businessName: "Control Club",
+  }));
+
+  return [...catalog, ...published];
 }
 
 export function getMockAdminAnalytics() {

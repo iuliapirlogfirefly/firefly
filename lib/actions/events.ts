@@ -16,31 +16,68 @@ import { success, failure } from "@/lib/utils/action-result";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
 import type { ActionResult } from "@/types";
 import type { CreateEventInput, UpdateEventInput } from "@/types/events";
+import {
+  GENRE_OTHER_MAX_LENGTH,
+  GENRES,
+  normalizeGenreOther,
+  normalizeGenres,
+} from "@/lib/constants/genres";
+import {
+  MAX_PRICE_OPTIONS,
+  PRICE_OPTION_NAME_MAX_LENGTH,
+  normalizePriceOptions,
+} from "@/lib/utils/event-prices";
 
-const createEventSchema = z.object({
-  translations: z.object({
-    en: z.object({ title: z.string().min(1), description: z.string() }),
-    ro: z
-      .object({ title: z.string().optional(), description: z.string().optional() })
+const createEventSchema = z
+  .object({
+    translations: z.object({
+      en: z.object({ title: z.string().min(1), description: z.string() }),
+      ro: z
+        .object({
+          title: z.string().optional(),
+          description: z.string().optional(),
+        })
+        .optional(),
+    }),
+    startsAt: z.string(),
+    endsAt: z.string().optional(),
+    genres: z.array(z.enum(GENRES)).min(1),
+    genreOther: z.string().max(GENRE_OTHER_MAX_LENGTH).optional(),
+    eventType: z.string(),
+    price: z.number().finite().min(0).nullable().optional(),
+    priceOptions: z
+      .array(
+        z.object({
+          name: z.string().trim().min(1).max(PRICE_OPTION_NAME_MAX_LENGTH),
+          price: z.number().finite().min(0),
+        })
+      )
+      .max(MAX_PRICE_OPTIONS)
       .optional(),
-  }),
-  startsAt: z.string(),
-  endsAt: z.string().optional(),
-  genre: z.string(),
-  eventType: z.string(),
-  price: z.number().optional(),
-  ticketUrl: z.string().url().optional().or(z.literal("")),
-  websiteUrl: z.string().url().optional().or(z.literal("")),
-  specialGuest: z.string().optional(),
-  organizerName: z.string().optional(),
-  coverImageUrl: z.string().optional(),
-  images: z.array(z.string()).optional(),
-  venueId: z.string().uuid().optional(),
-  venueName: z.string().optional(),
-  address: z.string().optional(),
-  lat: z.number().optional(),
-  lng: z.number().optional(),
-  submitForApproval: z.boolean().optional(),
+    ticketUrl: z.string().url().optional().or(z.literal("")),
+    websiteUrl: z.string().url().optional().or(z.literal("")),
+    specialGuest: z.string().optional(),
+    organizerName: z.string().optional(),
+    coverImageUrl: z.string().optional(),
+    images: z.array(z.string()).optional(),
+    venueId: z.string().uuid().optional(),
+    venueName: z.string().optional(),
+    address: z.string().optional(),
+    lat: z.number().optional(),
+    lng: z.number().optional(),
+    submitForApproval: z.boolean().optional(),
+  })
+.superRefine((data, ctx) => {
+  if (
+    data.genres.includes("other") &&
+    !normalizeGenreOther(data.genres, data.genreOther)
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["genreOther"],
+      message: "Name the other music type.",
+    });
+  }
 });
 
 async function getBusinessContext() {
@@ -133,9 +170,11 @@ export async function createEvent(
         source: "business",
         starts_at: data.startsAt,
         ends_at: data.endsAt ?? null,
-        genre: data.genre,
+        genres: normalizeGenres(data.genres),
+        genre_other: normalizeGenreOther(data.genres, data.genreOther),
         event_type: data.eventType,
         price: data.price ?? null,
+        price_options: normalizePriceOptions(data.priceOptions),
         ticket_url: data.ticketUrl || null,
         website_url: data.websiteUrl || null,
         special_guest: data.specialGuest?.trim() || null,
@@ -178,9 +217,28 @@ export async function updateEvent(
       return failure("Event not found");
     }
 
-    if (!["draft", "rejected"].includes(existing.status)) {
-      return failure("Only draft or rejected events can be edited");
+    if (existing.status === "archived") {
+      return failure("Archived events cannot be edited");
     }
+
+    if (!["draft", "rejected", "pending", "published"].includes(existing.status)) {
+      return failure("This event cannot be edited");
+    }
+
+    if (data.genres) {
+      const genres = normalizeGenres(data.genres);
+      if (genres.includes("other") && !normalizeGenreOther(genres, data.genreOther)) {
+        return failure("Name the other music type.");
+      }
+    }
+
+    const wasPublished = existing.status === "published";
+    const nextStatus =
+      existing.status === "pending" || existing.status === "published"
+        ? "pending"
+        : data.submitForApproval
+          ? "pending"
+          : existing.status;
 
     const { error } = await supabase
       .from("events")
@@ -188,9 +246,15 @@ export async function updateEvent(
         ...(data.translations && { translations: data.translations }),
         ...(data.startsAt && { starts_at: data.startsAt }),
         ...(data.endsAt !== undefined && { ends_at: data.endsAt }),
-        ...(data.genre && { genre: data.genre }),
+        ...(data.genres && {
+          genres: normalizeGenres(data.genres),
+          genre_other: normalizeGenreOther(data.genres, data.genreOther),
+        }),
         ...(data.eventType && { event_type: data.eventType }),
         ...(data.price !== undefined && { price: data.price }),
+        ...(data.priceOptions !== undefined && {
+          price_options: normalizePriceOptions(data.priceOptions),
+        }),
         ...(data.ticketUrl !== undefined && {
           ticket_url: data.ticketUrl || null,
         }),
@@ -211,12 +275,16 @@ export async function updateEvent(
         ...(data.lng !== undefined && { lng: data.lng }),
         ...(data.address !== undefined && { address: data.address }),
         ...(data.venueName !== undefined && { venue_name: data.venueName }),
-        ...(data.submitForApproval
-          ? { status: "pending", rejection_reason: null }
-          : {}),
+        status: nextStatus,
+        ...(nextStatus === "pending" ? { rejection_reason: null } : {}),
       })
       .eq("id", id);
     if (error) return failure(error.message);
+
+    if (wasPublished) {
+      updateTag("events");
+    }
+
     return success(undefined);
   } catch (e) {
     return failure(e instanceof Error ? e.message : "Failed to update event");
@@ -499,9 +567,11 @@ export async function createAdminEvent(
         source: "admin",
         starts_at: data.startsAt,
         ends_at: data.endsAt ?? null,
-        genre: data.genre,
+        genres: normalizeGenres(data.genres),
+        genre_other: normalizeGenreOther(data.genres, data.genreOther),
         event_type: data.eventType,
         price: data.price ?? null,
+        price_options: normalizePriceOptions(data.priceOptions),
         ticket_url: data.ticketUrl || null,
         website_url: data.websiteUrl || null,
         special_guest: data.specialGuest?.trim() || null,
@@ -546,15 +616,28 @@ export async function updateAdminEvent(
 
     if (fetchError || !existing) return failure("Event not found");
 
+    if (data.genres) {
+      const genres = normalizeGenres(data.genres);
+      if (genres.includes("other") && !normalizeGenreOther(genres, data.genreOther)) {
+        return failure("Name the other music type.");
+      }
+    }
+
     const { error } = await supabase
       .from("events")
       .update({
         ...(data.translations && { translations: data.translations }),
         ...(data.startsAt && { starts_at: data.startsAt }),
         ...(data.endsAt !== undefined && { ends_at: data.endsAt }),
-        ...(data.genre && { genre: data.genre }),
+        ...(data.genres && {
+          genres: normalizeGenres(data.genres),
+          genre_other: normalizeGenreOther(data.genres, data.genreOther),
+        }),
         ...(data.eventType && { event_type: data.eventType }),
         ...(data.price !== undefined && { price: data.price }),
+        ...(data.priceOptions !== undefined && {
+          price_options: normalizePriceOptions(data.priceOptions),
+        }),
         ...(data.ticketUrl !== undefined && {
           ticket_url: data.ticketUrl || null,
         }),

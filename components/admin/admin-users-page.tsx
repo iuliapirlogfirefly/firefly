@@ -1,18 +1,25 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { AdminUserActions } from "@/components/admin/admin-user-actions";
 import { AdminBadge } from "@/components/admin/ui/admin-badge";
 import { AdminCard } from "@/components/admin/ui/admin-card";
+import { AdminPagination } from "@/components/admin/ui/admin-pagination";
+import { AdminSearchForm } from "@/components/admin/ui/admin-search-form";
+import { buildAdminQuery, type Paginated } from "@/lib/admin/pagination";
 import type { AdminUserRow } from "@/lib/queries/users";
 
-type Props = {
-  users: AdminUserRow[];
-};
-
 type Tab = "businesses" | "users";
+
+type Props = {
+  tab: Tab;
+  q: string;
+  users: Paginated<AdminUserRow>;
+  businessCount: number;
+  userCount: number;
+  pendingBusinessCount: number;
+};
 
 function isBusinessUser(user: AdminUserRow) {
   return (
@@ -20,32 +27,23 @@ function isBusinessUser(user: AdminUserRow) {
   );
 }
 
-export function AdminUsersPage({ users }: Props) {
+function tabClass(active: boolean) {
+  return `border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+    active
+      ? "border-foreground text-foreground"
+      : "border-transparent text-muted-foreground hover:text-foreground"
+  }`;
+}
+
+export function AdminUsersPage({
+  tab,
+  q,
+  users,
+  businessCount,
+  userCount,
+  pendingBusinessCount,
+}: Props) {
   const t = useTranslations("admin");
-  const [tab, setTab] = useState<Tab>("businesses");
-  const [search, setSearch] = useState("");
-
-  const businesses = useMemo(
-    () => users.filter(isBusinessUser),
-    [users]
-  );
-  const standardUsers = useMemo(
-    () => users.filter((u) => !isBusinessUser(u)),
-    [users]
-  );
-
-  const pendingBusinesses = businesses.filter((b) => b.status === "pending");
-  const list = tab === "businesses" ? businesses : standardUsers;
-
-  const filtered = useMemo(() => {
-    if (!search) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (u) =>
-        u.name.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q)
-    );
-  }, [list, search]);
 
   return (
     <div data-route="admin-users">
@@ -56,46 +54,31 @@ export function AdminUsersPage({ users }: Props) {
         {t("usersSubtitle")}
       </p>
 
-      {pendingBusinesses.length > 0 ? (
+      {pendingBusinessCount > 0 ? (
         <AdminCard className="mt-6 border-amber-500/30 p-4">
           <p className="text-sm font-medium text-amber-400">
-            {t("pendingBanner", { count: pendingBusinesses.length })}
+            {t("pendingBanner", { count: pendingBusinessCount })}
           </p>
         </AdminCard>
       ) : null}
 
       <div className="mt-6 flex gap-2 border-b border-border">
-        <button
-          type="button"
-          onClick={() => setTab("businesses")}
-          className={`border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-            tab === "businesses"
-              ? "border-foreground text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
+        <Link href="/admin/users" className={tabClass(tab === "businesses")}>
+          {t("tabBusinesses", { count: businessCount })}
+        </Link>
+        <Link
+          href={`/admin/users${buildAdminQuery({ tab: "users" })}`}
+          className={tabClass(tab === "users")}
         >
-          {t("tabBusinesses", { count: businesses.length })}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("users")}
-          className={`border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-            tab === "users"
-              ? "border-foreground text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          {t("tabUsers", { count: standardUsers.length })}
-        </button>
+          {t("tabUsers", { count: userCount })}
+        </Link>
       </div>
 
       <div className="mt-4">
-        <input
-          type="search"
+        <AdminSearchForm
+          q={q}
           placeholder={t("searchUsers")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-md rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-foreground/30"
+          hidden={{ tab: tab === "users" ? "users" : undefined }}
         />
       </div>
 
@@ -112,7 +95,7 @@ export function AdminUsersPage({ users }: Props) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((user) => (
+            {users.items.map((user) => (
               <tr
                 key={user.id}
                 className="border-b border-border/50 hover:bg-surface-1/50"
@@ -153,6 +136,15 @@ export function AdminUsersPage({ users }: Props) {
           </tbody>
         </table>
       </div>
+      <AdminPagination
+        pathname="/admin/users"
+        params={{
+          tab: tab === "users" ? "users" : undefined,
+          q,
+        }}
+        page={users.page}
+        total={users.total}
+      />
     </div>
   );
 }

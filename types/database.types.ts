@@ -172,9 +172,11 @@ export type Database = {
           source: string;
           starts_at: string;
           ends_at: string | null;
-          genre: string;
+          genres: string[];
+          genre_other: string | null;
           event_type: string;
           price: number | null;
+          price_options: Json;
           ticket_url: string | null;
           website_url: string | null;
           special_guest: string | null;
@@ -203,9 +205,11 @@ export type Database = {
           source?: string;
           starts_at: string;
           ends_at?: string | null;
-          genre: string;
+          genres: string[];
+          genre_other?: string | null;
           event_type: string;
           price?: number | null;
+          price_options?: Json;
           ticket_url?: string | null;
           website_url?: string | null;
           special_guest?: string | null;
@@ -233,9 +237,11 @@ export type Database = {
           source?: string;
           starts_at?: string;
           ends_at?: string | null;
-          genre?: string;
+          genres?: string[];
+          genre_other?: string | null;
           event_type?: string;
           price?: number | null;
+          price_options?: Json;
           ticket_url?: string | null;
           website_url?: string | null;
           special_guest?: string | null;
@@ -284,6 +290,7 @@ export type Database = {
           event_id: string;
           remind_at: string;
           sent_at: string | null;
+          resend_email_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -292,6 +299,7 @@ export type Database = {
           event_id: string;
           remind_at: string;
           sent_at?: string | null;
+          resend_email_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -300,6 +308,7 @@ export type Database = {
           event_id?: string;
           remind_at?: string;
           sent_at?: string | null;
+          resend_email_id?: string | null;
           created_at?: string;
         };
         Relationships: [];

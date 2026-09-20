@@ -27,6 +27,10 @@ type SendEmailParams = {
   attachments?: EmailAttachment[];
 };
 
+function getFromEmail(): string {
+  return process.env.RESEND_FROM_EMAIL ?? "Firefly <noreply@fireflyapp.ro>";
+}
+
 export async function sendEmail({
   to,
   subject,
@@ -40,11 +44,8 @@ export async function sendEmail({
     return;
   }
 
-  const from =
-    process.env.RESEND_FROM_EMAIL ?? "Firefly <noreply@fireflyapp.ro>";
-
   await getResend().emails.send({
-    from,
+    from: getFromEmail(),
     to,
     subject,
     html,
@@ -100,12 +101,17 @@ export async function sendEventRejectedEmail(
   await sendEmail({ to, subject, html, locale });
 }
 
-export async function sendEventReminderEmail(
+export async function scheduleEventReminderEmail(
   to: string,
   eventTitle: string,
   startsAt: string,
+  scheduledAt: string,
   locale: Locale = "en"
-): Promise<void> {
+): Promise<string> {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("Email is not configured");
+  }
+
   const subject =
     locale === "ro"
       ? `Reminder: ${eventTitle} începe curând`
@@ -116,7 +122,30 @@ export async function sendEventReminderEmail(
       ? `<p>Nu uita! <strong>${eventTitle}</strong> începe la ${startsAt}.</p>`
       : `<p>Don't forget! <strong>${eventTitle}</strong> starts at ${startsAt}.</p>`;
 
-  await sendEmail({ to, subject, html, locale });
+  const { data, error } = await getResend().emails.send({
+    from: getFromEmail(),
+    to,
+    subject,
+    html,
+    scheduledAt,
+  });
+
+  if (error || !data?.id) {
+    throw new Error(error?.message ?? "Failed to schedule reminder email");
+  }
+
+  return data.id;
+}
+
+export async function cancelScheduledReminderEmail(
+  emailId: string
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) return;
+
+  const { error } = await getResend().emails.cancel(emailId);
+  if (error) {
+    console.warn("[email] Failed to cancel scheduled reminder:", emailId, error);
+  }
 }
 
 export async function sendBusinessApprovedEmail(

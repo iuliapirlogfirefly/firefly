@@ -1,6 +1,10 @@
+import type { Genre } from "@/types";
 import type { EventListItem } from "@/types/events";
+import { isEventExpired } from "@/lib/utils/event-expiry";
+import { genresOverlap } from "@/lib/constants/genres";
 
 export type DateFilter = "any" | "tonight" | "tomorrow" | "weekend";
+export { isEventExpired };
 
 export function matchesDateFilter(
   startsAt: string,
@@ -34,13 +38,15 @@ export function filterMapEvents<T extends EventListItem>(
   options: {
     query: string;
     date: DateFilter;
-    genres: Set<EventListItem["genre"]>;
+    genres: Set<Genre>;
     eventTypes: Set<EventListItem["eventType"]>;
   }
 ): T[] {
   const normalizedQuery = options.query.trim().toLowerCase();
 
   return events.filter((event) => {
+    if (isEventExpired(event)) return false;
+
     if (
       normalizedQuery &&
       !`${event.title} ${event.venueName}`
@@ -51,7 +57,7 @@ export function filterMapEvents<T extends EventListItem>(
     }
 
     if (!matchesDateFilter(event.startsAt, options.date)) return false;
-    if (options.genres.size > 0 && !options.genres.has(event.genre)) {
+    if (options.genres.size > 0 && !genresOverlap(event.genres, options.genres)) {
       return false;
     }
     if (

@@ -273,7 +273,7 @@ export async function publishFeedPost(postId: string): Promise<ActionResult> {
         published_at: new Date().toISOString(),
       })
       .eq("id", postId)
-      .in("status", ["pending", "approved"]);
+      .in("status", ["pending", "approved", "draft"]);
 
     if (error) return failure(error.message);
     updateTag("feed");
@@ -362,6 +362,113 @@ export async function createAdminFeedPost(
   } catch (e) {
     return failure(
       e instanceof Error ? e.message : "Failed to create What Did You Miss post"
+    );
+  }
+}
+
+export async function updateAdminFeedPost(
+  id: string,
+  data: CreateFeedPostInput
+): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const parsed = createAdminFeedPostSchema.safeParse(data);
+    if (!parsed.success) return failure(parsed.error.message);
+
+    const supabase = await createClient();
+    const { data: existing, error: existingError } = await supabase
+      .from("feed_posts")
+      .select("id, status")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (existingError) return failure(existingError.message);
+    if (!existing) return failure("Post not found");
+
+    const { error } = await supabase
+      .from("feed_posts")
+      .update({
+        category: parsed.data.category,
+        translations: parsed.data.translations as Json,
+        media_url: parsed.data.mediaUrl ?? null,
+      })
+      .eq("id", id);
+
+    if (error) return failure(error.message);
+    if (existing.status === "published") updateTag("feed");
+    return success(undefined);
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to update What Did You Miss post"
+    );
+  }
+}
+
+export async function unpublishFeedPost(postId: string): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("feed_posts")
+      .update({ status: "draft" })
+      .eq("id", postId)
+      .eq("status", "published");
+
+    if (error) return failure(error.message);
+    updateTag("feed");
+    return success(undefined);
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to unpublish What Did You Miss post"
+    );
+  }
+}
+
+export async function deleteFeedPost(postId: string): Promise<ActionResult> {
+  const disabled = supabaseDisabled();
+  if (disabled) return disabled;
+
+  try {
+    const session = await getSession();
+    requireRole(session, ["admin"]);
+
+    const supabase = await createClient();
+    const { data: existing, error: existingError } = await supabase
+      .from("feed_posts")
+      .select("id, business_account_id, status, published_at")
+      .eq("id", postId)
+      .maybeSingle();
+
+    if (existingError) return failure(existingError.message);
+    if (!existing) return failure("Post not found");
+
+    const { error } = await supabase.from("feed_posts").delete().eq("id", postId);
+    if (error) return failure(error.message);
+
+    if (
+      existing.business_account_id &&
+      existing.status === "pending" &&
+      !existing.published_at
+    ) {
+      const admin = createAdminClient();
+      await restoreFeedPostCredit(admin, existing.business_account_id);
+    }
+
+    updateTag("feed");
+    return success(undefined);
+  } catch (e) {
+    return failure(
+      e instanceof Error ? e.message : "Failed to delete What Did You Miss post"
     );
   }
 }

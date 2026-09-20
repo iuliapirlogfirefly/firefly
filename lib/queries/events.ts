@@ -15,6 +15,10 @@ import type {
 import type { Tables } from "@/types/database.types";
 import { getSession } from "@/lib/auth/session";
 import {
+  activeEventsOrFilter,
+  isEventExpired,
+} from "@/lib/utils/event-expiry";
+import {
   getMockAdminEventRow,
   getMockBusinessEvents,
   getMockCalendarEvents,
@@ -24,6 +28,16 @@ import {
   getMockPendingEvents,
   getMockSavedEvents,
 } from "@/lib/mocks/data";
+import {
+  emptyPage,
+  ilikeContains,
+  paginateItems,
+  rangeForPage,
+  toPaginated,
+  type Paginated,
+} from "@/lib/admin/pagination";
+import { normalizeGenres } from "@/lib/constants/genres";
+import { parsePriceOptions } from "@/lib/utils/event-prices";
 
 type EventRow = Tables<"events">;
 
@@ -38,10 +52,12 @@ function mapEventToListItem(event: EventRow, locale: Locale): EventListItem {
     ),
     venueName: event.venue_name ?? "",
     price: event.price,
+    priceOptions: parsePriceOptions(event.price_options),
     startsAt: event.starts_at,
     endsAt: event.ends_at,
     coverImageUrl: event.cover_image_url,
-    genre: event.genre as EventListItem["genre"],
+    genres: normalizeGenres(event.genres),
+    genreOther: event.genre_other,
     eventType: event.event_type as EventListItem["eventType"],
     isPromoted: event.is_promoted,
     promotionIntensity: event.promotion_intensity as 1 | 2 | 3,
@@ -59,10 +75,11 @@ async function buildEventsQuery(
     .from("events")
     .select("*")
     .eq("status", status)
+    .or(activeEventsOrFilter())
     .order("is_promoted", { ascending: false })
     .order("starts_at", { ascending: true });
 
-  if (filters.genre) query = query.eq("genre", filters.genre);
+  if (filters.genre) query = query.overlaps("genres", [filters.genre]);
   if (filters.eventType) query = query.eq("event_type", filters.eventType);
   if (filters.promotedOnly) query = query.eq("is_promoted", true);
 
@@ -107,7 +124,9 @@ export async function getEvents(
     events = events.filter((e) => nearbyIds.has(e.id));
   }
 
-  return events.map((e) => mapEventToListItem(e, locale));
+  return events
+    .map((e) => mapEventToListItem(e, locale))
+    .filter((event) => !isEventExpired(event));
 }
 
 export async function getMapPinCount(): Promise<number> {
@@ -119,7 +138,8 @@ export async function getMapPinCount(): Promise<number> {
     const { count, error } = await supabase
       .from("events")
       .select("id", { count: "exact", head: true })
-      .eq("status", "published");
+      .eq("status", "published")
+      .or(activeEventsOrFilter());
     if (error) return 0;
     return count ?? 0;
   } catch {
@@ -136,7 +156,11 @@ export async function getEventsGeoJSON(
   const supabase = await createClient();
   const { data, error } = await buildEventsQuery(filters);
   if (error) throw error;
-  return eventsToGeoJSON(data ?? [], locale);
+  const active = (data ?? []).filter(
+    (event) =>
+      !isEventExpired({ startsAt: event.starts_at, endsAt: event.ends_at })
+  );
+  return eventsToGeoJSON(active, locale);
 }
 
 export async function getEventBySlug(
@@ -162,6 +186,9 @@ export async function getEventBySlug(
 
   if (error || !event) return null;
 
+  const listItem = mapEventToListItem(event, locale);
+  if (isEventExpired(listItem)) return null;
+
   let isSaved = false;
   let isReminded = false;
   if (session.userId) {
@@ -182,8 +209,6 @@ export async function getEventBySlug(
       .maybeSingle();
     isReminded = !!reminder;
   }
-
-  const listItem = mapEventToListItem(event, locale);
 
   return {
     ...listItem,
@@ -221,11 +246,12 @@ export async function getCalendarEvents(
     .from("events")
     .select("*")
     .eq("status", "published")
+    .or(activeEventsOrFilter())
     .gte("starts_at", start.toISOString())
     .lte("starts_at", end.toISOString())
     .order("starts_at", { ascending: true });
 
-  if (filters.genre) query = query.eq("genre", filters.genre);
+  if (filters.genre) query = query.overlaps("genres", [filters.genre]);
   if (filters.eventType) query = query.eq("event_type", filters.eventType);
 
   if (filters.search) {
@@ -240,9 +266,11 @@ export async function getCalendarEvents(
 
   const byDate = new Map<string, EventListItem[]>();
   for (const event of data ?? []) {
+    const item = mapEventToListItem(event, locale);
+    if (isEventExpired(item)) continue;
     const dateKey = event.starts_at.split("T")[0];
     const items = byDate.get(dateKey) ?? [];
-    items.push(mapEventToListItem(event, locale));
+    items.push(item);
     byDate.set(dateKey, items);
   }
 
@@ -274,7 +302,8 @@ export async function getSavedEvents(
   return (data ?? [])
     .map((row) => row.events as unknown as EventRow)
     .filter(Boolean)
-    .map((e) => mapEventToListItem(e, locale));
+    .map((e) => mapEventToListItem(e, locale))
+    .filter((event) => !isEventExpired(event));
 }
 
 export async function getBusinessEvents(
@@ -354,9 +383,11 @@ export async function getBusinessEventForEdit(
       translations: { en: { title: event.title, description: "" } },
       startsAt: event.startsAt,
       endsAt: event.endsAt ?? undefined,
-      genre: event.genre,
+      genres: event.genres,
+      genreOther: event.genreOther ?? undefined,
       eventType: event.eventType,
       price: event.price ?? undefined,
+      priceOptions: event.priceOptions,
       coverImageUrl: event.coverImageUrl ?? undefined,
       images: [],
       venueName: event.venueName,
@@ -386,9 +417,11 @@ export async function getBusinessEventForEdit(
     translations,
     startsAt: data.starts_at,
     endsAt: data.ends_at ?? undefined,
-    genre: data.genre as CreateEventInput["genre"],
+    genres: normalizeGenres(data.genres),
+    genreOther: data.genre_other ?? undefined,
     eventType: data.event_type as CreateEventInput["eventType"],
     price: data.price ?? undefined,
+    priceOptions: parsePriceOptions(data.price_options),
     ticketUrl: data.ticket_url ?? undefined,
     websiteUrl: data.website_url ?? undefined,
     specialGuest: data.special_guest ?? undefined,
@@ -402,80 +435,142 @@ export async function getBusinessEventForEdit(
   };
 }
 
-export async function getPendingEvents(locale: Locale): Promise<
-  (EventListItem & { status: string; rejectionReason: string | null })[]
-> {
-  if (shouldUseMockData()) return getMockPendingEvents(locale);
+export type AdminPendingEvent = EventListItem & {
+  status: string;
+  rejectionReason: string | null;
+};
 
-  if (!isSupabaseConfigured()) return [];
+export type AdminEventRow = EventListItem & {
+  status: string;
+  source: string;
+  publishedAt: string | null;
+};
+
+export async function getPendingEventCount(): Promise<number> {
+  if (shouldUseMockData()) return getMockPendingEvents("en").length;
+  if (!isSupabaseConfigured()) return 0;
 
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { count, error } = await supabase
     .from("events")
-    .select("*")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function getPendingEvents(
+  locale: Locale,
+  page = 1
+): Promise<Paginated<AdminPendingEvent>> {
+  if (shouldUseMockData()) {
+    return paginateItems(getMockPendingEvents(locale), page);
+  }
+
+  if (!isSupabaseConfigured()) return emptyPage(page);
+
+  const { from, to, pageSize, page: safePage } = rangeForPage(page);
+  const supabase = await createClient();
+  const { data, error, count } = await supabase
+    .from("events")
+    .select("*", { count: "exact" })
     .eq("status", "pending")
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .range(from, to);
 
   if (error) throw error;
 
-  return (data ?? []).map((e) => ({
-    ...mapEventToListItem(e, locale),
-    status: e.status,
-    rejectionReason: e.rejection_reason,
-  }));
+  return toPaginated(
+    (data ?? []).map((e) => ({
+      ...mapEventToListItem(e, locale),
+      status: e.status,
+      rejectionReason: e.rejection_reason,
+    })),
+    count ?? 0,
+    safePage,
+    pageSize
+  );
 }
 
-export async function getAllAdminEvents(locale: Locale): Promise<
-  (EventListItem & {
-    status: string;
-    source: string;
-    publishedAt: string | null;
-  })[]
-> {
-  if (shouldUseMockData()) {
-    const pending = getMockPendingEvents(locale);
-    const published = getMockEvents(locale, {});
-    const seen = new Set<string>();
-    const merged = [...pending, ...published].filter((e) => {
-      if (seen.has(e.id)) return false;
-      seen.add(e.id);
-      return true;
-    });
-    const mapped = merged.map((e) => ({
+function mockAllAdminEvents(locale: Locale): AdminEventRow[] {
+  const pending = getMockPendingEvents(locale);
+  const published = getMockEvents(locale, {}, true);
+  const seen = new Set<string>();
+  const merged = [...pending, ...published].filter((e) => {
+    if (seen.has(e.id)) return false;
+    seen.add(e.id);
+    return true;
+  });
+  return merged
+    .map((e) => ({
       ...e,
       status: ("status" in e && typeof e.status === "string"
         ? e.status
         : "published") as string,
       source: "business",
       publishedAt: e.startsAt as string | null,
-    }));
-    return mapped.sort((a, b) => {
+    }))
+    .sort((a, b) => {
       if (a.isPromoted !== b.isPromoted) return a.isPromoted ? -1 : 1;
       const aPublished = a.publishedAt ?? "";
       const bPublished = b.publishedAt ?? "";
       if (aPublished !== bPublished) return bPublished.localeCompare(aPublished);
       return 0;
     });
+}
+
+export async function getAllAdminEvents(
+  locale: Locale,
+  options: { page?: number; q?: string; status?: string } = {}
+): Promise<Paginated<AdminEventRow>> {
+  const page = options.page ?? 1;
+  const status = options.status && options.status !== "all" ? options.status : "";
+  const pattern = options.q ? ilikeContains(options.q) : null;
+
+  if (shouldUseMockData()) {
+    const mapped = mockAllAdminEvents(locale).filter((e) => {
+      const matchesStatus = !status || e.status === status;
+      const matchesSearch =
+        !options.q ||
+        e.title.toLowerCase().includes(options.q.toLowerCase()) ||
+        e.venueName.toLowerCase().includes(options.q.toLowerCase());
+      return matchesStatus && matchesSearch;
+    });
+    return paginateItems(mapped, page);
   }
 
-  if (!isSupabaseConfigured()) return [];
+  if (!isSupabaseConfigured()) return emptyPage(page);
 
+  const { from, to, pageSize, page: safePage } = rangeForPage(page);
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("events")
-    .select("*")
+    .select("*", { count: "exact" })
     .order("is_promoted", { ascending: false })
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
 
+  if (status) query = query.eq("status", status);
+  if (pattern) {
+    query = query.or(
+      `venue_name.ilike.${pattern},translations.ilike.${pattern}`
+    );
+  }
+
+  const { data, error, count } = await query.range(from, to);
   if (error) throw error;
 
-  return (data ?? []).map((e) => ({
-    ...mapEventToListItem(e, locale),
-    status: e.status,
-    source: e.source,
-    publishedAt: e.published_at,
-  }));
+  return toPaginated(
+    (data ?? []).map((e) => ({
+      ...mapEventToListItem(e, locale),
+      status: e.status,
+      source: e.source,
+      publishedAt: e.published_at,
+    })),
+    count ?? 0,
+    safePage,
+    pageSize
+  );
 }
 
 export async function getAdminEventForEdit(
@@ -483,8 +578,7 @@ export async function getAdminEventForEdit(
   locale: Locale
 ): Promise<CreateEventInput & { id: string; status: string } | null> {
   if (shouldUseMockData()) {
-    const all = await getAllAdminEvents(locale);
-    const event = all.find((e) => e.id === id);
+    const event = mockAllAdminEvents(locale).find((e) => e.id === id);
     if (!event) return null;
     return {
       id: event.id,
@@ -494,9 +588,11 @@ export async function getAdminEventForEdit(
       },
       startsAt: event.startsAt,
       endsAt: event.endsAt ?? undefined,
-      genre: event.genre,
+      genres: event.genres,
+      genreOther: event.genreOther ?? undefined,
       eventType: event.eventType,
       price: event.price ?? undefined,
+      priceOptions: event.priceOptions,
       coverImageUrl: event.coverImageUrl ?? undefined,
       images: [],
       venueName: event.venueName,
@@ -524,9 +620,11 @@ export async function getAdminEventForEdit(
     translations,
     startsAt: data.starts_at,
     endsAt: data.ends_at ?? undefined,
-    genre: data.genre as CreateEventInput["genre"],
+    genres: normalizeGenres(data.genres),
+    genreOther: data.genre_other ?? undefined,
     eventType: data.event_type as CreateEventInput["eventType"],
     price: data.price ?? undefined,
+    priceOptions: parsePriceOptions(data.price_options),
     ticketUrl: data.ticket_url ?? undefined,
     websiteUrl: data.website_url ?? undefined,
     specialGuest: data.special_guest ?? undefined,
@@ -547,9 +645,11 @@ export type AdminEventDetail = {
   source: string;
   startsAt: string;
   endsAt: string | null;
-  genre: EventListItem["genre"];
+  genres: EventListItem["genres"];
+  genreOther: string | null;
   eventType: EventListItem["eventType"];
   price: number | null;
+  priceOptions: EventListItem["priceOptions"];
   ticketUrl: string | null;
   websiteUrl: string | null;
   specialGuest: string | null;
@@ -580,9 +680,11 @@ function mapEventToAdminDetail(
     source: event.source,
     startsAt: event.starts_at,
     endsAt: event.ends_at,
-    genre: event.genre as EventListItem["genre"],
+    genres: normalizeGenres(event.genres),
+    genreOther: event.genre_other,
     eventType: event.event_type as EventListItem["eventType"],
     price: event.price,
+    priceOptions: parsePriceOptions(event.price_options),
     ticketUrl: event.ticket_url,
     websiteUrl: event.website_url,
     specialGuest: event.special_guest,

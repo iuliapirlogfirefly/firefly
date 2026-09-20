@@ -4,6 +4,9 @@ import { getLocalizedField } from "@/lib/i18n/content";
 import type { Locale } from "@/types";
 import type { EventListItem } from "@/types/events";
 import type { Tables } from "@/types/database.types";
+import { paginateItems, type Paginated } from "@/lib/admin/pagination";
+import { normalizeGenres } from "@/lib/constants/genres";
+import { parsePriceOptions } from "@/lib/utils/event-prices";
 
 type EventRow = Tables<"events">;
 
@@ -40,10 +43,12 @@ function mapEvent(
     ),
     venueName: event.venue_name ?? "",
     price: event.price,
+    priceOptions: parsePriceOptions(event.price_options),
     startsAt: event.starts_at,
     endsAt: event.ends_at,
     coverImageUrl: event.cover_image_url,
-    genre: event.genre as EventListItem["genre"],
+    genres: normalizeGenres(event.genres),
+    genreOther: event.genre_other,
     eventType: event.event_type as EventListItem["eventType"],
     isPromoted: event.is_promoted,
     promotionIntensity: event.promotion_intensity as 1 | 2 | 3,
@@ -59,9 +64,12 @@ function pairKey(idA: string, idB: string): string {
 }
 
 export async function getDuplicateEventGroups(
-  locale: Locale
-): Promise<DuplicateEventGroup[]> {
-  if (shouldUseMockData() || !isSupabaseConfigured()) return [];
+  locale: Locale,
+  page = 1
+): Promise<Paginated<DuplicateEventGroup>> {
+  if (shouldUseMockData() || !isSupabaseConfigured()) {
+    return paginateItems([], page);
+  }
 
   const supabase = await createClient();
 
@@ -112,5 +120,5 @@ export async function getDuplicateEventGroups(
     });
   }
 
-  return result;
+  return paginateItems(result, page);
 }

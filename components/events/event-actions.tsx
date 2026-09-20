@@ -14,6 +14,10 @@ import {
 } from "@/lib/actions/saves";
 import { trackShare } from "@/lib/actions/analytics";
 import { SUPABASE_DISABLED_MESSAGE } from "@/lib/supabase/config";
+import {
+  canSetEventReminder,
+  isEventTooFarForReminder,
+} from "@/lib/utils/reminders";
 
 const STORAGE_KEY = "firefly:saved";
 
@@ -30,25 +34,6 @@ function readSavedIds(): Set<string> {
 
 function writeSavedIds(ids: Set<string>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
-}
-
-function computeRemindAt(startsAt: string): string | null {
-  const start = new Date(startsAt);
-  const now = new Date();
-
-  if (start <= now) return null;
-
-  const twentyFourHoursBefore = new Date(start.getTime() - 24 * 60 * 60 * 1000);
-  const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-  const oneHourBefore = new Date(start.getTime() - 60 * 60 * 1000);
-
-  let remindAt =
-    twentyFourHoursBefore > now ? twentyFourHoursBefore : oneHourBefore;
-
-  if (remindAt <= now) remindAt = oneHourFromNow;
-  if (remindAt >= start) return null;
-
-  return remindAt.toISOString();
 }
 
 type Props = {
@@ -77,7 +62,11 @@ export function EventActions({
   const [pending, startTransition] = useTransition();
   const [reminderPending, startReminderTransition] = useTransition();
 
-  const remindAt = useMemo(() => computeRemindAt(startsAt), [startsAt]);
+  const reminderTooFar = useMemo(
+    () => isEventTooFarForReminder(startsAt),
+    [startsAt]
+  );
+  const canRemind = useMemo(() => canSetEventReminder(startsAt), [startsAt]);
 
   useEffect(() => {
     setSaved(initialSaved || readSavedIds().has(eventId));
@@ -125,16 +114,16 @@ export function EventActions({
         return;
       }
 
-      if (!remindAt) return;
+      if (!canRemind) return;
 
-      const result = await setReminder(eventId, remindAt);
+      const result = await setReminder(eventId);
       if (result.success || result.error === SUPABASE_DISABLED_MESSAGE) {
         setReminded(true);
       } else if (result.error === "Authentication required") {
         router.push("/auth");
       }
     });
-  }, [eventId, reminded, remindAt, router]);
+  }, [canRemind, eventId, reminded, router]);
 
   const share = useCallback(async () => {
     const url = window.location.href;
@@ -197,33 +186,40 @@ export function EventActions({
         {saved ? t("savedToJar") : t("saveNight")}
       </PendingButton>
 
-      <div className="grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          onClick={toggleReminder}
-          disabled={reminderPending || (!reminded && !remindAt)}
-          aria-busy={reminderPending || undefined}
-          className={`flex items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm transition-colors ${
-            reminded
-              ? "border-firefly bg-firefly/10 text-firefly"
-              : "border-firefly/20 hover:border-firefly/50"
-          } disabled:cursor-not-allowed disabled:opacity-50`}
-        >
-          {reminderPending ? (
-            <Spinner className="h-4 w-4" />
-          ) : (
-            <Bell className="h-4 w-4" />
-          )}
-          {reminderPending
-            ? t("updating")
-            : reminded
-              ? t("reminderSet")
-              : t("remind")}
-        </button>
+      <div className="grid grid-cols-2 items-start gap-3">
+        <div>
+          <button
+            type="button"
+            onClick={toggleReminder}
+            disabled={reminderPending || (!reminded && !canRemind)}
+            aria-busy={reminderPending || undefined}
+            className={`flex w-full items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm transition-colors ${
+              reminded
+                ? "border-firefly bg-firefly/10 text-firefly"
+                : "border-firefly/20 hover:border-firefly/50"
+            } disabled:cursor-not-allowed disabled:opacity-50`}
+          >
+            {reminderPending ? (
+              <Spinner className="h-4 w-4" />
+            ) : (
+              <Bell className="h-4 w-4" />
+            )}
+            {reminderPending
+              ? t("updating")
+              : reminded
+                ? t("reminderSet")
+                : t("remind")}
+          </button>
+          {reminderTooFar && !reminded ? (
+            <p className="mt-1.5 text-center text-[11px] leading-snug text-foreground/40">
+              {t("reminderTooFar")}
+            </p>
+          ) : null}
+        </div>
         <button
           type="button"
           onClick={() => void share()}
-          className="flex items-center justify-center gap-2 rounded-full border border-firefly/20 px-4 py-3 text-sm transition-colors hover:border-firefly/50"
+          className="flex w-full items-center justify-center gap-2 rounded-full border border-firefly/20 px-4 py-3 text-sm transition-colors hover:border-firefly/50"
         >
           <Share2 className="h-4 w-4" />
           {t("share")}

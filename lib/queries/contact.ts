@@ -1,6 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured, shouldUseMockData } from "@/lib/supabase/config";
+import {
+  emptyPage,
+  rangeForPage,
+  toPaginated,
+  type Paginated,
+} from "@/lib/admin/pagination";
 
 export type ContactMessageStatus = "unread" | "read" | "archived";
 
@@ -122,22 +128,26 @@ export async function getUnreadContactNotifications(
   }));
 }
 
-export async function getAdminContactMessages(): Promise<AdminContactMessage[]> {
-  if (shouldUseMockData() || !isSupabaseConfigured()) return [];
+export async function getAdminContactMessages(
+  page = 1
+): Promise<Paginated<AdminContactMessage>> {
+  if (shouldUseMockData() || !isSupabaseConfigured()) return emptyPage(page);
 
+  const { from, to, pageSize, page: safePage } = rangeForPage(page);
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data, error, count } = await supabase
     .from("contact_messages")
     .select(
-      "id, subject, body, status, created_at, business_account_id, profile_id"
+      "id, subject, body, status, created_at, business_account_id, profile_id",
+      { count: "exact" }
     )
     .neq("status", "archived")
     .order("created_at", { ascending: false })
-    .limit(100);
+    .range(from, to);
 
   if (error) {
     console.warn("[contact] Failed to load admin messages:", error.message);
-    return [];
+    return emptyPage(page);
   }
 
   const rows = data ?? [];
@@ -163,15 +173,20 @@ export async function getAdminContactMessages(): Promise<AdminContactMessage[]> 
     }
   }
 
-  return rows.map((row) => ({
-    id: row.id,
-    subject: row.subject,
-    body: row.body,
-    status: row.status as ContactMessageStatus,
-    createdAt: row.created_at,
-    businessAccountId: row.business_account_id,
-    businessName: nameMap.get(row.business_account_id) ?? "Unknown business",
-    profileId: row.profile_id,
-    replyEmail: emailByProfile.get(row.profile_id) ?? null,
-  }));
+  return toPaginated(
+    rows.map((row) => ({
+      id: row.id,
+      subject: row.subject,
+      body: row.body,
+      status: row.status as ContactMessageStatus,
+      createdAt: row.created_at,
+      businessAccountId: row.business_account_id,
+      businessName: nameMap.get(row.business_account_id) ?? "Unknown business",
+      profileId: row.profile_id,
+      replyEmail: emailByProfile.get(row.profile_id) ?? null,
+    })),
+    count ?? 0,
+    safePage,
+    pageSize
+  );
 }
