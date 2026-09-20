@@ -20,7 +20,9 @@ export const MISSED_WINDOW_HOURS = 48;
 
 export const MISSED_POST_CATEGORIES: FeedPostCategory[] = [
   "party_updates",
+  "nightlife_news",
   "nightlife_chaos",
+  "club_moments",
 ];
 
 export function isWithinMissedWindow(
