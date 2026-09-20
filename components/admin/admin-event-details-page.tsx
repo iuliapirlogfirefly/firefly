@@ -5,7 +5,7 @@ import { AdminEventActions } from "@/components/admin/admin-event-actions";
 import { AdminBadge } from "@/components/admin/ui/admin-badge";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { formatEventTypeLabel } from "@/lib/constants/event-types";
-import { formatGenreLabel } from "@/lib/constants/genres";
+import { formatGenresLabel } from "@/lib/constants/genres";
 import { dateTimeLocale } from "@/lib/i18n/date-locale";
 import { landingImages } from "@/lib/landing/images";
 import type { AdminEventDetail } from "@/lib/queries/events";
@@ -15,6 +15,7 @@ import {
   formatPrice,
   formatTimeRange,
 } from "@/lib/utils/event-format";
+import { lowestEventPrice } from "@/lib/utils/event-prices";
 
 type Props = {
   event: AdminEventDetail;
@@ -114,9 +115,24 @@ export async function AdminEventDetailsPage({ event }: Props) {
           </p>
           <p className="mt-1 text-sm">
             {formatEventTypeLabel(event.eventType, tTypes)} ·{" "}
-            {formatGenreLabel(event.genre, tGenres)} ·{" "}
-            {formatPrice(event.price, tCommon)}
+            {formatGenresLabel(event.genres, tGenres, event.genreOther)} ·{" "}
+            {formatPrice(
+              lowestEventPrice(event.price, event.priceOptions),
+              tCommon
+            )}
           </p>
+          {event.priceOptions.length > 0 ? (
+            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+              {event.priceOptions.map((option, index) => (
+                <li key={`${option.name}-${index}`}>
+                  {tCommon("namedPrice", {
+                    name: option.name,
+                    price: option.price,
+                  })}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </AdminCard>
         <AdminCard className="p-4">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">

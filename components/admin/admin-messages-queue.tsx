@@ -2,18 +2,20 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { AdminMessageActions } from "@/components/admin/admin-message-actions";
 import { AdminEmptyState } from "@/components/admin/ui/admin-empty-state";
 import { AdminCard } from "@/components/admin/ui/admin-card";
+import { AdminPagination } from "@/components/admin/ui/admin-pagination";
 import { dateTimeLocale } from "@/lib/i18n/date-locale";
+import type { Paginated } from "@/lib/admin/pagination";
 import type { AdminContactMessage } from "@/lib/queries/contact";
 
 type Props = {
-  messages: AdminContactMessage[];
+  messages: Paginated<AdminContactMessage>;
+  unreadCount: number;
 };
 
-export async function AdminMessagesQueue({ messages }: Props) {
+export async function AdminMessagesQueue({ messages, unreadCount }: Props) {
   const t = await getTranslations("admin");
   const tStatus = await getTranslations("common.status");
   const locale = await getLocale();
-  const unreadCount = messages.filter((m) => m.status === "unread").length;
 
   return (
     <div data-route="admin-messages">
@@ -27,13 +29,13 @@ export async function AdminMessagesQueue({ messages }: Props) {
       </p>
 
       <div className="mt-6 space-y-4">
-        {messages.length === 0 ? (
+        {messages.items.length === 0 ? (
           <AdminEmptyState
             title={t("allCaughtUp")}
             description={t("noMessages")}
           />
         ) : (
-          messages.map((message) => (
+          messages.items.map((message) => (
             <AdminCard
               key={message.id}
               className={`p-5 ${
@@ -79,6 +81,11 @@ export async function AdminMessagesQueue({ messages }: Props) {
             </AdminCard>
           ))
         )}
+        <AdminPagination
+          pathname="/admin/messages"
+          page={messages.page}
+          total={messages.total}
+        />
       </div>
     </div>
   );

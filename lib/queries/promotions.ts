@@ -6,6 +6,13 @@ import {
   parseBillingType,
   type BillingType,
 } from "@/lib/stripe/entitlement";
+import {
+  emptyPage,
+  paginateItems,
+  rangeForPage,
+  toPaginated,
+  type Paginated,
+} from "@/lib/admin/pagination";
 
 export type AdminPromotionRow = {
   id: string;
@@ -241,198 +248,303 @@ export async function getBusinessSubscription(
   };
 }
 
-export async function getAdminPromotions(): Promise<AdminPromotionRow[]> {
+export async function getAdminPromotions(
+  page = 1
+): Promise<Paginated<AdminPromotionRow>> {
   const { shouldUseMockData, isSupabaseConfigured } = await import(
     "@/lib/supabase/config"
   );
   if (shouldUseMockData()) {
     const { getMockPromotions } = await import("@/lib/mocks/data");
-    return getMockPromotions()
-      .filter((p) => p.type !== "feed_post")
-      .map((p) => ({
-      id: p.id,
-      businessName: p.venue,
-      type: p.type as PromotionType,
-      targetLabel: p.name,
-      expiresAt: p.expiresAt,
-      isActive: p.status === "active",
-      invoiced: Boolean(p.invoicedAt),
-    }));
-  }
-
-  if (!isSupabaseConfigured()) return [];
-
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
-
-  const [{ data: promotions, error }, { data: businesses }] = await Promise.all([
-    supabase
-      .from("promotions")
-      .select("id, type, target_id, expires_at, is_active, business_account_id, invoiced_at")
-      .eq("is_active", true)
-      .order("expires_at", { ascending: true }),
-    supabase.from("business_accounts").select("id, name"),
-  ]);
-
-  if (error) throw error;
-
-  const businessMap = new Map(
-    (businesses ?? []).map((b) => [b.id, b.name])
-  );
-
-  return (promotions ?? [])
-    .filter((p) => p.type !== "feed_post")
-    .map((p) => ({
-    id: p.id,
-    businessName: businessMap.get(p.business_account_id) ?? "Unknown",
-    type: p.type as PromotionType,
-    targetLabel: p.target_id?.slice(0, 8) ?? "—",
-    expiresAt: p.expires_at?.slice(0, 10) ?? "",
-    isActive: p.is_active,
-    invoiced: Boolean(p.invoiced_at),
-  }));
-}
-
-export async function getAdminSubscriptions(): Promise<AdminSubscriptionRow[]> {
-  const { shouldUseMockData, isSupabaseConfigured } = await import(
-    "@/lib/supabase/config"
-  );
-  if (shouldUseMockData()) {
-    return [
-      {
-        id: "sub-1",
-        businessName: "Control Club",
-        status: "active",
-        billingType: "recurring",
-        renewsAt: "2026-04-15",
-        cancelAtPeriodEnd: false,
-        entitled: true,
-        paymentFailed: false,
-        promotedUsed: 2,
-        promotedQuota: 4,
-        postsUsed: 1,
-        postsQuota: 4,
-        newslettersUsed: 0,
-        newslettersQuota: 1,
-        socialUsed: 0,
-        socialQuota: 2,
-        packUsed: 0,
-        packQuota: 4,
-        invoiced: false,
-      },
-    ];
-  }
-
-  if (!isSupabaseConfigured()) return [];
-
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
-
-  const [{ data: subscriptions, error }, { data: businesses }] =
-    await Promise.all([
-      supabase
-        .from("subscriptions")
-        .select(
-          "id, status, billing_type, current_period_start, current_period_end, cancel_at_period_end, used_promoted_events, quota_promoted_events, used_feed_posts, quota_feed_posts, used_newsletters, quota_newsletters, used_social_posts, quota_social_posts, business_account_id, invoiced_at"
-        ),
-      supabase.from("business_accounts").select(
-        "id, name, addon_feed_posts_quota, addon_feed_posts_used"
-      ),
-    ]);
-
-  if (error) throw error;
-
-  const businessMap = new Map(
-    (businesses ?? []).map((b) => [b.id, b])
-  );
-
-  return (subscriptions ?? []).map((s) => {
-    const business = businessMap.get(s.business_account_id);
-    return {
-    id: s.id,
-    businessName: business?.name ?? "Unknown",
-    status: s.status,
-    billingType: parseBillingType(s.billing_type),
-    renewsAt: s.current_period_end?.slice(0, 10) ?? "",
-    cancelAtPeriodEnd: s.cancel_at_period_end ?? false,
-    entitled: isPremiumEntitled(s),
-    paymentFailed: isPaymentFailedStatus(s.status),
-    promotedUsed: s.used_promoted_events,
-    promotedQuota: s.quota_promoted_events,
-    postsUsed: s.used_feed_posts,
-    postsQuota: s.quota_feed_posts,
-    newslettersUsed: s.used_newsletters,
-    newslettersQuota: s.quota_newsletters,
-    socialUsed: s.used_social_posts,
-    socialQuota: s.quota_social_posts,
-    packUsed: business?.addon_feed_posts_used ?? 0,
-    packQuota: business?.addon_feed_posts_quota ?? 0,
-    invoiced: isInvoicedForCurrentPeriod(s.invoiced_at, s.current_period_start),
-  };
-  }).filter((s) => s.entitled || s.paymentFailed);
-}
-
-function sortDeliveries(rows: AdminDeliveryRow[]): AdminDeliveryRow[] {
-  return [...rows].sort((a, b) => {
-    const aPending = a.fulfilledAt ? 1 : 0;
-    const bPending = b.fulfilledAt ? 1 : 0;
-    if (aPending !== bPending) return aPending - bPending;
-    return b.createdAt.localeCompare(a.createdAt);
-  });
-}
-
-export async function getAdminDeliveries(): Promise<AdminDeliveryRow[]> {
-  const { shouldUseMockData, isSupabaseConfigured } = await import(
-    "@/lib/supabase/config"
-  );
-  if (shouldUseMockData()) {
-    const { getMockPromotions } = await import("@/lib/mocks/data");
-    return sortDeliveries(
+    return paginateItems(
       getMockPromotions()
-        .filter(
-          (p): p is (typeof p) & {
-            type: "social_media" | "newsletter";
-          } =>
-            p.type === "social_media" || p.type === "newsletter"
-        )
+        .filter((p) => p.type !== "feed_post")
         .map((p) => ({
           id: p.id,
           businessName: p.venue,
-          type: p.type,
-          createdAt: p.createdAt,
+          type: p.type as PromotionType,
+          targetLabel: p.name,
           expiresAt: p.expiresAt,
-          isActive: p.status === "active" || p.status === "scheduled",
-          fulfilledAt: p.fulfilledAt,
-          deliveryUrl: p.deliveryUrl,
-          deliveryNotes: p.deliveryNotes,
-        }))
+          isActive: p.status === "active",
+          invoiced: Boolean(p.invoicedAt),
+        })),
+      page
     );
   }
 
-  if (!isSupabaseConfigured()) return [];
+  if (!isSupabaseConfigured()) return emptyPage(page);
 
+  const { from, to, pageSize, page: safePage } = rangeForPage(page);
   const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
-  const [{ data: promotions, error }, { data: businesses }] = await Promise.all([
-    supabase
-      .from("promotions")
-      .select(
-        "id, type, expires_at, is_active, created_at, business_account_id, fulfilled_at, delivery_url, delivery_notes"
-      )
-      .in("type", [...DELIVERY_TYPES])
-      .order("created_at", { ascending: false }),
-    supabase.from("business_accounts").select("id, name"),
-  ]);
+  const { data: promotions, error, count } = await supabase
+    .from("promotions")
+    .select(
+      "id, type, target_id, expires_at, is_active, business_account_id, invoiced_at",
+      { count: "exact" }
+    )
+    .eq("is_active", true)
+    .neq("type", "feed_post")
+    .order("expires_at", { ascending: true })
+    .range(from, to);
 
   if (error) throw error;
 
-  const businessMap = new Map(
-    (businesses ?? []).map((b) => [b.id, b.name])
-  );
+  const rows = promotions ?? [];
+  const businessIds = [...new Set(rows.map((p) => p.business_account_id))];
+  const { data: businesses } =
+    businessIds.length > 0
+      ? await supabase
+          .from("business_accounts")
+          .select("id, name")
+          .in("id", businessIds)
+      : { data: [] };
+  const businessMap = new Map((businesses ?? []).map((b) => [b.id, b.name]));
 
-  return sortDeliveries(
-    (promotions ?? []).map((p) => ({
+  return toPaginated(
+    rows.map((p) => ({
+      id: p.id,
+      businessName: businessMap.get(p.business_account_id) ?? "Unknown",
+      type: p.type as PromotionType,
+      targetLabel: p.target_id?.slice(0, 8) ?? "—",
+      expiresAt: p.expires_at?.slice(0, 10) ?? "",
+      isActive: p.is_active,
+      invoiced: Boolean(p.invoiced_at),
+    })),
+    count ?? 0,
+    safePage,
+    pageSize
+  );
+}
+
+const SUBSCRIPTION_STATUSES = [
+  "active",
+  "past_due",
+  "trialing",
+  "unpaid",
+] as const;
+
+export async function getAdminSubscriptions(
+  page = 1
+): Promise<Paginated<AdminSubscriptionRow>> {
+  const { shouldUseMockData, isSupabaseConfigured } = await import(
+    "@/lib/supabase/config"
+  );
+  if (shouldUseMockData()) {
+    return paginateItems(
+      [
+        {
+          id: "sub-1",
+          businessName: "Control Club",
+          status: "active",
+          billingType: "recurring" as const,
+          renewsAt: "2026-04-15",
+          cancelAtPeriodEnd: false,
+          entitled: true,
+          paymentFailed: false,
+          promotedUsed: 2,
+          promotedQuota: 4,
+          postsUsed: 1,
+          postsQuota: 4,
+          newslettersUsed: 0,
+          newslettersQuota: 1,
+          socialUsed: 0,
+          socialQuota: 2,
+          packUsed: 0,
+          packQuota: 4,
+          invoiced: false,
+        },
+      ],
+      page
+    );
+  }
+
+  if (!isSupabaseConfigured()) return emptyPage(page);
+
+  const { from, to, pageSize, page: safePage } = rangeForPage(page);
+  const { createClient } = await import("@/lib/supabase/server");
+  const supabase = await createClient();
+
+  const { data: subscriptions, error, count } = await supabase
+    .from("subscriptions")
+    .select(
+      "id, status, billing_type, current_period_start, current_period_end, cancel_at_period_end, used_promoted_events, quota_promoted_events, used_feed_posts, quota_feed_posts, used_newsletters, quota_newsletters, used_social_posts, quota_social_posts, business_account_id, invoiced_at",
+      { count: "exact" }
+    )
+    .in("status", [...SUBSCRIPTION_STATUSES])
+    .order("current_period_end", { ascending: false })
+    .range(from, to);
+
+  if (error) throw error;
+
+  const rows = subscriptions ?? [];
+  const businessIds = [...new Set(rows.map((s) => s.business_account_id))];
+  const { data: businesses } =
+    businessIds.length > 0
+      ? await supabase
+          .from("business_accounts")
+          .select(
+            "id, name, addon_feed_posts_quota, addon_feed_posts_used"
+          )
+          .in("id", businessIds)
+      : { data: [] };
+  const businessMap = new Map((businesses ?? []).map((b) => [b.id, b]));
+
+  return toPaginated(
+    rows.map((s) => {
+      const business = businessMap.get(s.business_account_id);
+      return {
+        id: s.id,
+        businessName: business?.name ?? "Unknown",
+        status: s.status,
+        billingType: parseBillingType(s.billing_type),
+        renewsAt: s.current_period_end?.slice(0, 10) ?? "",
+        cancelAtPeriodEnd: s.cancel_at_period_end ?? false,
+        entitled: isPremiumEntitled(s),
+        paymentFailed: isPaymentFailedStatus(s.status),
+        promotedUsed: s.used_promoted_events,
+        promotedQuota: s.quota_promoted_events,
+        postsUsed: s.used_feed_posts,
+        postsQuota: s.quota_feed_posts,
+        newslettersUsed: s.used_newsletters,
+        newslettersQuota: s.quota_newsletters,
+        socialUsed: s.used_social_posts,
+        socialQuota: s.quota_social_posts,
+        packUsed: business?.addon_feed_posts_used ?? 0,
+        packQuota: business?.addon_feed_posts_quota ?? 0,
+        invoiced: isInvoicedForCurrentPeriod(
+          s.invoiced_at,
+          s.current_period_start
+        ),
+      };
+    }),
+    count ?? 0,
+    safePage,
+    pageSize
+  );
+}
+
+export type DeliveryStatusTab = "pending" | "done" | "all";
+export type DeliveryTypeFilter = "all" | "social_media" | "newsletter";
+
+export async function getAdminDeliveryCounts(type: DeliveryTypeFilter = "all") {
+  const { shouldUseMockData, isSupabaseConfigured } = await import(
+    "@/lib/supabase/config"
+  );
+  if (shouldUseMockData()) {
+    const { getMockPromotions } = await import("@/lib/mocks/data");
+    const rows = getMockPromotions().filter(
+      (p) =>
+        (p.type === "social_media" || p.type === "newsletter") &&
+        (type === "all" || p.type === type)
+    );
+    return {
+      pending: rows.filter((p) => !p.fulfilledAt).length,
+      done: rows.filter((p) => p.fulfilledAt).length,
+      all: rows.length,
+    };
+  }
+
+  if (!isSupabaseConfigured()) return { pending: 0, done: 0, all: 0 };
+
+  const { createClient } = await import("@/lib/supabase/server");
+  const supabase = await createClient();
+  const types = type === "all" ? [...DELIVERY_TYPES] : [type];
+  const base = () =>
+    supabase
+      .from("promotions")
+      .select("id", { count: "exact", head: true })
+      .in("type", types);
+
+  const [pending, done, all] = await Promise.all([
+    base().is("fulfilled_at", null),
+    base().not("fulfilled_at", "is", null),
+    base(),
+  ]);
+
+  return {
+    pending: pending.count ?? 0,
+    done: done.count ?? 0,
+    all: all.count ?? 0,
+  };
+}
+
+export async function getAdminDeliveries(
+  options: {
+    page?: number;
+    status?: DeliveryStatusTab;
+    type?: DeliveryTypeFilter;
+  } = {}
+): Promise<Paginated<AdminDeliveryRow>> {
+  const page = options.page ?? 1;
+  const status = options.status ?? "pending";
+  const type = options.type ?? "all";
+
+  const { shouldUseMockData, isSupabaseConfigured } = await import(
+    "@/lib/supabase/config"
+  );
+  if (shouldUseMockData()) {
+    const { getMockPromotions } = await import("@/lib/mocks/data");
+    const rows = getMockPromotions()
+      .filter(
+        (p): p is typeof p & { type: "social_media" | "newsletter" } =>
+          p.type === "social_media" || p.type === "newsletter"
+      )
+      .filter((p) => type === "all" || p.type === type)
+      .filter((p) => {
+        if (status === "pending") return !p.fulfilledAt;
+        if (status === "done") return Boolean(p.fulfilledAt);
+        return true;
+      })
+      .map((p) => ({
+        id: p.id,
+        businessName: p.venue,
+        type: p.type,
+        createdAt: p.createdAt,
+        expiresAt: p.expiresAt,
+        isActive: p.status === "active" || p.status === "scheduled",
+        fulfilledAt: p.fulfilledAt,
+        deliveryUrl: p.deliveryUrl,
+        deliveryNotes: p.deliveryNotes,
+      }));
+    return paginateItems(rows, page);
+  }
+
+  if (!isSupabaseConfigured()) return emptyPage(page);
+
+  const { from, to, pageSize, page: safePage } = rangeForPage(page);
+  const { createClient } = await import("@/lib/supabase/server");
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("promotions")
+    .select(
+      "id, type, expires_at, is_active, created_at, business_account_id, fulfilled_at, delivery_url, delivery_notes",
+      { count: "exact" }
+    )
+    .in("type", type === "all" ? [...DELIVERY_TYPES] : [type])
+    .order("created_at", { ascending: false });
+
+  if (status === "pending") query = query.is("fulfilled_at", null);
+  if (status === "done") query = query.not("fulfilled_at", "is", null);
+
+  const { data: promotions, error, count } = await query.range(from, to);
+  if (error) throw error;
+
+  const rows = promotions ?? [];
+  const businessIds = [...new Set(rows.map((p) => p.business_account_id))];
+  const { data: businesses } =
+    businessIds.length > 0
+      ? await supabase
+          .from("business_accounts")
+          .select("id, name")
+          .in("id", businessIds)
+      : { data: [] };
+  const businessMap = new Map((businesses ?? []).map((b) => [b.id, b.name]));
+
+  return toPaginated(
+    rows.map((p) => ({
       id: p.id,
       businessName: businessMap.get(p.business_account_id) ?? "Unknown",
       type: p.type as AdminDeliveryRow["type"],
@@ -442,7 +554,10 @@ export async function getAdminDeliveries(): Promise<AdminDeliveryRow[]> {
       fulfilledAt: p.fulfilled_at,
       deliveryUrl: p.delivery_url,
       deliveryNotes: p.delivery_notes,
-    }))
+    })),
+    count ?? 0,
+    safePage,
+    pageSize
   );
 }
 

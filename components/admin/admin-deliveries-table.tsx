@@ -1,49 +1,46 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { AdminDeliveryActions } from "@/components/admin/admin-delivery-actions";
 import { AdminBadge } from "@/components/admin/ui/admin-badge";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminEmptyState } from "@/components/admin/ui/admin-empty-state";
-import type { AdminDeliveryRow } from "@/lib/queries/promotions";
+import { AdminPagination } from "@/components/admin/ui/admin-pagination";
+import { buildAdminQuery, type Paginated } from "@/lib/admin/pagination";
+import type {
+  AdminDeliveryRow,
+  DeliveryStatusTab,
+  DeliveryTypeFilter,
+} from "@/lib/queries/promotions";
 
 type Props = {
-  deliveries: AdminDeliveryRow[];
+  deliveries: Paginated<AdminDeliveryRow>;
+  status: DeliveryStatusTab;
+  type: DeliveryTypeFilter;
+  counts: { pending: number; done: number; all: number };
 };
-
-type StatusTab = "pending" | "done" | "all";
-type TypeFilter = "all" | "social_media" | "newsletter";
 
 function truncate(text: string, max = 48) {
   if (text.length <= max) return text;
   return `${text.slice(0, max)}…`;
 }
 
-export function AdminDeliveriesTable({ deliveries }: Props) {
+export function AdminDeliveriesTable({
+  deliveries,
+  status,
+  type,
+  counts,
+}: Props) {
   const t = useTranslations("admin");
   const tCommon = useTranslations("common");
   const tProducts = useTranslations("common.products");
   const tStatus = useTranslations("common.status");
-  const [statusTab, setStatusTab] = useState<StatusTab>("pending");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
-
-  const pendingCount = deliveries.filter((d) => !d.fulfilledAt).length;
-  const doneCount = deliveries.filter((d) => d.fulfilledAt).length;
-
-  const filtered = useMemo(() => {
-    return deliveries.filter((d) => {
-      if (statusTab === "pending" && d.fulfilledAt) return false;
-      if (statusTab === "done" && !d.fulfilledAt) return false;
-      if (typeFilter !== "all" && d.type !== typeFilter) return false;
-      return true;
-    });
-  }, [deliveries, statusTab, typeFilter]);
 
   const statusTabs = [
-    ["pending", t("tabPending", { count: pendingCount })],
-    ["done", t("tabDone", { count: doneCount })],
-    ["all", t("tabAllCount", { count: deliveries.length })],
+    ["pending", t("tabPending", { count: counts.pending })],
+    ["done", t("tabDone", { count: counts.done })],
+    ["all", t("tabAllCount", { count: counts.all })],
   ] as const;
 
   const typeFilters = [
@@ -64,47 +61,51 @@ export function AdminDeliveriesTable({ deliveries }: Props) {
       <div className="mt-6 flex flex-wrap items-center gap-4">
         <div className="flex gap-2 border-b border-border">
           {statusTabs.map(([key, label]) => (
-            <button
+            <Link
               key={key}
-              type="button"
-              onClick={() => setStatusTab(key)}
+              href={`/admin/deliveries${buildAdminQuery({
+                tab: key === "pending" ? undefined : key,
+                type: type === "all" ? undefined : type,
+              })}`}
               className={`border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-                statusTab === key
+                status === key
                   ? "border-foreground text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               {label}
-            </button>
+            </Link>
           ))}
         </div>
 
         <div className="flex flex-wrap gap-2">
           {typeFilters.map(([key, label]) => (
-            <button
+            <Link
               key={key}
-              type="button"
-              onClick={() => setTypeFilter(key)}
+              href={`/admin/deliveries${buildAdminQuery({
+                tab: status === "pending" ? undefined : status,
+                type: key === "all" ? undefined : key,
+              })}`}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                typeFilter === key
+                type === key
                   ? "bg-surface-2 text-foreground"
                   : "text-muted-foreground hover:bg-surface-2 hover:text-foreground"
               }`}
             >
               {label}
-            </button>
+            </Link>
           ))}
         </div>
       </div>
 
       <div className="mt-6">
-        {filtered.length === 0 ? (
+        {deliveries.items.length === 0 ? (
           <AdminEmptyState
             title={
-              statusTab === "pending" ? t("allCaughtUp") : t("nothingHere")
+              status === "pending" ? t("allCaughtUp") : t("nothingHere")
             }
             description={
-              statusTab === "pending"
+              status === "pending"
                 ? t("noPendingDeliveries")
                 : t("noDeliveriesMatch")
             }
@@ -125,7 +126,7 @@ export function AdminDeliveriesTable({ deliveries }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((row) => {
+                {deliveries.items.map((row) => {
                   const done = Boolean(row.fulfilledAt);
                   return (
                     <tr
@@ -185,12 +186,21 @@ export function AdminDeliveriesTable({ deliveries }: Props) {
             </table>
           </div>
         )}
+        <AdminPagination
+          pathname="/admin/deliveries"
+          params={{
+            tab: status === "pending" ? undefined : status,
+            type: type === "all" ? undefined : type,
+          }}
+          page={deliveries.page}
+          total={deliveries.total}
+        />
       </div>
 
-      {pendingCount > 0 && statusTab !== "pending" ? (
+      {counts.pending > 0 && status !== "pending" ? (
         <AdminCard className="mt-6 border-amber-500/30 p-4">
           <p className="text-sm font-medium text-amber-400">
-            {t("stillPending", { count: pendingCount })}
+            {t("stillPending", { count: counts.pending })}
           </p>
         </AdminCard>
       ) : null}

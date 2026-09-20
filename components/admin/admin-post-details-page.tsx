@@ -11,6 +11,7 @@ import type { AdminFeedPostDetail } from "@/lib/queries/feed";
 import {
   MISSED_POST_CATEGORIES,
   MISSED_WINDOW_HOURS,
+  isWithinMissedWindow,
 } from "@/lib/utils/feed-filters";
 
 type Props = {
@@ -59,10 +60,20 @@ export async function AdminPostDetailsPage({ post }: Props) {
     post.translations.ro?.title ||
     t("untitledPost");
   const showsOnMissed = MISSED_POST_CATEGORIES.includes(post.category);
+  const liveOnMissed =
+    post.status === "published" &&
+    !!post.publishedAt &&
+    isWithinMissedWindow(post.publishedAt);
   const submittedAt = new Intl.DateTimeFormat(dateTimeLocale(locale), {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(post.createdAt));
+  const publishedAt = post.publishedAt
+    ? new Intl.DateTimeFormat(dateTimeLocale(locale), {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(post.publishedAt))
+    : null;
 
   return (
     <div data-route="admin-post-details">
@@ -79,6 +90,11 @@ export async function AdminPostDetailsPage({ post }: Props) {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <AdminBadge status={post.status}>{post.status}</AdminBadge>
+            {liveOnMissed ? (
+              <span className="inline-flex rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                {t("liveOnMissed")}
+              </span>
+            ) : null}
             <span className="text-xs text-muted-foreground">
               {category.icon} {category.label}
             </span>
@@ -89,6 +105,11 @@ export async function AdminPostDetailsPage({ post }: Props) {
           <p className="mt-1 text-sm text-muted-foreground">
             {t("submittedDate", { date: submittedAt })}
           </p>
+          {publishedAt ? (
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("publishedDate", { date: publishedAt })}
+            </p>
+          ) : null}
           {post.businessAccountId ? (
             <p className="mt-1 text-sm">
               <Link

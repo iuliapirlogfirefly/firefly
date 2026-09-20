@@ -6,6 +6,7 @@ export const EVENT_TYPES: EventType[] = [
   "festival",
   "rooftop",
   "brunch_day_party",
+  "pool_party",
   "social_gathering",
   "club_night",
   "live_performance",

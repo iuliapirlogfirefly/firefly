@@ -13,6 +13,13 @@ import {
 import { PROMOTION_PRICES, SUBSCRIPTION_PRICE } from "@/lib/stripe/products";
 import { getMonthWindows, percentChange } from "@/lib/utils/percent-change";
 import type { Locale } from "@/types";
+import {
+  emptyPage,
+  paginateItems,
+  rangeForPage,
+  toPaginated,
+  type Paginated,
+} from "@/lib/admin/pagination";
 
 export type AnalyticsCounts = {
   views: number;
@@ -447,27 +454,32 @@ export async function getBusinessAnalytics(
 
 export async function getAdminEventAnalytics(
   locale: Locale = "en",
-  sortBy: EngagementMetric = "views"
-): Promise<EventAnalyticsRow[]> {
+  sortBy: EngagementMetric = "views",
+  page = 1
+): Promise<Paginated<EventAnalyticsRow>> {
   if (shouldUseMockData()) {
     const mock = getMockBusinessAnalytics(locale);
-    return [...mock.events].sort(
+    const rows = [...mock.events].sort(
       (a, b) => (b[sortBy] as number) - (a[sortBy] as number)
     );
+    return paginateItems(rows, page);
   }
 
-  if (!isSupabaseAdminConfigured()) return [];
+  if (!isSupabaseAdminConfigured()) return emptyPage(page);
 
+  const { from, to, pageSize, page: safePage } = rangeForPage(page);
   const admin = createAdminClient();
-  const { data: events, error } = await admin
+  const { data: events, error, count } = await admin
     .from("events")
-    .select("id, is_promoted, status, starts_at, translations")
+    .select("id, is_promoted, status, starts_at, translations", {
+      count: "exact",
+    })
     .order("created_at", { ascending: false })
-    .limit(500);
+    .range(from, to);
 
   if (error || !events) {
     console.error("[analytics] getAdminEventAnalytics failed:", error?.message);
-    return [];
+    return emptyPage(page);
   }
 
   const countsByEvent = await groupAnalyticsByEntity(
@@ -498,7 +510,7 @@ export async function getAdminEventAnalytics(
     return new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime();
   });
 
-  return rows;
+  return toPaginated(rows, count ?? 0, safePage, pageSize);
 }
 
 export async function getAdminAnalytics(): Promise<AdminAnalytics> {

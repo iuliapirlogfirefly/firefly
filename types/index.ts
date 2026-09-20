@@ -79,7 +79,10 @@ export type Genre =
   | "edm"
   | "live_music"
   | "jazz"
-  | "open_format";
+  | "punk"
+  | "rock"
+  | "open_format"
+  | "other";
 
 export type EventType =
   | "party"
@@ -87,6 +90,7 @@ export type EventType =
   | "festival"
   | "rooftop"
   | "brunch_day_party"
+  | "pool_party"
   | "social_gathering"
   | "club_night"
   | "live_performance"

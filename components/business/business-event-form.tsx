@@ -4,12 +4,19 @@ import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { createEvent, updateEvent } from "@/lib/actions/events";
-import { GENRES, formatGenreLabel } from "@/lib/constants/genres";
+import { GenreMultiSelect } from "@/components/events/genre-multi-select";
+import { normalizeGenres } from "@/lib/constants/genres";
 import { EVENT_TYPES, formatEventTypeLabel } from "@/lib/constants/event-types";
 import { ImageUploader } from "@/components/events/image-uploader";
 import { LocationMapPicker } from "@/components/business/location-map-picker";
+import { EventPriceOptionsFields } from "@/components/events/event-price-options";
 import { datetimeLocalToIso, isoToDatetimeLocal } from "@/lib/utils/datetime";
 import { BUCHAREST_CENTER } from "@/lib/utils/map-coords";
+import {
+  draftsToPriceOptions,
+  optionsToDrafts,
+  type PriceOptionDraft,
+} from "@/lib/utils/event-prices";
 import type { CreateEventInput } from "@/types/events";
 import type { EventType, Genre } from "@/types";
 
@@ -77,7 +84,6 @@ export function BusinessEventForm({
 }: Props) {
   const t = useTranslations("business");
   const tEvent = useTranslations("event");
-  const tGenres = useTranslations("genres");
   const tEventTypes = useTranslations("eventTypes");
   const tCommon = useTranslations("common");
   const router = useRouter();
@@ -86,8 +92,13 @@ export function BusinessEventForm({
   const [error, setError] = useState<string | null>(null);
   const savingRef = useRef(false);
 
+  const status = initial?.status;
   const editable =
-    mode === "create" || !initial?.status || ["draft", "rejected"].includes(initial.status);
+    mode === "create" ||
+    !status ||
+    ["draft", "rejected", "pending", "published"].includes(status);
+  const canSaveDraft =
+    mode === "create" || !status || status === "draft" || status === "rejected";
   const locked = !editable || saving;
 
   const [titleEn, setTitleEn] = useState(initial?.translations?.en?.title ?? "");
@@ -96,12 +107,18 @@ export function BusinessEventForm({
   const [descRo, setDescRo] = useState(initial?.translations?.ro?.description ?? "");
   const [startsAt, setStartsAt] = useState(isoToDatetimeLocal(initial?.startsAt));
   const [endsAt, setEndsAt] = useState(isoToDatetimeLocal(initial?.endsAt));
-  const [genre, setGenre] = useState<Genre>(initial?.genre ?? "techno");
+  const [genres, setGenres] = useState<Genre[]>(
+    normalizeGenres(initial?.genres)
+  );
+  const [genreOther, setGenreOther] = useState(initial?.genreOther ?? "");
   const [eventType, setEventType] = useState<EventType>(
     initial?.eventType ?? "party"
   );
   const [price, setPrice] = useState(
     initial?.price != null ? String(initial.price) : ""
+  );
+  const [priceOptions, setPriceOptions] = useState<PriceOptionDraft[]>(
+    optionsToDrafts(initial?.priceOptions)
   );
   const [ticketUrl, setTicketUrl] = useState(initial?.ticketUrl ?? "");
   const [websiteUrl, setWebsiteUrl] = useState(initial?.websiteUrl ?? "");
@@ -148,9 +165,10 @@ export function BusinessEventForm({
     },
     startsAt: datetimeLocalToIso(startsAt),
     endsAt: endsAt ? datetimeLocalToIso(endsAt) : undefined,
-    genre,
+    genres,
+    genreOther: genres.includes("other") ? genreOther.trim() : undefined,
     eventType,
-    price: price ? Number(price) : undefined,
+    price: price ? Number(price) : null,
     ticketUrl: ticketUrl || undefined,
     websiteUrl: websiteUrl || undefined,
     specialGuest: specialGuest.trim() || undefined,
@@ -171,8 +189,22 @@ export function BusinessEventForm({
       setError(tEvent("venueRequired"));
       return;
     }
+    if (genres.length === 0) {
+      setError(tEvent("genreRequired"));
+      return;
+    }
+    if (genres.includes("other") && !genreOther.trim()) {
+      setError(tEvent("genreOtherRequired"));
+      return;
+    }
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       setError(tEvent("pinRequired"));
+      return;
+    }
+
+    const parsedOptions = draftsToPriceOptions(priceOptions);
+    if (!parsedOptions.ok) {
+      setError(tEvent("priceOptionsIncomplete"));
       return;
     }
 
@@ -183,6 +215,7 @@ export function BusinessEventForm({
     try {
       const payload: CreateEventInput = {
         ...buildPayload(),
+        priceOptions: parsedOptions.options,
         submitForApproval: thenSubmit,
       };
 
@@ -208,6 +241,10 @@ export function BusinessEventForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (status === "published") {
+      void save(true);
+      return;
+    }
     void save(false);
   };
 
@@ -292,21 +329,18 @@ export function BusinessEventForm({
             </div>
           </div>
 
+          <div>
+            <label className={labelClass}>{tEvent("genre")}</label>
+            <GenreMultiSelect
+              value={genres}
+              onChange={setGenres}
+              otherName={genreOther}
+              onOtherNameChange={setGenreOther}
+              disabled={locked}
+            />
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className={labelClass}>{tEvent("genre")}</label>
-              <select
-                className={inputClass}
-                value={genre}
-                onChange={(e) => setGenre(e.target.value as Genre)}
-              >
-                {GENRES.map((g) => (
-                  <option key={g} value={g}>
-                    {formatGenreLabel(g, tGenres)}
-                  </option>
-                ))}
-              </select>
-            </div>
             <div>
               <label className={labelClass}>{tEvent("eventType")}</label>
               <select
@@ -356,6 +390,13 @@ export function BusinessEventForm({
               />
             </div>
           </div>
+
+          <EventPriceOptionsFields
+            value={priceOptions}
+            onChange={setPriceOptions}
+            inputClass={inputClass}
+            labelClass={labelClass}
+          />
 
           <div>
             <label className={labelClass}>{tEvent("websiteUrl")}</label>
@@ -413,21 +454,39 @@ export function BusinessEventForm({
 
         {editable ? (
           <div className="flex flex-wrap gap-3">
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-full border border-firefly/30 px-5 py-2.5 text-sm font-medium text-firefly transition-all hover:bg-firefly/10 disabled:opacity-50"
-            >
-              {saving && !submitIntent ? tCommon("saving") : t("saveDraft")}
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => void save(true)}
-              className="rounded-full bg-firefly px-5 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:firefly-glow disabled:opacity-50"
-            >
-              {saving && submitIntent ? t("submitting") : t("saveAndSubmit")}
-            </button>
+            {canSaveDraft ? (
+              <>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="rounded-full border border-firefly/30 px-5 py-2.5 text-sm font-medium text-firefly transition-all hover:bg-firefly/10 disabled:opacity-50"
+                >
+                  {saving && !submitIntent ? tCommon("saving") : t("saveDraft")}
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void save(true)}
+                  className="rounded-full bg-firefly px-5 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:firefly-glow disabled:opacity-50"
+                >
+                  {saving && submitIntent ? t("submitting") : t("saveAndSubmit")}
+                </button>
+              </>
+            ) : (
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-full bg-firefly px-5 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:firefly-glow disabled:opacity-50"
+              >
+                {saving
+                  ? status === "published"
+                    ? t("submitting")
+                    : tCommon("saving")
+                  : status === "published"
+                    ? t("saveAndSubmitReview")
+                    : tEvent("saveChanges")}
+              </button>
+            )}
             <button
               type="button"
               disabled={saving}

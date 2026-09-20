@@ -14,6 +14,7 @@ import {
   formatPrice,
   formatTimeRange,
 } from "@/lib/utils/event-format";
+import { lowestEventPrice } from "@/lib/utils/event-prices";
 import type { EventDetail, EventListItem } from "@/types/events";
 
 type Props = {
@@ -95,12 +96,31 @@ export async function EventDetailPage({ event, related }: Props) {
             <span className="rounded-full border border-firefly/30 bg-firefly/10 px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-firefly">
               {formatEventTypeLabel(event.eventType, tTypes)}
             </span>
-            <span className="rounded-full border border-firefly/30 bg-firefly/10 px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-firefly">
-              {formatGenreLabel(event.genre, tGenres)}
-            </span>
+            {event.genres.map((genre) => (
+              <span
+                key={genre}
+                className="rounded-full border border-firefly/30 bg-firefly/10 px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-firefly"
+              >
+                {formatGenreLabel(genre, tGenres, event.genreOther)}
+              </span>
+            ))}
             <span className="rounded-full bg-amber-warm/15 px-3 py-1.5 text-xs font-medium text-amber-warm">
-              {formatPrice(event.price, tCommon)}
+              {formatPrice(
+                lowestEventPrice(event.price, event.priceOptions),
+                tCommon
+              )}
             </span>
+            {event.priceOptions.map((option, index) => (
+              <span
+                key={`${option.name}-${index}`}
+                className="rounded-full bg-amber-warm/15 px-3 py-1.5 text-xs font-medium text-amber-warm"
+              >
+                {tCommon("namedPrice", {
+                  name: option.name,
+                  price: option.price,
+                })}
+              </span>
+            ))}
             {event.specialGuest ? (
               <span className="rounded-full border border-firefly/30 bg-firefly/10 px-3 py-1.5 text-xs font-medium text-firefly">
                 {event.specialGuest}

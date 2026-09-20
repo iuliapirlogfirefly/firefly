@@ -2,6 +2,8 @@ import { getTranslations } from "next-intl/server";
 import { AdminInvoicedCheckbox } from "@/components/admin/admin-invoiced-checkbox";
 import { AdminBadge } from "@/components/admin/ui/admin-badge";
 import { AdminCard } from "@/components/admin/ui/admin-card";
+import { AdminPagination } from "@/components/admin/ui/admin-pagination";
+import type { Paginated } from "@/lib/admin/pagination";
 import type {
   AdminPromotionRow,
   AdminSubscriptionRow,
@@ -10,9 +12,8 @@ import { SUBSCRIPTION_PRICE } from "@/lib/stripe/products";
 import { formatMoney } from "@/lib/utils/money";
 
 type Props = {
-  promotions: AdminPromotionRow[];
-  subscriptions: AdminSubscriptionRow[];
-  isMockMode?: boolean;
+  promotions: Paginated<AdminPromotionRow>;
+  subscriptions: Paginated<AdminSubscriptionRow>;
 };
 
 export async function AdminPromotionsTable({
@@ -37,7 +38,7 @@ export async function AdminPromotionsTable({
         <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
           {t("activePromotions")}
         </h2>
-        {promotions.length === 0 ? (
+        {promotions.items.length === 0 ? (
           <AdminCard className="p-8 text-center text-sm text-muted-foreground">
             {t("noActivePromotions")}
           </AdminCard>
@@ -55,7 +56,7 @@ export async function AdminPromotionsTable({
                 </tr>
               </thead>
               <tbody>
-                {promotions.map((promo) => (
+                {promotions.items.map((promo) => (
                   <tr
                     key={promo.id}
                     className="border-b border-border/50 hover:bg-surface-1/50"
@@ -92,13 +93,19 @@ export async function AdminPromotionsTable({
             </table>
           </div>
         )}
+        <AdminPagination
+          pathname="/admin/promotions"
+          params={{ subsPage: subscriptions.page }}
+          page={promotions.page}
+          total={promotions.total}
+        />
       </section>
 
       <section className="mt-10">
         <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
           {t("activeSubscriptions")}
         </h2>
-        {subscriptions.length === 0 ? (
+        {subscriptions.items.length === 0 ? (
           <AdminCard className="p-8 text-center text-sm text-muted-foreground">
             {t("noActiveSubscriptions")}
           </AdminCard>
@@ -126,7 +133,7 @@ export async function AdminPromotionsTable({
                 </tr>
               </thead>
               <tbody>
-                {subscriptions.map((sub) => (
+                {subscriptions.items.map((sub) => (
                   <tr
                     key={sub.id}
                     className="border-b border-border/50 hover:bg-surface-1/50"
@@ -199,6 +206,13 @@ export async function AdminPromotionsTable({
             </table>
           </div>
         )}
+        <AdminPagination
+          pathname="/admin/promotions"
+          params={{ page: promotions.page }}
+          page={subscriptions.page}
+          total={subscriptions.total}
+          pageParam="subsPage"
+        />
       </section>
     </div>
   );

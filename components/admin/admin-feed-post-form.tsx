@@ -3,7 +3,10 @@
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { createAdminFeedPost } from "@/lib/actions/admin";
+import {
+  createAdminFeedPost,
+  updateAdminFeedPost,
+} from "@/lib/actions/admin";
 import {
   FEED_CATEGORIES,
   getCategoryMeta,
@@ -19,7 +22,16 @@ const inputClass =
 
 const labelClass = "mb-1.5 block text-xs font-medium text-muted-foreground";
 
-export function AdminFeedPostForm() {
+type Props = {
+  post?: {
+    id: string;
+    category: FeedPostCategory;
+    translations: CreateFeedPostInput["translations"];
+    mediaUrl: string | null;
+  };
+};
+
+export function AdminFeedPostForm({ post }: Props) {
   const tEvent = useTranslations("event");
   const tBusiness = useTranslations("business");
   const tCommon = useTranslations("common");
@@ -28,12 +40,16 @@ export function AdminFeedPostForm() {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const [category, setCategory] = useState<FeedPostCategory>("party_updates");
-  const [titleEn, setTitleEn] = useState("");
-  const [descEn, setDescEn] = useState("");
-  const [titleRo, setTitleRo] = useState("");
-  const [descRo, setDescRo] = useState("");
-  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [category, setCategory] = useState<FeedPostCategory>(
+    post?.category ?? "party_updates"
+  );
+  const [titleEn, setTitleEn] = useState(post?.translations.en.title ?? "");
+  const [descEn, setDescEn] = useState(post?.translations.en.description ?? "");
+  const [titleRo, setTitleRo] = useState(post?.translations.ro?.title ?? "");
+  const [descRo, setDescRo] = useState(post?.translations.ro?.description ?? "");
+  const [mediaUrl, setMediaUrl] = useState<string | null>(post?.mediaUrl ?? null);
+
+  const isEdit = Boolean(post);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +76,17 @@ export function AdminFeedPostForm() {
     };
 
     startTransition(async () => {
+      if (isEdit && post) {
+        const result = await updateAdminFeedPost(post.id, data);
+        if (result.success) {
+          router.push(`/admin/posts/${post.id}`);
+          router.refresh();
+        } else {
+          setError(result.error);
+        }
+        return;
+      }
+
       const result = await createAdminFeedPost(data);
       if (result.success) {
         router.push(`/admin/posts/${result.data.id}`);
@@ -154,13 +181,19 @@ export function AdminFeedPostForm() {
 
         <div className="flex gap-3">
           <AdminButton type="submit" size="md" pending={pending}>
-            {pending ? tCommon("saving") : tEvent("createPublish")}
+            {pending
+              ? tCommon("saving")
+              : isEdit
+                ? tCommon("save")
+                : tEvent("createPublish")}
           </AdminButton>
           <AdminButton
             type="button"
             variant="secondary"
             size="md"
-            onClick={() => router.push("/admin/posts")}
+            onClick={() =>
+              router.push(isEdit && post ? `/admin/posts/${post.id}` : "/admin/posts")
+            }
           >
             {tCommon("cancel")}
           </AdminButton>

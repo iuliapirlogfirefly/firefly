@@ -336,29 +336,6 @@ export async function HomePage() {
         </div>
       </section>
 
-      <section className="relative py-10 sm:py-24">
-        <div className="mx-auto max-w-[1400px] px-6">
-          <div
-            className="relative aspect-[4/3] w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-firefly/10 sm:aspect-[16/8]"
-            style={{ boxShadow: "0 40px 100px rgba(0,0,0,0.6)" }}
-          >
-            <Image
-              src={landingImages.editorialStreet}
-              alt={t("editorialAlt")}
-              fill
-              sizes="100vw"
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-background/85 via-background/50 to-background/20 sm:via-background/40 sm:to-transparent" />
-            <FireflyField count={15} />
-
-            <div className="absolute inset-0 flex items-center px-5 py-6 sm:px-8 md:px-16">
-              <QuoteRotator />
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section className="relative py-24">
         <div className="mx-auto max-w-[1400px] px-6">
           <div className="grid items-end gap-6 lg:grid-cols-12">
@@ -384,6 +361,29 @@ export async function HomePage() {
                 <span className="font-hand text-2xl">{t("seeThemAll")}</span>
                 <ArrowRight className="mt-1 h-4 w-4" />
               </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative py-10 sm:py-24">
+        <div className="mx-auto max-w-[1400px] px-6">
+          <div
+            className="relative aspect-[4/3] w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-firefly/10 sm:aspect-[16/8]"
+            style={{ boxShadow: "0 40px 100px rgba(0,0,0,0.6)" }}
+          >
+            <Image
+              src={landingImages.editorialStreet}
+              alt={t("editorialAlt")}
+              fill
+              sizes="100vw"
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-background/85 via-background/50 to-background/20 sm:via-background/40 sm:to-transparent" />
+            <FireflyField count={15} />
+
+            <div className="absolute inset-0 flex items-center px-5 py-6 sm:px-8 md:px-16">
+              <QuoteRotator />
             </div>
           </div>
         </div>
@@ -445,11 +445,11 @@ export async function HomePage() {
         <FireflyField count={35} />
 
         <div className="relative mx-auto max-w-4xl px-6 text-center">
-          <h2 className="mx-auto w-fit text-left font-heading font-bold tracking-tight-logo leading-[0.88]">
+          <h2 className="mx-auto font-heading font-bold tracking-tight-logo leading-[0.88]">
             <span className="block text-[14vw] sm:text-8xl md:text-[8.5rem]">
               {t("ctaHeadlineNight")}
             </span>
-            <span className="-mt-2 block pl-[18%] text-[14vw] sm:-mt-3 sm:pl-[22%] sm:text-8xl md:text-[8.5rem]">
+            <span className="-mt-2 block text-[14vw] sm:-mt-3 sm:text-8xl md:text-[8.5rem]">
               {t("ctaHeadlineOut")}{" "}
               <span className="bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow italic">
                 {t("ctaHeadlineThere")}

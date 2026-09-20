@@ -61,9 +61,9 @@ export function ForgotPasswordPage({ locale, linkError }: Props) {
             <p className="mb-3 font-mono text-xs tracking-wider-2 text-firefly/80">
               {t("lostInDark")}
             </p>
-            <h1 className="font-display text-5xl leading-[1.05] text-foreground text-glow sm:text-6xl">
+            <h1 className="font-heading text-5xl font-bold leading-[0.95] tracking-tight-logo text-foreground sm:text-6xl">
               {t("resetPasswordTitle")}{" "}
-              <span className="text-gradient-firefly">
+              <span className="bg-gradient-to-r from-white to-firefly bg-clip-text text-transparent text-glow italic">
                 {t("resetPasswordAccent")}
               </span>
             </h1>

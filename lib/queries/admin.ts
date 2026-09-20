@@ -7,24 +7,29 @@ export type AdminPendingCounts = {
 };
 
 export async function getAdminPendingCounts(): Promise<AdminPendingCounts> {
-  const { getAdminAnalytics } = await import("./analytics");
-  const { getPendingFeedPosts } = await import("./feed");
+  const { getPendingEventCount } = await import("./events");
+  const { getPendingFeedPostCount } = await import("./feed");
   const { getPendingBusinessCount } = await import("./users");
   const { getUnreadContactMessageCount } = await import("./contact");
   const { getPendingDeliveryCount } = await import("./promotions");
 
-  const [analytics, posts, pendingBusinesses, unreadMessages, pendingDeliveries] =
-    await Promise.all([
-      getAdminAnalytics(),
-      getPendingFeedPosts("en"),
-      getPendingBusinessCount(),
-      getUnreadContactMessageCount(),
-      getPendingDeliveryCount(),
-    ]);
+  const [
+    pendingEvents,
+    pendingPosts,
+    pendingBusinesses,
+    unreadMessages,
+    pendingDeliveries,
+  ] = await Promise.all([
+    getPendingEventCount(),
+    getPendingFeedPostCount(),
+    getPendingBusinessCount(),
+    getUnreadContactMessageCount(),
+    getPendingDeliveryCount(),
+  ]);
 
   return {
-    pendingEvents: analytics.pendingEvents,
-    pendingPosts: posts.length,
+    pendingEvents,
+    pendingPosts,
     pendingBusinesses,
     unreadMessages,
     pendingDeliveries,

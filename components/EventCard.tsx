@@ -6,11 +6,12 @@ import { useSavedEvents } from "@/hooks/use-saved-events";
 import { Link } from "@/i18n/navigation";
 import { Spinner } from "@/components/ui/spinner";
 import { formatEventTypeLabel } from "@/lib/constants/event-types";
-import { formatGenreLabel } from "@/lib/constants/genres";
+import { formatGenresLabel } from "@/lib/constants/genres";
 import { dateTimeLocale } from "@/lib/i18n/date-locale";
 import { landingImages } from "@/lib/landing/images";
 import { LAUNCH_TIME_ZONE } from "@/lib/launch/config";
 import { formatPrice } from "@/lib/utils/event-format";
+import { lowestEventPrice } from "@/lib/utils/event-prices";
 import type { EventListItem } from "@/types/events";
 
 type Props = {
@@ -81,12 +82,15 @@ export function EventCard({
           <h3 className="font-heading text-xl font-bold leading-tight transition-colors group-hover:text-firefly">
             {event.title}
           </h3>
-          <div className="flex items-center justify-between gap-3 text-sm text-foreground/60">
-            <span className="min-w-0 truncate">
-              {event.venueName} · {formatEventTypeLabel(event.eventType, tTypes)} · {formatGenreLabel(event.genre, tGenres)}
+          <div className="flex items-start justify-between gap-3 text-sm text-foreground/60">
+            <span className="min-w-0">
+              {event.venueName} · {formatEventTypeLabel(event.eventType, tTypes)} · {formatGenresLabel(event.genres, tGenres, event.genreOther)}
             </span>
             <span className="shrink-0 whitespace-nowrap rounded-full bg-amber-warm/15 px-2 py-0.5 text-[10px] font-medium text-amber-warm">
-              {formatPrice(event.price, tCommon)}
+              {formatPrice(
+                lowestEventPrice(event.price, event.priceOptions),
+                tCommon
+              )}
             </span>
           </div>
         </div>

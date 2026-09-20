@@ -17,16 +17,23 @@ export type EventFilters = {
   search?: string;
 };
 
+export type EventPriceOption = {
+  name: string;
+  price: number;
+};
+
 export type EventListItem = {
   id: string;
   slug: string;
   title: string;
   venueName: string;
   price: number | null;
+  priceOptions: EventPriceOption[];
   startsAt: string;
   endsAt: string | null;
   coverImageUrl: string | null;
-  genre: Genre;
+  genres: Genre[];
+  genreOther: string | null;
   eventType: EventType;
   isPromoted: boolean;
   promotionIntensity: 1 | 2 | 3;
@@ -59,7 +66,7 @@ export type EventMapPoint = {
     isPromoted: boolean;
     promotionIntensity: 1 | 2 | 3;
     startsAt: string;
-    genre: Genre;
+    genres: Genre[];
   };
 };
 
@@ -80,9 +87,11 @@ export type CreateEventInput = {
   };
   startsAt: string;
   endsAt?: string;
-  genre: Genre;
+  genres: Genre[];
+  genreOther?: string;
   eventType: EventType;
-  price?: number;
+  price?: number | null;
+  priceOptions?: EventPriceOption[];
   ticketUrl?: string;
   websiteUrl?: string;
   specialGuest?: string;

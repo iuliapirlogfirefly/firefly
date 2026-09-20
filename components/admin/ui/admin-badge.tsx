@@ -2,7 +2,15 @@
 
 import { useTranslations } from "next-intl";
 
-type Status = "pending" | "active" | "approved" | "published" | "rejected" | "suspended" | "default";
+type Status =
+  | "pending"
+  | "active"
+  | "approved"
+  | "published"
+  | "rejected"
+  | "suspended"
+  | "draft"
+  | "default";
 
 type Props = {
   status: Status | string;
@@ -16,6 +24,7 @@ const styles: Record<Status, string> = {
   published: "bg-emerald-500/15 text-emerald-400",
   rejected: "bg-red-500/15 text-red-400",
   suspended: "bg-zinc-500/15 text-zinc-400",
+  draft: "bg-zinc-500/15 text-zinc-400",
   default: "bg-surface-2 text-muted-foreground",
 };
 

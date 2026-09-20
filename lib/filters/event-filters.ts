@@ -14,7 +14,10 @@ const genreSchema = z.enum([
   "edm",
   "live_music",
   "jazz",
+  "punk",
+  "rock",
   "open_format",
+  "other",
 ]);
 
 const eventTypeSchema = z.enum([
@@ -23,6 +26,7 @@ const eventTypeSchema = z.enum([
   "festival",
   "rooftop",
   "brunch_day_party",
+  "pool_party",
   "social_gathering",
   "club_night",
   "live_performance",

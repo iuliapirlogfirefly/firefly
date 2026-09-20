@@ -2,8 +2,8 @@
 -- Example events for development — replace business_account_id with real IDs after setup
 
 INSERT INTO events (
-  slug, status, source, starts_at, ends_at, genre, event_type,
-  price, ticket_url, cover_image_url, translations,
+  slug, status, source, starts_at, ends_at, genres, event_type,
+  price, price_options, ticket_url, cover_image_url, translations,
   is_promoted, promotion_intensity, lat, lng, address, venue_name
 ) VALUES
 (
@@ -11,7 +11,9 @@ INSERT INTO events (
   'published', 'admin',
   (CURRENT_DATE + INTERVAL '1 day')::timestamptz + TIME '23:00',
   (CURRENT_DATE + INTERVAL '2 days')::timestamptz + TIME '06:00',
-  'techno', 'club_night', 50.00, 'https://example.com/tickets',
+  ARRAY['techno'], 'club_night', 50.00,
+  '[{"name": "Standard", "price": 50}, {"name": "VIP", "price": 80}]'::jsonb,
+  'https://example.com/tickets',
   NULL,
   '{"en": {"title": "Techno Night at Control Club", "description": "Underground techno all night long."}, "ro": {"title": "Noapte Techno la Control Club", "description": "Techno underground toată noaptea."}}',
   true, 3,
@@ -23,7 +25,7 @@ INSERT INTO events (
   'published', 'admin',
   (CURRENT_DATE + INTERVAL '3 days')::timestamptz + TIME '22:00',
   (CURRENT_DATE + INTERVAL '4 days')::timestamptz + TIME '04:00',
-  'house', 'party', 40.00, 'https://example.com/tickets2',
+  ARRAY['house'], 'party', 40.00, '[]'::jsonb, 'https://example.com/tickets2',
   NULL,
   '{"en": {"title": "House Garden Party", "description": "Open air house music experience."}, "ro": {"title": "Petrecere House în Grădină", "description": "Experiență house music în aer liber."}}',
   false, 1,
@@ -35,7 +37,7 @@ INSERT INTO events (
   'published', 'admin',
   (CURRENT_DATE + INTERVAL '5 days')::timestamptz + TIME '20:00',
   (CURRENT_DATE + INTERVAL '5 days')::timestamptz + TIME '02:00',
-  'afro_house', 'rooftop', 60.00, 'https://example.com/tickets3',
+  ARRAY['afro_house'], 'rooftop', 60.00, '[]'::jsonb, 'https://example.com/tickets3',
   NULL,
   '{"en": {"title": "Afro House Rooftop Sunset", "description": "Sunset session with afro house vibes."}, "ro": {"title": "Afro House Rooftop Apus", "description": "Sesiune la apus cu vibe-uri afro house."}}',
   true, 2,

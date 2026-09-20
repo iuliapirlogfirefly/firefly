@@ -4,6 +4,8 @@ import { Link } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { AdminBadge } from "@/components/admin/ui/admin-badge";
 import { AdminCard } from "@/components/admin/ui/admin-card";
+import { AdminPagination } from "@/components/admin/ui/admin-pagination";
+import { buildAdminQuery, type Paginated } from "@/lib/admin/pagination";
 import { formatDateBadge } from "@/lib/utils/event-format";
 import type {
   EngagementMetric,
@@ -20,7 +22,7 @@ const METRICS: EngagementMetric[] = [
 ];
 
 type Props = {
-  events: EventAnalyticsRow[];
+  events: Paginated<EventAnalyticsRow>;
   metric: EngagementMetric;
 };
 
@@ -51,7 +53,9 @@ export function AdminAnalyticsPage({ events, metric }: Props) {
         {METRICS.map((key) => (
           <Link
             key={key}
-            href={`/admin/analytics?metric=${key}`}
+            href={`/admin/analytics${buildAdminQuery({
+              metric: key === "views" ? undefined : key,
+            })}`}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               key === metric
                 ? "bg-foreground text-background"
@@ -63,7 +67,7 @@ export function AdminAnalyticsPage({ events, metric }: Props) {
         ))}
       </div>
 
-      {events.length === 0 ? (
+      {events.items.length === 0 ? (
         <AdminCard className="mt-8 p-8 text-center text-sm text-muted-foreground">
           {t("noAnalytics")}
         </AdminCard>
@@ -83,7 +87,7 @@ export function AdminAnalyticsPage({ events, metric }: Props) {
               </tr>
             </thead>
             <tbody>
-              {events.map((event) => (
+              {events.items.map((event) => (
                 <tr
                   key={event.id}
                   className="border-b border-border/50 hover:bg-surface-1/50"
@@ -130,6 +134,12 @@ export function AdminAnalyticsPage({ events, metric }: Props) {
           </table>
         </div>
       )}
+      <AdminPagination
+        pathname="/admin/analytics"
+        params={{ metric: metric === "views" ? undefined : metric }}
+        page={events.page}
+        total={events.total}
+      />
     </div>
   );
 }
