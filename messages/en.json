@@ -574,6 +574,7 @@
     "websiteUrl": "Website / social link",
     "urlPlaceholder": "https://",
     "coverImage": "Cover image",
+    "coverImageHint": "Recommended: 16:10 (for example 1600×1000). Keep the subject centered.",
     "galleryImages": "Gallery images",
     "venueName": "Venue name",
     "organizer": "Organizer",

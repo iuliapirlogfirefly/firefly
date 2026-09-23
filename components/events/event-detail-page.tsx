@@ -88,7 +88,7 @@ export async function EventDetailPage({ event, related }: Props) {
           <div className="mb-4 font-mono text-xs uppercase tracking-wider-2 text-firefly">
             ◦ {t("theNight")}
           </div>
-          <p className="max-w-2xl text-lg leading-relaxed text-foreground/80">
+          <p className="max-w-2xl whitespace-pre-wrap break-words text-lg leading-relaxed text-foreground/80">
             {event.description}
           </p>
 

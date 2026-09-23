@@ -311,7 +311,11 @@ export function EventForm({ mode, eventId, initial }: Props) {
 
         <div>
           <label className={labelClass}>{t("coverImage")}</label>
-          <ImageUploader value={coverImageUrl} onChange={setCoverImageUrl} />
+          <ImageUploader
+            value={coverImageUrl}
+            onChange={setCoverImageUrl}
+            hint={t("coverImageHint")}
+          />
         </div>
 
         <div>
