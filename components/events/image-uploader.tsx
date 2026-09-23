@@ -30,6 +30,7 @@ async function uploadFile(bucket: Bucket, file: File): Promise<string> {
 type SingleProps = {
   bucket?: Bucket;
   label?: string;
+  hint?: string;
   value: string | null | undefined;
   onChange: (url: string | null) => void;
   multiple?: false;
@@ -176,6 +177,9 @@ export function ImageUploader(props: Props) {
         </div>
       )}
 
+      {!props.multiple && props.hint ? (
+        <p className="mt-2 text-xs text-foreground/40">{props.hint}</p>
+      ) : null}
       {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
       {!isSupabaseConfigured() ? (
         <p className="mt-2 text-xs text-foreground/40">{t("mockModeHint")}</p>

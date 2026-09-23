@@ -574,6 +574,7 @@
     "websiteUrl": "Website / link social",
     "urlPlaceholder": "https://",
     "coverImage": "Imagine cover",
+    "coverImageHint": "Recomandat: 16:10 (de exemplu 1600×1000). Păstrează subiectul în centru.",
     "galleryImages": "Imagini galerie",
     "venueName": "Nume locație",
     "organizer": "Organizator",

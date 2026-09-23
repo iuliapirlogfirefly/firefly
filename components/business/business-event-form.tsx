@@ -259,7 +259,11 @@ export function BusinessEventForm({
         <fieldset disabled={locked} className="space-y-6 disabled:opacity-60">
           <div>
             <label className={labelClass}>{tEvent("coverImage")}</label>
-            <ImageUploader value={coverImageUrl} onChange={setCoverImageUrl} />
+            <ImageUploader
+              value={coverImageUrl}
+              onChange={setCoverImageUrl}
+              hint={tEvent("coverImageHint")}
+            />
           </div>
 
           <div>
