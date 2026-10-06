@@ -20,7 +20,8 @@ export async function generateMetadata({ params }: Props) {
     "Set New Password",
     "Choose a new password for your Firefly account.",
     locale,
-    "/auth/reset-password"
+    "/auth/reset-password",
+    { index: false, follow: false }
   );
 }
 

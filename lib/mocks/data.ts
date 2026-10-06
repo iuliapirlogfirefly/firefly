@@ -404,14 +404,17 @@ function filterMockEvents(
     const genre = filters.genre;
     result = result.filter((e) => e.genres.includes(genre));
   }
-  if (filters.eventType) {
+  if (filters.eventTypes && filters.eventTypes.length > 0) {
+    const types = new Set<string>(filters.eventTypes);
+    result = result.filter((e) => types.has(e.event_type));
+  } else if (filters.eventType) {
     result = result.filter((e) => e.event_type === filters.eventType);
   }
   if (filters.promotedOnly) {
     result = result.filter((e) => e.is_promoted);
   }
 
-  const dateRange = getDateRange(filters);
+  const dateRange = filters.startsAtRange ?? getDateRange(filters);
   if (dateRange) {
     result = result.filter((e) => {
       const start = new Date(e.starts_at);

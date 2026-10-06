@@ -13,6 +13,7 @@ import { useSavedEvents } from "@/hooks/use-saved-events";
 import { SignOutButton } from "@/components/ui/sign-out-button";
 import { signOut } from "@/lib/actions/auth";
 import type { NearbyPreferences } from "@/lib/actions/profile";
+import { DeleteAccountSection } from "@/components/account/delete-account-section";
 import { LanguageSettings } from "@/components/profile/language-settings";
 import { NearbyEventsSettings } from "@/components/profile/nearby-events-settings";
 import { NewsletterSettings } from "@/components/profile/newsletter-settings";
@@ -41,9 +42,10 @@ export function ProfilePageClient({
   const { ids } = useSavedEvents(serverSavedIds);
 
   const isLoggedIn = Boolean(clientSession.userId ?? session.userId);
+  const role = clientSession.role ?? session.role;
   const isBusiness =
-    (clientSession.role ?? session.role) === "business_venue" ||
-    (clientSession.role ?? session.role) === "business_organizer";
+    role === "business_venue" || role === "business_organizer";
+  const isAdmin = role === "admin";
   const displayName =
     clientSession.displayName ??
     session.displayName ??
@@ -127,6 +129,12 @@ export function ProfilePageClient({
           <>
             <NewsletterSettings initialOptIn={newsletterOptIn} />
             <NearbyEventsSettings initial={nearbyPreferences} />
+            {!isAdmin && email ? (
+              <DeleteAccountSection
+                email={email}
+                variant={isBusiness ? "business" : "user"}
+              />
+            ) : null}
           </>
         ) : null}
 

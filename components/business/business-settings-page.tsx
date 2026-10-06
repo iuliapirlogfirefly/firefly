@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
+import { DeleteAccountSection } from "@/components/account/delete-account-section";
+import { useSession } from "@/components/session-provider";
 import { updateBusinessBilling } from "@/lib/actions/business";
 import type { BusinessBillingInfo } from "@/types";
 
@@ -19,6 +21,7 @@ export function BusinessSettingsPage({
 }: Props) {
   const t = useTranslations("business");
   const tCommon = useTranslations("common");
+  const session = useSession();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [billing, setBilling] = useState(initialBilling);
@@ -104,6 +107,10 @@ export function BusinessSettingsPage({
           {pending ? tCommon("saving") : t("saveBilling")}
         </button>
       </form>
+
+      {session.email && session.role !== "admin" ? (
+        <DeleteAccountSection email={session.email} variant="business" />
+      ) : null}
     </div>
   );
 }

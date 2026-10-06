@@ -1,8 +1,13 @@
-import { BusinessShell } from "@/components/business/business-shell";
-import { getMockBusinessSession } from "@/lib/mocks/data";
-import { getSession } from "@/lib/auth/session";
-import { shouldUseMockData } from "@/lib/supabase/config";
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { BusinessShell } from "@/components/business/business-shell";
+import { getSession } from "@/lib/auth/session";
+import { getMockBusinessSession } from "@/lib/mocks/data";
+import { shouldUseMockData } from "@/lib/supabase/config";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 type Props = {
   children: React.ReactNode;

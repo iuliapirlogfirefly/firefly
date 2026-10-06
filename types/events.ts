@@ -8,8 +8,10 @@ import type {
 export type EventFilters = {
   genre?: Genre;
   eventType?: EventType;
+  eventTypes?: EventType[];
   datePreset?: DatePreset;
   customDate?: string;
+  startsAtRange?: { start: Date; end: Date };
   distanceKm?: number;
   lat?: number;
   lng?: number;

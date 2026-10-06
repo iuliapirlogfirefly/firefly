@@ -265,7 +265,8 @@
     "euSol": "EU Online Dispute Resolution",
     "instagram": "Instagram",
     "tiktok": "TikTok",
-    "copyright": "© {year} {legalName}. All rights reserved."
+    "copyright": "© {year} {legalName}. All rights reserved.",
+    "discoverHeading": "Discover"
   },
   "cookiesBanner": {
     "title": "We use cookies",
@@ -619,6 +620,24 @@
     "locationUpdated": "Location updated.",
     "preferencesSaved": "Preferences saved.",
     "locationError": "Could not access your location. Check browser permissions."
+  },
+  "accountDeletion": {
+    "eyebrow": "◦ Danger zone",
+    "title": "Delete account",
+    "userBody": "Permanently delete your login, saved events, and reminders.",
+    "businessBody": "Permanently delete your login, events, posts, and photos. Premium stops immediately.",
+    "delete": "Delete account",
+    "dialogTitle": "Delete your account?",
+    "userWarning": "This permanently deletes your account, saved events, and reminders. This cannot be undone.",
+    "businessWarning": "This permanently deletes your account, events, posts, and photos. Premium stops immediately and you will not be charged again. Payment records are kept where the law requires it. This cannot be undone.",
+    "emailLabel": "Type your email to confirm",
+    "confirm": "Delete account",
+    "cancel": "Cancel",
+    "deleting": "Deleting…",
+    "emailMismatch": "That email does not match this account.",
+    "adminBlocked": "Admin accounts cannot be deleted from here.",
+    "notAuthenticated": "You need to be signed in.",
+    "failed": "Could not delete the account."
   },
   "business": {
     "delete": "Delete",
@@ -1025,5 +1044,92 @@
     "deliveryNotesPlaceholder": "Posted to Instagram feed…",
     "reasonPrefix": "Reason: {reason}",
     "emptyState": "All caught up"
+  },
+  "seo": {
+    "homeTitle": "Bucharest parties and nightlife",
+    "homeDescription": "Parties, events, and nightlife in Bucharest. See what's on tonight, this weekend, and in the clubs.",
+    "discoverLabel": "◦ Where to go",
+    "discoverHeading": "Bucharest, by night",
+    "discoverIntro": "Parties, events, clubs, and concerts — the nights that are actually published.",
+    "empty": "Nothing is published for this yet. The page fills in as events go up.",
+    "relatedLabel": "Keep looking",
+    "also": "Also on Firefly",
+    "when": "When",
+    "sounds": "Sounds",
+    "places": "Places",
+    "unknownVenue": "Venue to be confirmed",
+    "genreTitle": "{genre} parties in Bucharest",
+    "genreDescription": "Upcoming {genre} parties in Bucharest, from the nights already published.",
+    "genreIntro": "What's coming up for {genre} in Bucharest.",
+    "hubs": {
+      "parties": {
+        "title": "Parties in Bucharest",
+        "description": "Parties in Bucharest: club nights, rooftops, and weekend plans that are already up.",
+        "intro": "A party in Bucharest might be a club night, a rooftop, or a Saturday that starts late. These are the ones published and still ahead."
+      },
+      "events": {
+        "title": "Events in Bucharest",
+        "description": "Events in Bucharest, from parties and club nights to concerts, as they go live.",
+        "intro": "Everything published on Firefly for Bucharest. For tonight and the weekend, the party pages are the shorter way in."
+      },
+      "nightlife": {
+        "title": "Bucharest nightlife",
+        "description": "Bucharest nightlife: what to do tonight, this weekend, and which clubs are on.",
+        "intro": "Nightlife in Bucharest is the night you actually go out for, not a feed of suggestions.",
+        "guide": "Start with tonight or the weekend, then pick a sound or a club. Firefly lists nights that venues and organizers have published, with a place and a time."
+      },
+      "clubs": {
+        "title": "Nightclubs in Bucharest",
+        "description": "Club nights in Bucharest, grouped by venue.",
+        "intro": "These are the club nights published on Firefly, each one at a named venue."
+      },
+      "concerts": {
+        "title": "Concerts in Bucharest",
+        "description": "Live concerts and performances in Bucharest.",
+        "intro": "Concerts and live performances in Bucharest, from what's already on the calendar."
+      }
+    },
+    "facets": {
+      "tonight": {
+        "title": "Parties tonight in Bucharest",
+        "description": "Parties and events tonight in Bucharest.",
+        "intro": "What's on in Bucharest tonight: parties and club nights that start today."
+      },
+      "tomorrow": {
+        "title": "Parties tomorrow in Bucharest",
+        "description": "Parties tomorrow in Bucharest.",
+        "intro": "If tonight is full, these are the parties in Bucharest that start tomorrow."
+      },
+      "weekend": {
+        "title": "Parties this weekend in Bucharest",
+        "description": "Weekend parties and events in Bucharest.",
+        "intro": "Saturday and Sunday in Bucharest, from the parties already published."
+      },
+      "this_week": {
+        "title": "Parties this week in Bucharest",
+        "description": "Parties in Bucharest for the rest of this week.",
+        "intro": "The rest of this week in Bucharest, one night at a time."
+      },
+      "thursday": {
+        "title": "Thursday parties in Bucharest",
+        "description": "Thursday parties in Bucharest.",
+        "intro": "Thursday night in Bucharest, from the parties published for that day."
+      },
+      "friday": {
+        "title": "Friday parties in Bucharest",
+        "description": "Friday parties in Bucharest.",
+        "intro": "Friday night in Bucharest, when the weekend actually starts."
+      },
+      "saturday": {
+        "title": "Saturday parties in Bucharest",
+        "description": "Saturday parties in Bucharest.",
+        "intro": "Saturday in Bucharest: the parties that are up for that night."
+      },
+      "sunday": {
+        "title": "Sunday parties in Bucharest",
+        "description": "Sunday parties in Bucharest.",
+        "intro": "Sunday in Bucharest, for the nights that don't wait until next weekend."
+      }
+    }
   }
 }

@@ -80,10 +80,14 @@ async function buildEventsQuery(
     .order("starts_at", { ascending: true });
 
   if (filters.genre) query = query.overlaps("genres", [filters.genre]);
-  if (filters.eventType) query = query.eq("event_type", filters.eventType);
+  if (filters.eventTypes && filters.eventTypes.length > 0) {
+    query = query.in("event_type", [...filters.eventTypes]);
+  } else if (filters.eventType) {
+    query = query.eq("event_type", filters.eventType);
+  }
   if (filters.promotedOnly) query = query.eq("is_promoted", true);
 
-  const dateRange = getDateRange(filters);
+  const dateRange = filters.startsAtRange ?? getDateRange(filters);
   if (dateRange) {
     query = query
       .gte("starts_at", dateRange.start.toISOString())

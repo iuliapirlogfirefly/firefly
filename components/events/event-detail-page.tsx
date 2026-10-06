@@ -10,6 +10,12 @@ import { formatEventTypeLabel } from "@/lib/constants/event-types";
 import { formatGenreLabel } from "@/lib/constants/genres";
 import { landingImages } from "@/lib/landing/images";
 import {
+  eventTypeLanding,
+  facetPath,
+  genreFacetFor,
+  hubPath,
+} from "@/lib/seo/landings";
+import {
   formatDateBadge,
   formatPrice,
   formatTimeRange,
@@ -28,8 +34,21 @@ export async function EventDetailPage({ event, related }: Props) {
   const tCommon = await getTranslations("common");
   const tGenres = await getTranslations("genres");
   const tTypes = await getTranslations("eventTypes");
+  const tSeo = await getTranslations("seo");
   const image = event.coverImageUrl ?? landingImages.editorialCrowd;
   const extraImages = event.images.filter((url) => url && url !== image);
+  const typedLocale = locale === "ro" ? "ro" : "en";
+  const typeHub = eventTypeLanding(event.eventType);
+  const genreLinks = event.genres.flatMap((genre) => {
+    const facet = genreFacetFor(genre);
+    if (!facet?.genre) return [];
+    return [
+      {
+        href: facetPath(typedLocale, facet.id),
+        label: tSeo("genreTitle", { genre: tGenres(facet.genre) }),
+      },
+    ];
+  });
 
   return (
     <main data-route="event-detail" className="relative min-h-screen pb-32 md:pb-16">
@@ -132,6 +151,27 @@ export async function EventDetailPage({ event, related }: Props) {
               </span>
             ) : null}
           </div>
+
+          <nav
+            aria-label={tSeo("relatedLabel")}
+            className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm"
+          >
+            <Link
+              href={hubPath(typedLocale, typeHub)}
+              className="text-firefly underline-offset-4 hover:underline"
+            >
+              {tSeo(`hubs.${typeHub}.title`)}
+            </Link>
+            {genreLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-firefly underline-offset-4 hover:underline"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
 
           <div className="glass mt-12 max-w-2xl rounded-3xl p-6">
             <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">

@@ -18,7 +18,8 @@ export async function generateMetadata({ params }: Props) {
     "Account",
     "Your profile and saved nights.",
     locale,
-    "/profile"
+    "/profile",
+    { index: false, follow: false }
   );
 }
 

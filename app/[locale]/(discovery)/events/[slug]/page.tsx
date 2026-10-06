@@ -3,6 +3,7 @@ import { setRequestLocale } from "next-intl/server";
 import { EventDetailPage } from "@/components/events/event-detail-page";
 import { trackView } from "@/lib/actions/analytics";
 import { getEventBySlug, getEvents } from "@/lib/queries/events";
+import { eventJsonLd, jsonLdScript } from "@/lib/seo/json-ld";
 import { generateEventMetadata } from "@/lib/seo/metadata";
 import { genresOverlap } from "@/lib/constants/genres";
 
@@ -21,6 +22,7 @@ export async function generateMetadata({ params }: Props) {
     title: event.title,
     description: event.description,
     slug,
+    startsAt: event.startsAt,
     coverImageUrl: event.coverImageUrl,
     locale,
   });
@@ -42,5 +44,15 @@ export default async function EventDetailRoute({ params }: Props) {
     )
     .slice(0, 3);
 
-  return <EventDetailPage event={event} related={related} />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdScript(eventJsonLd(event, locale)),
+        }}
+      />
+      <EventDetailPage event={event} related={related} />
+    </>
+  );
 }

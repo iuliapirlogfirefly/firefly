@@ -265,7 +265,8 @@
     "euSol": "SOL — soluționare online a litigiilor",
     "instagram": "Instagram",
     "tiktok": "TikTok",
-    "copyright": "© {year} {legalName}. Toate drepturile rezervate."
+    "copyright": "© {year} {legalName}. Toate drepturile rezervate.",
+    "discoverHeading": "Descoperă"
   },
   "cookiesBanner": {
     "title": "Folosim cookie-uri",
@@ -619,6 +620,24 @@
     "locationUpdated": "Locație actualizată.",
     "preferencesSaved": "Preferințe salvate.",
     "locationError": "Nu am putut accesa locația. Verifică permisiunile din browser."
+  },
+  "accountDeletion": {
+    "eyebrow": "◦ Zonă periculoasă",
+    "title": "Șterge contul",
+    "userBody": "Șterge definitiv autentificarea, evenimentele salvate și mementourile.",
+    "businessBody": "Șterge definitiv autentificarea, evenimentele, postările și fotografiile. Premium se oprește imediat.",
+    "delete": "Șterge contul",
+    "dialogTitle": "Ștergi contul?",
+    "userWarning": "Această acțiune șterge definitiv contul, evenimentele salvate și mementourile. Nu poate fi anulată.",
+    "businessWarning": "Această acțiune șterge definitiv contul, evenimentele, postările și fotografiile. Premium se oprește imediat și nu vei mai fi taxat. Înregistrările de plată sunt păstrate acolo unde legea o cere. Nu poate fi anulată.",
+    "emailLabel": "Scrie emailul pentru confirmare",
+    "confirm": "Șterge contul",
+    "cancel": "Anulează",
+    "deleting": "Se șterge…",
+    "emailMismatch": "Emailul nu corespunde acestui cont.",
+    "adminBlocked": "Conturile de admin nu pot fi șterse de aici.",
+    "notAuthenticated": "Trebuie să fii autentificat.",
+    "failed": "Contul nu a putut fi șters."
   },
   "business": {
     "delete": "Șterge",
@@ -1025,5 +1044,92 @@
     "deliveryNotesPlaceholder": "Postat pe feed-ul de Instagram…",
     "reasonPrefix": "Motiv: {reason}",
     "emptyState": "Ești la zi"
+  },
+  "seo": {
+    "homeTitle": "Petreceri și evenimente în București",
+    "homeDescription": "Petreceri, evenimente și viața de noapte din București. Vezi ce e azi, în weekend și în cluburi.",
+    "discoverLabel": "◦ Unde ieși",
+    "discoverHeading": "București, pe nopți",
+    "discoverIntro": "Petreceri, evenimente, cluburi și concerte — nopțile care sunt chiar publicate.",
+    "empty": "Încă nu e nimic publicat aici. Pagina se umple când apar evenimentele.",
+    "relatedLabel": "Mai departe",
+    "also": "Și pe Firefly",
+    "when": "Când",
+    "sounds": "Sunete",
+    "places": "Locuri",
+    "unknownVenue": "Venue de confirmat",
+    "genreTitle": "Petreceri {genre} în București",
+    "genreDescription": "Petreceri {genre} în București, din nopțile deja publicate.",
+    "genreIntro": "Ce urmează la {genre} în București.",
+    "hubs": {
+      "parties": {
+        "title": "Petreceri în București",
+        "description": "Petreceri în București: nopți de club, rooftop-uri și planuri de weekend deja publicate.",
+        "intro": "O petrecere în București poate fi o noapte de club, un rooftop sau o sâmbătă care începe târziu. Aici sunt cele publicate și încă de venit."
+      },
+      "events": {
+        "title": "Evenimente în București",
+        "description": "Evenimente în București, de la petreceri și cluburi la concerte, pe măsură ce apar.",
+        "intro": "Tot ce e publicat pe Firefly pentru București. Pentru diseară și weekend, petrecerile sunt pe paginile lor."
+      },
+      "nightlife": {
+        "title": "Viața de noapte din București",
+        "description": "Viața de noapte din București: unde ieși azi, în weekend și ce cluburi au program.",
+        "intro": "Viața de noapte din București e seara în care chiar ieși, nu un feed de sugestii.",
+        "guide": "Începe cu petrecerile de azi sau din weekend, apoi alege un sunet sau un club. Firefly arată nopțile publicate de venue-uri și organizatori, cu locul și ora."
+      },
+      "clubs": {
+        "title": "Cluburi de noapte în București",
+        "description": "Nopți de club în București, grupate pe venue.",
+        "intro": "Nopțile de club publicate pe Firefly, fiecare la un venue cu nume."
+      },
+      "concerts": {
+        "title": "Concerte în București",
+        "description": "Concerte și muzică live în București.",
+        "intro": "Concerte și spectacole live în București, din ce e deja pe calendar."
+      }
+    },
+    "facets": {
+      "tonight": {
+        "title": "Petreceri azi în București",
+        "description": "Petreceri și evenimente azi în București.",
+        "intro": "Ce e diseară în București: petreceri și nopți de club care încep azi."
+      },
+      "tomorrow": {
+        "title": "Petreceri mâine în București",
+        "description": "Petreceri mâine în București.",
+        "intro": "Dacă azi e plin, astea sunt petrecerile din București care încep mâine."
+      },
+      "weekend": {
+        "title": "Petreceri în weekend în București",
+        "description": "Petreceri și evenimente de weekend în București.",
+        "intro": "Sâmbătă și duminică în București, din petrecerile deja publicate."
+      },
+      "this_week": {
+        "title": "Petreceri săptămâna aceasta în București",
+        "description": "Petreceri în București pentru restul săptămânii.",
+        "intro": "Restul săptămânii în București, noapte cu noapte."
+      },
+      "thursday": {
+        "title": "Petreceri joi în București",
+        "description": "Petreceri joi în București.",
+        "intro": "Joia în București, din petrecerile publicate pentru ziua aia."
+      },
+      "friday": {
+        "title": "Petreceri vineri în București",
+        "description": "Petreceri vineri în București.",
+        "intro": "Vinerea în București, când weekendul chiar începe."
+      },
+      "saturday": {
+        "title": "Petreceri sâmbătă în București",
+        "description": "Petreceri sâmbătă în București.",
+        "intro": "Sâmbătă în București: petrecerile puse pentru noaptea aia."
+      },
+      "sunday": {
+        "title": "Petreceri duminică în București",
+        "description": "Petreceri duminică în București.",
+        "intro": "Duminică în București, pentru nopțile care nu așteaptă weekendul următor."
+      }
+    }
   }
 }

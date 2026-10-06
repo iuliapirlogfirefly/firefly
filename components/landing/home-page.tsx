@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import {
   ArrowRight,
   Calendar,
@@ -18,6 +18,7 @@ import { EVENT_TYPES } from "@/lib/constants/event-types";
 import { landingImages } from "@/lib/landing/images";
 import { isPrelaunchActive, isLandingStatsEnabled } from "@/lib/launch/settings";
 import { getMapPinCount } from "@/lib/queries/events";
+import { LANDING_HUBS, hubPath } from "@/lib/seo/landings";
 import {
   formatLandingCount,
   getLandingStats,
@@ -59,11 +60,14 @@ export async function HomePage() {
     return <PrelaunchLanding />;
   }
 
-  const [t, tEventTypes, mapPinCount] = await Promise.all([
+  const [t, tEventTypes, tSeo, mapPinCount, locale] = await Promise.all([
     getTranslations("landing"),
     getTranslations("eventTypes"),
+    getTranslations("seo"),
     getMapPinCount(),
+    getLocale(),
   ]);
+  const typedLocale = locale === "ro" ? "ro" : "en";
   const mapFeatures = mapFeatureKeys.map((key, i) => ({
     icon: mapFeatureIcons[i],
     t: t(`${key}Title`),
@@ -363,6 +367,30 @@ export async function HomePage() {
               </Link>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="relative pb-8">
+        <div className="mx-auto max-w-[1400px] px-6">
+          <div className="mb-3 font-mono text-xs uppercase tracking-wider-2 text-firefly">
+            {tSeo("discoverLabel")}
+          </div>
+          <h2 className="max-w-3xl font-heading text-4xl font-bold leading-[0.98] md:text-5xl">
+            {tSeo("discoverHeading")}
+          </h2>
+          <p className="mt-4 max-w-xl text-foreground/65">{tSeo("discoverIntro")}</p>
+          <ul className="mt-6 flex flex-wrap gap-2">
+            {LANDING_HUBS.map((hub) => (
+              <li key={hub.id}>
+                <Link
+                  href={hubPath(typedLocale, hub.id)}
+                  className="inline-flex rounded-full border border-firefly/25 px-4 py-2 text-sm text-foreground/80 transition-colors hover:border-firefly/60 hover:text-firefly"
+                >
+                  {tSeo(`hubs.${hub.id}.title`)}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
