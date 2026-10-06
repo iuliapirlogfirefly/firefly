@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import {
   CONSUMER_PROTECTION_LINKS,
@@ -7,6 +7,7 @@ import {
 } from "@/lib/legal/company";
 import { ManageCookiesButton } from "./manage-cookies-button";
 import { isPrelaunchActive } from "@/lib/launch/settings";
+import { LANDING_HUBS, hubPath } from "@/lib/seo/landings";
 
 function InstagramIcon({ className }: { className?: string }) {
   return (
@@ -44,11 +45,13 @@ function TikTokIcon({ className }: { className?: string }) {
 
 export async function SiteFooter() {
   const t = await getTranslations("footer");
+  const tSeo = await getTranslations("seo");
+  const locale = await getLocale();
   const company = getLegalCompany();
   const year = new Date().getFullYear();
-  const venuesHref = (await isPrelaunchActive())
-    ? "/auth?mode=signup&type=business"
-    : "/business";
+  const prelaunch = await isPrelaunchActive();
+  const typedLocale = locale === "ro" ? "ro" : "en";
+  const venuesHref = prelaunch ? "/auth?mode=signup&type=business" : "/business";
 
   return (
     <footer className="relative border-t border-firefly/10 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-12 md:pb-12">
@@ -66,6 +69,25 @@ export async function SiteFooter() {
             {t("tagline")}
           </p>
           <p className="font-hand text-xl text-foreground/40">{t("madeBy")}</p>
+          {prelaunch ? null : (
+            <div className="space-y-2 pt-2">
+              <h2 className="font-mono text-[11px] uppercase tracking-wider-2 text-foreground/40">
+                {t("discoverHeading")}
+              </h2>
+              <ul className="space-y-2 text-sm text-foreground/55">
+                {LANDING_HUBS.map((hub) => (
+                  <li key={hub.id}>
+                    <Link
+                      href={hubPath(typedLocale, hub.id)}
+                      className="transition-colors hover:text-firefly"
+                    >
+                      {tSeo(`hubs.${hub.id}.title`)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="flex flex-wrap gap-4 pt-2 text-sm text-foreground/50">
             <Link
               href={venuesHref}

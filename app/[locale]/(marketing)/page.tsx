@@ -1,7 +1,7 @@
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { HomePage } from "@/components/landing/home-page";
-import { isPrelaunchActive } from "@/lib/launch/settings";
 import { generatePageMetadata } from "@/lib/seo/metadata";
+import { isPrelaunchActive } from "@/lib/launch/settings";
 
 type Props = {
   params: Promise<{ locale: "en" | "ro" }>;
@@ -20,9 +20,10 @@ export async function generateMetadata({ params }: Props) {
       "/"
     );
   }
+  const t = await getTranslations({ locale, namespace: "seo" });
   return generatePageMetadata(
-    "Discover Bucharest Nightlife",
-    "Find live and upcoming parties in Bucharest",
+    t("homeTitle"),
+    t("homeDescription"),
     locale,
     "/"
   );

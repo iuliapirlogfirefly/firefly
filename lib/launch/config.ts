@@ -1,3 +1,5 @@
+import { seoLockedPaths } from "@/lib/seo/landings";
+
 export type PrelaunchMode = "auto" | "on" | "off";
 
 export type LaunchSettings = {
@@ -8,7 +10,17 @@ export type LaunchSettings = {
 
 export const LAUNCH_TIME_ZONE = "Europe/Bucharest";
 
-const LOCKED_EXACT = ["/map", "/calendar", "/feed", "/missed", "/events", "/saved"];
+const seoLocks = seoLockedPaths();
+
+const LOCKED_EXACT = [
+  "/map",
+  "/calendar",
+  "/feed",
+  "/missed",
+  "/events",
+  "/saved",
+  ...seoLocks.exact,
+];
 const LOCKED_PREFIXES = [
   "/map/",
   "/calendar/",
@@ -16,6 +28,7 @@ const LOCKED_PREFIXES = [
   "/missed/",
   "/events/",
   "/saved/",
+  ...seoLocks.prefixes,
 ];
 
 function trimEnv(value: string | undefined): string | undefined {

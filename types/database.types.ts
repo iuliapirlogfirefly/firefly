@@ -607,7 +607,7 @@ export type Database = {
       payments: {
         Row: {
           id: string;
-          business_account_id: string;
+          business_account_id: string | null;
           stripe_checkout_session_id: string | null;
           stripe_payment_intent_id: string | null;
           stripe_invoice_id: string | null;
@@ -622,7 +622,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          business_account_id: string;
+          business_account_id?: string | null;
           stripe_checkout_session_id?: string | null;
           stripe_payment_intent_id?: string | null;
           stripe_invoice_id?: string | null;
@@ -637,7 +637,7 @@ export type Database = {
         };
         Update: {
           id?: string;
-          business_account_id?: string;
+          business_account_id?: string | null;
           stripe_checkout_session_id?: string | null;
           stripe_payment_intent_id?: string | null;
           stripe_invoice_id?: string | null;

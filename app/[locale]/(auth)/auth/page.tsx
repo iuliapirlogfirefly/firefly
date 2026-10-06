@@ -13,7 +13,8 @@ export async function generateMetadata({ params }: Props) {
     "Join the Night",
     "Sign in or create a Firefly account to start collecting nights.",
     locale,
-    "/auth"
+    "/auth",
+    { index: false, follow: false }
   );
 }
 
