@@ -9,16 +9,12 @@ import {
   filtersForLanding,
   hubPath,
 } from "@/lib/seo/landings";
-import { appOrigin } from "@/lib/seo/metadata";
+import { localeUrl } from "@/lib/seo/metadata";
 import type { EventListItem } from "@/types/events";
 
-function localizedEntry(
-  origin: string,
-  enPath: string,
-  roPath: string
-): MetadataRoute.Sitemap {
-  const en = `${origin}/en${enPath}`;
-  const ro = `${origin}/ro${roPath}`;
+function localizedEntry(enPath: string, roPath: string): MetadataRoute.Sitemap {
+  const en = localeUrl("en", enPath);
+  const ro = localeUrl("ro", roPath);
   const languages = { en, ro, "x-default": en };
   return [
     { url: en, alternates: { languages } },
@@ -27,11 +23,8 @@ function localizedEntry(
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const origin = appOrigin();
   const staticPaths = ["/", "/privacy", "/terms", "/cookies"];
-  const entries = staticPaths.flatMap((path) =>
-    localizedEntry(origin, path, path)
-  );
+  const entries = staticPaths.flatMap((path) => localizedEntry(path, path));
 
   if (await isPrelaunchActive()) return entries;
 
@@ -44,7 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   for (const event of events) {
     const path = `/events/${event.slug}`;
-    entries.push(...localizedEntry(origin, path, path));
+    entries.push(...localizedEntry(path, path));
   }
 
   for (const hub of LANDING_HUBS) {
@@ -54,7 +47,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       events.some((event) => eventMatchesLanding(event, filters));
     if (!hasEvents) continue;
     entries.push(
-      ...localizedEntry(origin, hubPath("en", hub.id), hubPath("ro", hub.id))
+      ...localizedEntry(hubPath("en", hub.id), hubPath("ro", hub.id))
     );
   }
 
@@ -65,7 +58,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     );
     if (!hasEvents) continue;
     entries.push(
-      ...localizedEntry(origin, facetPath("en", facet.id), facetPath("ro", facet.id))
+      ...localizedEntry(facetPath("en", facet.id), facetPath("ro", facet.id))
     );
   }
 
