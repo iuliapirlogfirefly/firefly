@@ -19,8 +19,23 @@ type EventMetadataInput = {
   locale: Locale;
 };
 
+const APEX_ORIGIN = "https://fireflyapp.ro";
+const PUBLIC_ORIGIN = "https://www.fireflyapp.ro";
+
 export function appOrigin(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const configured = (
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  ).replace(/\/$/, "");
+  // Vercel redirects the apex host to www before the app runs. Sitemap,
+  // canonical, and hreflang have to name the host that returns 200.
+  if (configured === APEX_ORIGIN) return PUBLIC_ORIGIN;
+  return configured;
+}
+
+export function localeUrl(locale: string, path: string): string {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  const suffix = normalized === "/" ? "" : normalized.replace(/\/$/, "");
+  return `${appOrigin()}/${locale}${suffix}`;
 }
 
 export function absoluteUrl(pathOrUrl: string): string {
@@ -109,10 +124,9 @@ export function generateEventMetadata({
   coverImageUrl,
   locale,
 }: EventMetadataInput): Metadata {
-  const appUrl = appOrigin();
   const seoTitle = formatEventSeoTitle(title, startsAt, locale);
   const summary = metaDescription(description);
-  const url = `${appUrl}/${locale}/events/${slug}`;
+  const url = localeUrl(locale, `/events/${slug}`);
 
   return {
     title: `${seoTitle} | Firefly`,
@@ -120,9 +134,9 @@ export function generateEventMetadata({
     alternates: {
       canonical: url,
       languages: {
-        en: `${appUrl}/en/events/${slug}`,
-        ro: `${appUrl}/ro/events/${slug}`,
-        "x-default": `${appUrl}/en/events/${slug}`,
+        en: localeUrl("en", `/events/${slug}`),
+        ro: localeUrl("ro", `/events/${slug}`),
+        "x-default": localeUrl("en", `/events/${slug}`),
       },
     },
     ...socialMetadata(seoTitle, summary, url, locale, coverImageUrl),
@@ -136,10 +150,9 @@ export function generatePageMetadata(
   path: string,
   options?: PageMetadataOptions
 ): Metadata {
-  const appUrl = appOrigin();
   const paths = pagePaths(path, options);
   const summary = metaDescription(description);
-  const url = `${appUrl}/${locale}${paths[locale]}`;
+  const url = localeUrl(locale, paths[locale]);
   const index = options?.index !== false;
 
   return {
@@ -148,9 +161,9 @@ export function generatePageMetadata(
     alternates: {
       canonical: url,
       languages: {
-        en: `${appUrl}/en${paths.en}`,
-        ro: `${appUrl}/ro${paths.ro}`,
-        "x-default": `${appUrl}/en${paths.en}`,
+        en: localeUrl("en", paths.en),
+        ro: localeUrl("ro", paths.ro),
+        "x-default": localeUrl("en", paths.en),
       },
     },
     ...socialMetadata(title, summary, url, locale, options?.image),
