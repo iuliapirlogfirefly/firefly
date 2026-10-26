@@ -462,7 +462,7 @@ export type Database = {
           id: string;
           business_account_id: string;
           stripe_subscription_id: string | null;
-          stripe_customer_id: string;
+          stripe_customer_id: string | null;
           status: string;
           billing_type: string;
           current_period_start: string;
@@ -486,7 +486,7 @@ export type Database = {
           id?: string;
           business_account_id: string;
           stripe_subscription_id?: string | null;
-          stripe_customer_id: string;
+          stripe_customer_id?: string | null;
           status?: string;
           billing_type?: string;
           current_period_start: string;
@@ -510,7 +510,7 @@ export type Database = {
           id?: string;
           business_account_id?: string;
           stripe_subscription_id?: string | null;
-          stripe_customer_id?: string;
+          stripe_customer_id?: string | null;
           status?: string;
           billing_type?: string;
           current_period_start?: string;
@@ -580,6 +580,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      netopia_webhook_events: {
+        Row: {
+          id: string;
+          payload_hash: string;
+          processed_at: string;
+        };
+        Insert: {
+          id?: string;
+          payload_hash: string;
+          processed_at?: string;
+        };
+        Update: {
+          id?: string;
+          payload_hash?: string;
+          processed_at?: string;
+        };
+        Relationships: [];
+      };
       event_duplicate_dismissals: {
         Row: {
           id: string;
@@ -608,6 +626,9 @@ export type Database = {
         Row: {
           id: string;
           business_account_id: string | null;
+          provider: string;
+          provider_order_id: string | null;
+          provider_payment_id: string | null;
           stripe_checkout_session_id: string | null;
           stripe_payment_intent_id: string | null;
           stripe_invoice_id: string | null;
@@ -616,13 +637,16 @@ export type Database = {
           amount_cents: number;
           currency: string;
           status: string;
-          paid_at: string;
+          paid_at: string | null;
           metadata: Json;
           created_at: string;
         };
         Insert: {
           id?: string;
           business_account_id?: string | null;
+          provider?: string;
+          provider_order_id?: string | null;
+          provider_payment_id?: string | null;
           stripe_checkout_session_id?: string | null;
           stripe_payment_intent_id?: string | null;
           stripe_invoice_id?: string | null;
@@ -631,13 +655,16 @@ export type Database = {
           amount_cents: number;
           currency?: string;
           status?: string;
-          paid_at?: string;
+          paid_at?: string | null;
           metadata?: Json;
           created_at?: string;
         };
         Update: {
           id?: string;
           business_account_id?: string | null;
+          provider?: string;
+          provider_order_id?: string | null;
+          provider_payment_id?: string | null;
           stripe_checkout_session_id?: string | null;
           stripe_payment_intent_id?: string | null;
           stripe_invoice_id?: string | null;
@@ -646,7 +673,7 @@ export type Database = {
           amount_cents?: number;
           currency?: string;
           status?: string;
-          paid_at?: string;
+          paid_at?: string | null;
           metadata?: Json;
           created_at?: string;
         };

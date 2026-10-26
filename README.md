@@ -46,7 +46,7 @@ ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='…' npm run db:create-admin
 ## Key integrations
 
 - Supabase (Auth, Postgres, Storage, RLS)
-- Stripe (B2B promotions) — live keys on Production, test keys on Preview
+- NETOPIA Payments (B2B promotions) — sandbox on Preview, live on Production
 - Resend (email notifications)
 - MapLibre (client-side discovery map — OpenFreeMap dark tiles; `getEventsGeoJSON()` available for future layers)
 

@@ -10,6 +10,7 @@ import {
   getBusinessPromotions,
   getBusinessSubscription,
 } from "@/lib/queries/promotions";
+import { reconcileCheckoutReturn } from "@/lib/billing/return";
 import { getFeedPostCreditBalance } from "@/lib/stripe/feed-post-credits";
 import { shouldUseMockData, isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -22,6 +23,7 @@ type Props = {
     success?: string;
     subscription?: string;
     canceled?: string;
+    order?: string;
   }>;
 };
 
@@ -37,6 +39,15 @@ async function PromotionsContent({
   const businessId = shouldUseMockData()
     ? MOCK_BUSINESS_ACCOUNT_ID
     : session.businessAccountId;
+
+  const checkoutStatus =
+    businessId && !shouldUseMockData()
+      ? await reconcileCheckoutReturn({
+          orderId: resolvedSearchParams.order,
+          businessAccountId: businessId,
+          canceled: resolvedSearchParams.canceled === "true",
+        })
+      : null;
 
   const initialBoost =
     resolvedSearchParams.boost === "event_boost"
@@ -73,6 +84,7 @@ async function PromotionsContent({
       initialTarget={resolvedSearchParams.target}
       hasBusinessAccount={Boolean(businessId)}
       purchasesEnabled={isSupabaseConfigured()}
+      checkoutStatus={checkoutStatus}
     />
   );
 }

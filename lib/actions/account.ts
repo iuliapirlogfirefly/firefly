@@ -5,7 +5,6 @@ import { getTranslations } from "next-intl/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { cancelScheduledReminderEmail } from "@/lib/notifications/email";
-import { explainStripeError, getStripe } from "@/lib/stripe/client";
 import { success, failure } from "@/lib/utils/action-result";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
 import type { ActionResult } from "@/types";
@@ -21,54 +20,6 @@ function emailsMatch(typed: string, actual: string | null | undefined): boolean 
   const expected = actual?.trim().toLowerCase() ?? "";
   if (!expected) return false;
   return typed.trim().toLowerCase() === expected;
-}
-
-function isStripeMissing(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: string }).code === "resource_missing"
-  );
-}
-
-async function cancelStripeBilling(params: {
-  stripeSubscriptionId: string | null;
-  stripeCustomerId: string | null;
-}): Promise<string | null> {
-  if (!params.stripeSubscriptionId && !params.stripeCustomerId) return null;
-
-  const stripe = getStripe();
-
-  if (params.stripeSubscriptionId) {
-    try {
-      const existing = await stripe.subscriptions.retrieve(
-        params.stripeSubscriptionId
-      );
-      if (
-        existing.status !== "canceled" &&
-        existing.status !== "incomplete_expired"
-      ) {
-        await stripe.subscriptions.cancel(params.stripeSubscriptionId);
-      }
-    } catch (error) {
-      if (!isStripeMissing(error)) {
-        return explainStripeError(error, "Failed to cancel subscription");
-      }
-    }
-  }
-
-  if (params.stripeCustomerId) {
-    try {
-      await stripe.customers.del(params.stripeCustomerId);
-    } catch (error) {
-      if (!isStripeMissing(error)) {
-        return explainStripeError(error, "Failed to remove billing profile");
-      }
-    }
-  }
-
-  return null;
 }
 
 async function cancelReminderEmails(
@@ -223,26 +174,12 @@ export async function deleteOwnAccount(
 
     const { data: business, error: businessError } = await admin
       .from("business_accounts")
-      .select("id, stripe_customer_id")
+      .select("id")
       .eq("profile_id", user.id)
       .maybeSingle();
     if (businessError) return failure(businessError.message);
 
     if (business) {
-      const { data: subscription, error: subscriptionError } = await admin
-        .from("subscriptions")
-        .select("stripe_subscription_id, stripe_customer_id")
-        .eq("business_account_id", business.id)
-        .maybeSingle();
-      if (subscriptionError) return failure(subscriptionError.message);
-
-      const billingError = await cancelStripeBilling({
-        stripeSubscriptionId: subscription?.stripe_subscription_id ?? null,
-        stripeCustomerId:
-          business.stripe_customer_id ?? subscription?.stripe_customer_id ?? null,
-      });
-      if (billingError) return failure(billingError);
-
       const { error: paymentsError } = await admin
         .from("payments")
         .update({ business_account_id: null, metadata: {} })
