@@ -6,6 +6,7 @@ import {
   getLegalCompany,
 } from "@/lib/legal/company";
 import { ManageCookiesButton } from "./manage-cookies-button";
+import { PaymentMarks } from "./payment-marks";
 import { isPrelaunchActive } from "@/lib/launch/settings";
 import { LANDING_HUBS, hubPath } from "@/lib/seo/landings";
 
@@ -226,6 +227,7 @@ export async function SiteFooter() {
                 height={40}
               />
             </a>
+            <PaymentMarks />
           </div>
         </div>
       </div>

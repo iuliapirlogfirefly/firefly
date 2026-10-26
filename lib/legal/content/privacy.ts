@@ -1,8 +1,9 @@
 import type { LegalDocument } from "./types";
+import { NETOPIA_PRIVACY_URL } from "@/lib/legal/company";
 
 const ro: LegalDocument = {
   title: "POLITICĂ DE CONFIDENȚIALITATE (GDPR)",
-  lastUpdated: "August 2026",
+  lastUpdated: "October 2026",
   operator: "FIREFLY CONCEPT SRL",
   contact: "contact@fireflyapp.ro",
   blocks: [
@@ -14,7 +15,7 @@ const ro: LegalDocument = {
   { type: "h3", text: "A. Date oferite direct de tine:" },
   { type: "p", text: "Pentru contul de utilizator (cei care caută petreceri): Nume, prenume, adresă de e-mail, parolă (stocată securizat prin criptare/hashing)." },
   { type: "p", text: "Pentru contul de business (locații / organizatori de evenimente): Numele companiei/locației, datele de identificare ale reprezentantului — necesară pentru administrarea contului și relația contractuală cu business-ul, e-mail de contact, număr de telefon, CUI, sediu social și materialele încărcate pentru promovarea evenimentelor (titluri, descrieri, poze, locație)." },
-  { type: "p", text: "Date privind tranzacțiile: Pentru plățile efectuate prin platformă putem colecta informații precum suma, moneda, data tranzacției, identificatorul tranzacției, statusul plății și datele de facturare. Plățile cu cardul sunt procesate prin furnizorul nostru de plăți, Stripe, iar Firefly nu stochează numărul complet al cardului sau codul CVC." },
+  { type: "p", text: "Date privind tranzacțiile: Pentru plățile efectuate prin platformă putem colecta informații precum suma, moneda, data tranzacției, identificatorul tranzacției, statusul plății și datele de facturare. Plățile cu cardul sunt procesate prin NETOPIA Payments, iar Firefly nu stochează numărul complet al cardului sau codul CVC." },
   { type: "p", text: "Pentru newsletter și marketing (opțional): Adresa de e-mail — colectată doar dacă bifezi explicit că dorești să primești noutăți și recomandări despre petreceri." },
   { type: "p", text: "Pentru formularul de contact: Nume, e-mail și mesajul tău — folosite exclusiv pentru a-ți răspunde la solicitare." },
   { type: "h3", text: "B. Date colectate automat (tehnice):" },
@@ -40,8 +41,8 @@ const ro: LegalDocument = {
     "Autorități ale statului (dacă există o obligație legală).",
   ] },
   { type: "rich", parts: [
-    { text: "Furnizori de servicii de plată: Pentru procesarea plăților online, utilizăm Stripe. Atunci când efectuezi o plată prin platformă, anumite date necesare procesării tranzacției (precum numele, adresa de e-mail, datele tranzacției și informațiile necesare pentru plată) pot fi transmise către Stripe. Datele cardului sunt introduse și procesate prin infrastructura Stripe și nu sunt stocate de Firefly în format complet (" },
-    { text: "Politica de confidențialitate Stripe", href: "https://stripe.com/privacy", external: true },
+    { text: "Furnizori de servicii de plată: Pentru procesarea plăților online, utilizăm NETOPIA Payments. Atunci când efectuezi o plată prin platformă, anumite date necesare procesării tranzacției (precum numele, adresa de e-mail, datele tranzacției și informațiile necesare pentru plată) pot fi transmise către NETOPIA Payments. Datele cardului sunt introduse și procesate prin infrastructura NETOPIA și nu sunt stocate de Firefly în format complet (" },
+    { text: "Politica de confidențialitate NETOPIA Payments", href: NETOPIA_PRIVACY_URL, external: true },
     { text: ")." },
   ] },
   { type: "callout", text: "Notă! Transferuri internaționale de date: Unii dintre furnizorii noștri de servicii pot prelucra date cu caracter personal în afara Spațiului Economic European. În astfel de situații, ne asigurăm că transferurile sunt realizate în conformitate cu GDPR și că sunt utilizate mecanisme legale adecvate, precum o Decizie de adecvare a Comisiei Europene, Standard Contractual Clauses (SCCs) sau alte mecanisme recunoscute de legislația aplicabilă." },
@@ -80,7 +81,7 @@ const ro: LegalDocument = {
 
 const en: LegalDocument = {
   title: "PRIVACY POLICY (GDPR)",
-  lastUpdated: "August 2026",
+  lastUpdated: "October 2026",
   operator: "FIREFLY CONCEPT SRL | Romania",
   contact: "contact@fireflyapp.ro",
   blocks: [
@@ -92,7 +93,7 @@ const en: LegalDocument = {
   { type: "h3", text: "A. Data provided directly by you:" },
   { type: "p", text: "For user accounts (people looking for parties): First name, last name, email address, and password (stored securely using encryption/hashing)." },
   { type: "p", text: "For business accounts (venues / event organizers): Company/venue name, identification details of the representative – necessary for account administration and the contractual relationship with the business, contact email address, phone number, CUI, registered office, and materials uploaded for event promotion (titles, descriptions, photos, location)." },
-  { type: "p", text: "Transaction data: For payments made through the platform, we may collect information such as the amount, currency, transaction date, transaction identifier, payment status, and billing information. Card payments are processed through our payment service provider, Stripe, and Firefly does not store the full card number or CVC." },
+  { type: "p", text: "Transaction data: For payments made through the platform, we may collect information such as the amount, currency, transaction date, transaction identifier, payment status, and billing information. Card payments are processed through NETOPIA Payments, and Firefly does not store the full card number or CVC." },
   { type: "p", text: "For newsletters and marketing (optional): Email address – collected only if you explicitly check the box indicating that you wish to receive news and recommendations about parties." },
   { type: "p", text: "For the contact form: Name, email address, and your message – used exclusively to respond to your inquiry." },
   { type: "h3", text: "B. Data collected automatically (technical):" },
@@ -117,8 +118,8 @@ const en: LegalDocument = {
     "Email marketing service providers.",
   ] },
   { type: "rich", parts: [
-    { text: "Payment service providers: We use Stripe to process online payments. When you make a payment through the platform, certain data necessary to process the transaction (such as your name, email address, transaction data, and information required for payment) may be transmitted to Stripe. Card details are entered and processed through Stripe's infrastructure and are not stored by Firefly in full. " },
-    { text: "See Stripe's Privacy Policy.", href: "https://stripe.com/privacy", external: true },
+    { text: "Payment service providers: We use NETOPIA Payments to process online payments. When you make a payment through the platform, certain data necessary to process the transaction (such as your name, email address, transaction data, and information required for payment) may be transmitted to NETOPIA Payments. Card details are entered and processed through NETOPIA's infrastructure and are not stored by Firefly in full. " },
+    { text: "See the NETOPIA Payments privacy policy.", href: NETOPIA_PRIVACY_URL, external: true },
   ] },
   { type: "ul", items: [
     "Government authorities, where required by law.",

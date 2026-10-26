@@ -31,7 +31,7 @@ export function isAllowedAppHost(host: string): boolean {
 }
 
 /**
- * Public origin for redirects (Stripe Checkout, billing portal).
+ * Public origin for redirects (NETOPIA checkout return and cancel URLs).
  * Production stays on NEXT_PUBLIC_APP_URL. Preview uses the request host
  * so sandbox checkout does not send people to fireflyapp.ro.
  */

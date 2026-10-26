@@ -90,7 +90,7 @@ export async function middleware(request: NextRequest) {
       if (access.redirect === "/") {
         url.search = "";
       }
-      // Guests hitting protected routes (e.g. returning from Stripe) keep a
+      // Guests hitting protected routes (e.g. returning from checkout) keep a
       // return path so auth can send them back instead of dropping query-only.
       if (role === "guest" && access.redirect === "/login") {
         const returnTo = `${pathname}${request.nextUrl.search}`;

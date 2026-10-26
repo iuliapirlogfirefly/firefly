@@ -2,7 +2,7 @@ import type { LegalDocument } from "./types";
 
 const ro: LegalDocument = {
   title: "TERMENI ȘI CONDIȚII DE UTILIZARE",
-  lastUpdated: "August 2026",
+  lastUpdated: "October 2026",
   operator: "FIREFLY CONCEPT SRL",
   contact: "contact@fireflyapp.ro",
   blocks: [
@@ -47,11 +47,12 @@ const ro: LegalDocument = {
     "1 Newsletter inclusion;",
     "2 Social Media Posts.",
   ] },
-  { type: "p", text: "Plata se poate efectua prin metodele disponibile pe platformă, inclusiv prin Stripe. Datele complete ale cardului sunt procesate de furnizorul de plăți și nu sunt stocate de Firefly." },
-  { type: "p", text: "Serviciile individuale sunt furnizate după confirmarea cu succes a plății. Abonamentul Premium este, implicit, o achiziție pentru o singură lună: după confirmarea plății, beneficiile sunt disponibile până la finalul perioadei plătite, fără reînnoire automată. Reînnoirea lunară automată este opțională și se activează doar dacă business-ul bifează explicit această opțiune înainte de plată." },
-  { type: "p", text: "Dacă auto-reînnoirea este activată, Stripe debitează metoda de plată salvată în fiecare lună. Anularea reînnoirii automate oprește următoarea plată și nu afectează perioada deja plătită, cu excepția cazului în care legislația aplicabilă prevede altfel. Poți gestiona sau anula abonamentul din Business Dashboard sau din pagina Stripe de facturare." },
-  { type: "p", text: "Condițiile de anulare și rambursare sunt cele afișate la momentul achiziției și cele prevăzute de legislația aplicabilă. Serviciile de promovare deja furnizate sau începute pot să nu fie rambursabile, în măsura permisă de lege." },
-  { type: "p", text: "În cazul unei plăți eșuate la reînnoire, Stripe poate reîncerca automat încasarea. Beneficiile Premium rămân disponibile în perioada de retry. Dacă plata nu reușește după încercările configurate, Firefly suspendă beneficiile Premium până la actualizarea metodei de plată sau până la o plată reușită. Abonamentul poate fi ulterior marcat ca neplătit sau anulat." },
+  { type: "p", text: "Vânzătorul serviciilor de promovare este FIREFLY CONCEPT S.R.L., care emite factura. Firefly nu vinde bilete la evenimente." },
+  { type: "p", text: "Plata se efectuează prin NETOPIA Payments. Datele complete ale cardului sunt introduse pe pagina securizată NETOPIA și nu sunt stocate de Firefly." },
+  { type: "h3", text: "Furnizarea serviciilor" },
+  { type: "p", text: "Serviciile de promovare sunt digitale. Un serviciu individual sau luna de Premium începe după ce NETOPIA Payments confirmă plata. Serviciile individuale sunt furnizate după confirmarea cu succes a plății. Abonamentul Premium este o achiziție pentru o singură lună: după confirmarea plății, beneficiile sunt disponibile până la finalul perioadei plătite, fără reînnoire automată." },
+  { type: "h3", text: "Anulare, retragere și rambursare" },
+  { type: "p", text: "Condițiile de anulare și rambursare sunt cele afișate la momentul achiziției și cele prevăzute de legislația aplicabilă. Pentru o cerere de retragere sau anulare, scrie-ne la contact@fireflyapp.ro. Serviciile de promovare deja furnizate sau începute pot să nu fie rambursabile, în măsura permisă de lege." },
   { type: "p", text: "Beneficiile incluse în abonamentul Premium sunt disponibile pentru fiecare perioadă lunară de facturare. Beneficiile Premium neutilizate într-o perioadă de facturare nu se reportează automat în perioada următoare." },
   { type: "h2", text: "6. Link-uri către alte site-uri" },
   { type: "p", text: "Site-ul poate conține link-uri către platforme de ticketing (ex: IaBilet, Entertix) sau pagini de social media ale cluburilor. Nu avem niciun control asupra acestor site-uri terțe și nu ne asumăm responsabilitatea pentru politicile lor, tranzacțiile financiare sau conținutul lor." },
@@ -94,7 +95,7 @@ const ro: LegalDocument = {
 
 const en: LegalDocument = {
   title: "TERMS AND CONDITIONS OF USE",
-  lastUpdated: "August 2026",
+  lastUpdated: "October 2026",
   operator: "FIREFLY CONCEPT SRL",
   contact: "contact@fireflyapp.ro",
   blocks: [
@@ -139,11 +140,12 @@ const en: LegalDocument = {
     "1 Newsletter inclusion;",
     "2 Social Media Posts.",
   ] },
-  { type: "p", text: "Payment may be made through the payment methods available on the platform, including Stripe. Full card details are processed by the payment provider and are not stored by Firefly." },
-  { type: "p", text: "Individual services are provided after successful payment confirmation. The Premium Subscription is, by default, a one-month purchase: after payment is confirmed, benefits are available until the end of the paid period, without automatic renewal. Monthly auto-renewal is optional and is enabled only if the business explicitly checks this option before payment." },
-  { type: "p", text: "If auto-renewal is enabled, Stripe charges the saved payment method each month. Cancelling automatic renewal stops the next charge and does not affect the period already paid for, except where otherwise required by applicable law. You can manage or cancel the subscription from the Business Dashboard or the Stripe billing portal." },
-  { type: "p", text: "Cancellation and refund conditions are those displayed at the time of purchase and those provided by applicable law. Promotional services that have already been provided or have already commenced may be non-refundable, to the extent permitted by law." },
-  { type: "p", text: "If a renewal payment fails, Stripe may retry collection automatically. Premium benefits remain available during the retry window. If payment still cannot be completed after the configured retries, Firefly suspends Premium benefits until the payment method is updated or payment succeeds. The subscription may then be marked unpaid or cancelled." },
+  { type: "p", text: "The seller of the promotional services is FIREFLY CONCEPT S.R.L., which issues the invoice. Firefly does not sell event tickets." },
+  { type: "p", text: "Payment is made through NETOPIA Payments. Full card details are entered on NETOPIA's secure page and are not stored by Firefly." },
+  { type: "h3", text: "Delivery of the services" },
+  { type: "p", text: "Promotional services are digital. An individual service or the Premium month starts after NETOPIA Payments confirms the payment. Individual services are provided after successful payment confirmation. The Premium Subscription is a one-month purchase: after payment is confirmed, benefits are available until the end of the paid period, without automatic renewal." },
+  { type: "h3", text: "Cancellation, withdrawal, and refunds" },
+  { type: "p", text: "Cancellation and refund conditions are those displayed at the time of purchase and those provided by applicable law. To request withdrawal or cancellation, email contact@fireflyapp.ro. Promotional services that have already been provided or have already commenced may be non-refundable, to the extent permitted by law." },
   { type: "p", text: "The benefits included in the Premium Subscription are available for each monthly billing period. Unused Premium benefits from one billing period do not automatically carry over to the following period." },
   { type: "h2", text: "6. Links to Other Websites" },
   { type: "p", text: "The website may contain links to third-party ticketing platforms (e.g., IaBilet, Entertix) or social media pages of clubs. We have no control over these third-party websites and assume no responsibility for their policies, financial transactions, or content." },

@@ -58,4 +58,5 @@ export const SOCIAL_LINKS = {
   tiktok: "https://www.tiktok.com/@firefly_bucharest",
 } as const;
 
-export const STRIPE_PRIVACY_URL = "https://stripe.com/privacy";
+export const NETOPIA_PRIVACY_URL =
+  "https://netopia-payments.com/politica-de-confidentialitate/";

@@ -18,18 +18,6 @@ export const PROMOTION_PRICES: Record<
   },
 };
 
-export const PROMOTION_PRICE_ENV: Record<PromotionType, string> = {
-  event_boost: "STRIPE_EVENT_BOOST_PRICE_ID",
-  feed_post: "STRIPE_FEED_POST_PRICE_ID",
-  newsletter: "STRIPE_NEWSLETTER_PRICE_ID",
-  social_media: "STRIPE_SOCIAL_MEDIA_PRICE_ID",
-};
-
-export function getPromotionPriceId(type: PromotionType): string | undefined {
-  const value = process.env[PROMOTION_PRICE_ENV[type]]?.trim();
-  return value || undefined;
-}
-
 export const SUBSCRIPTION_QUOTAS = {
   quota_promoted_events: 4,
   quota_feed_posts: 4,

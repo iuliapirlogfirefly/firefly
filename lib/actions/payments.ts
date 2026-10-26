@@ -1,33 +1,27 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
-import { explainStripeError, getStripe } from "@/lib/stripe/client";
-import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
-import {
-  hasBlockingPremium,
-  isPremiumEntitled,
-} from "@/lib/stripe/entitlement";
+import { hasBlockingPremium, isPremiumEntitled } from "@/lib/stripe/entitlement";
 import {
   PREMIUM_PRODUCT,
   PROMOTION_PRICES,
   SUBSCRIPTION_PRICE,
-  getPromotionPriceId,
 } from "@/lib/stripe/products";
 import { activatePromotion } from "@/lib/stripe/activate-promotion";
 import { hasActivePromotion } from "@/lib/stripe/promotions";
+import { countryName, countryNumeric, splitPersonName } from "@/lib/netopia/billing";
+import { NetopiaError, startCardPayment } from "@/lib/netopia/client";
 import { isPrelaunchActive } from "@/lib/launch/settings";
 import { success, failure } from "@/lib/utils/action-result";
 import { getPublicAppUrl } from "@/lib/utils/app-url";
 import { supabaseDisabled } from "@/lib/utils/supabase-guard";
 import type { ActionResult, PromotionType } from "@/types";
-import type Stripe from "stripe";
 
-const PROMOTIONS_LOCKED_MESSAGE =
-  "Promotions unlock when Firefly launches.";
-const TERMS_REQUIRED_MESSAGE =
-  "You must accept the Terms and Privacy Policy";
+const PROMOTIONS_LOCKED_MESSAGE = "Promotions unlock when Firefly launches.";
+const TERMS_REQUIRED_MESSAGE = "You must accept the Terms and Privacy Policy";
 
 async function rejectIfPromotionsLocked<T = void>(): Promise<ActionResult<T> | null> {
   if (await isPrelaunchActive()) {
@@ -110,17 +104,105 @@ async function getActiveSubscription(
   return data;
 }
 
-function checkoutLocale(
-  locale: string
-): Stripe.Checkout.SessionCreateParams.Locale {
-  return locale === "ro" ? "ro" : "en";
-}
-
 function hasQuotaRemaining(sub: SubscriptionRow, type: PromotionType): boolean {
   const mapping = QUOTA_MAP[type];
   const quota = sub[mapping.quota] as number;
   const used = sub[mapping.used] as number;
   return used < quota;
+}
+
+async function startNetopiaCheckout(params: {
+  businessAccountId: string;
+  email: string;
+  locale: string;
+  amountCents: number;
+  productType: string;
+  description: string;
+  metadata: Record<string, string>;
+  successQuery: string;
+}): Promise<ActionResult<{ url: string }>> {
+  if (!params.email) return failure("Business account required");
+
+  const admin = createAdminClient();
+  const { data: business, error: businessError } = await admin
+    .from("business_accounts")
+    .select(
+      "name, legal_name, billing_address, billing_city, billing_county, billing_postal_code, billing_country"
+    )
+    .eq("id", params.businessAccountId)
+    .maybeSingle();
+  if (businessError) return failure(businessError.message);
+  if (!business) return failure("Business account required");
+
+  const paymentId = randomUUID();
+  const { error: insertError } = await admin.from("payments").insert({
+    id: paymentId,
+    business_account_id: params.businessAccountId,
+    provider: "netopia",
+    provider_order_id: paymentId,
+    type: "one_time",
+    product_type: params.productType,
+    amount_cents: params.amountCents,
+    currency: "ron",
+    status: "pending",
+    paid_at: null,
+    metadata: params.metadata,
+  });
+  if (insertError) return failure(insertError.message);
+
+  const appUrl = await getPublicAppUrl();
+  const locale = params.locale === "ro" ? "ro" : "en";
+  const promotionsPath = `${appUrl}/${locale}/business/promotions`;
+  const name = splitPersonName(business.legal_name || business.name);
+  const countryCode = business.billing_country || "RO";
+  const amount = params.amountCents / 100;
+
+  try {
+    const started = await startCardPayment({
+      orderId: paymentId,
+      amount,
+      currency: "RON",
+      description: params.description,
+      language: locale,
+      notifyUrl: `${appUrl}/api/webhooks/netopia`,
+      redirectUrl: `${promotionsPath}?order=${paymentId}&${params.successQuery}`,
+      cancelUrl: `${promotionsPath}?order=${paymentId}&canceled=true`,
+      billing: {
+        email: params.email,
+        firstName: name.firstName,
+        lastName: name.lastName,
+        city: business.billing_city || "Bucuresti",
+        country: countryNumeric(countryCode),
+        countryName: countryName(countryCode),
+        state: business.billing_county || "Bucuresti",
+        postalCode: business.billing_postal_code || "010101",
+        details: business.billing_address || business.name,
+      },
+      product: {
+        name: params.description,
+        code: params.productType,
+        price: amount,
+      },
+    });
+
+    if (started.ntpId) {
+      await admin
+        .from("payments")
+        .update({ provider_payment_id: started.ntpId })
+        .eq("id", paymentId);
+    }
+
+    return success({ url: started.paymentUrl });
+  } catch (error) {
+    await admin
+      .from("payments")
+      .update({ status: "failed" })
+      .eq("id", paymentId)
+      .eq("status", "pending");
+    const message =
+      error instanceof NetopiaError ? error.message : "Failed to start payment";
+    return failure(message);
+  }
 }
 
 export async function createCheckoutSession(
@@ -164,35 +246,16 @@ export async function createCheckoutSession(
       if (!validation.success) return validation as ActionResult<{ url: string }>;
     }
 
-    const stripe = getStripe();
-    const appUrl = await getPublicAppUrl();
-    const locale = session.preferredLocale ?? "en";
-    const promotionsPath = `${appUrl}/${locale}/business/promotions`;
-    const customerId = await getOrCreateStripeCustomer({
-      businessAccountId: session.businessAccountId,
-      email: session.email,
-    });
-    const priceId = getPromotionPriceId(type);
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = priceId
-      ? [{ price: priceId, quantity: 1 }]
-      : [
-          {
-            price_data: {
-              currency: price.currency,
-              unit_amount: price.amount,
-              product_data: { name: price.label },
-            },
-            quantity: 1,
-          },
-        ];
     const acceptedAt = new Date().toISOString();
-
-    const checkoutSession = await stripe.checkout.sessions.create({
-      mode: "payment",
-      customer: customerId,
-      customer_update: { address: "auto", name: "auto" },
-      locale: checkoutLocale(locale),
-      line_items: lineItems,
+    return startNetopiaCheckout({
+      businessAccountId: session.businessAccountId,
+      email: session.email ?? "",
+      locale: session.preferredLocale ?? "en",
+      amountCents: price.amount,
+      productType: type,
+      description: price.label,
+      successQuery:
+        type === "feed_post" ? "success=true&pack=feed_post" : "success=true",
       metadata: {
         business_account_id: session.businessAccountId,
         promotion_type: type,
@@ -200,22 +263,13 @@ export async function createCheckoutSession(
         accepted_terms: "true",
         terms_accepted_at: acceptedAt,
       },
-      success_url:
-        type === "feed_post"
-          ? `${promotionsPath}?success=true&pack=feed_post`
-          : `${promotionsPath}?success=true`,
-      cancel_url: `${promotionsPath}?canceled=true`,
     });
-
-    if (!checkoutSession.url) return failure("Failed to create checkout session");
-    return success({ url: checkoutSession.url });
-  } catch (e) {
-    return failure(explainStripeError(e, "Failed to create checkout session"));
+  } catch (error) {
+    return failure(error instanceof Error ? error.message : "Failed to create checkout");
   }
 }
 
 export async function createSubscriptionCheckout(options: {
-  autoRenew: boolean;
   acceptedTerms: boolean;
 }): Promise<ActionResult<{ url: string }>> {
   const disabled = supabaseDisabled<{ url: string }>();
@@ -244,148 +298,26 @@ export async function createSubscriptionCheckout(options: {
       return failure("A Premium subscription is already active or pending payment");
     }
 
-    const appUrl = await getPublicAppUrl();
-    const locale = session.preferredLocale ?? "en";
-    const promotionsPath = `${appUrl}/${locale}/business/promotions`;
-    const customerId = await getOrCreateStripeCustomer({
-      businessAccountId: session.businessAccountId,
-      email: session.email,
-    });
-
     const acceptedAt = new Date().toISOString();
-    const metadata = {
-      business_account_id: session.businessAccountId,
-      product: PREMIUM_PRODUCT,
-      auto_renew: options.autoRenew ? "true" : "false",
-      accepted_terms: "true",
-      terms_accepted_at: acceptedAt,
-    };
-
-    const checkoutSession = options.autoRenew
-      ? await createRecurringCheckout({
-          customerId,
-          locale,
-          promotionsPath,
-          metadata,
-        })
-      : await createOneTimeCheckout({
-          customerId,
-          locale,
-          promotionsPath,
-          metadata,
-        });
-
-    if (!checkoutSession.url) return failure("Failed to create checkout session");
-    return success({ url: checkoutSession.url });
-  } catch (e) {
-    return failure(
-      explainStripeError(e, "Failed to create subscription checkout")
-    );
-  }
-}
-
-async function createRecurringCheckout(params: {
-  customerId: string;
-  locale: string;
-  promotionsPath: string;
-  metadata: Record<string, string>;
-}) {
-  const priceId = process.env.STRIPE_PREMIUM_SUBSCRIPTION_PRICE_ID?.trim();
-  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = priceId
-    ? [{ price: priceId, quantity: 1 }]
-    : [
-        {
-          price_data: {
-            currency: SUBSCRIPTION_PRICE.currency,
-            unit_amount: SUBSCRIPTION_PRICE.amount,
-            recurring: { interval: "month" },
-            product_data: {
-              name: SUBSCRIPTION_PRICE.label,
-            },
-          },
-          quantity: 1,
-        },
-      ];
-
-  return getStripe().checkout.sessions.create({
-    mode: "subscription",
-    customer: params.customerId,
-    customer_update: { address: "auto", name: "auto" },
-    locale: checkoutLocale(params.locale),
-    line_items: lineItems,
-    metadata: params.metadata,
-    subscription_data: {
-      metadata: params.metadata,
-    },
-    success_url: `${params.promotionsPath}?subscription=success`,
-    cancel_url: `${params.promotionsPath}?canceled=true`,
-  });
-}
-
-async function createOneTimeCheckout(params: {
-  customerId: string;
-  locale: string;
-  promotionsPath: string;
-  metadata: Record<string, string>;
-}) {
-  const oneTimePriceId = process.env.STRIPE_PREMIUM_ONETIME_PRICE_ID;
-  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = oneTimePriceId
-    ? [{ price: oneTimePriceId, quantity: 1 }]
-    : [
-        {
-          price_data: {
-            currency: SUBSCRIPTION_PRICE.currency,
-            unit_amount: SUBSCRIPTION_PRICE.amount,
-            product_data: {
-              name: `${SUBSCRIPTION_PRICE.label} (one month)`,
-            },
-          },
-          quantity: 1,
-        },
-      ];
-
-  return getStripe().checkout.sessions.create({
-    mode: "payment",
-    customer: params.customerId,
-    customer_update: { address: "auto", name: "auto" },
-    locale: checkoutLocale(params.locale),
-    line_items: lineItems,
-    metadata: params.metadata,
-    success_url: `${params.promotionsPath}?subscription=success`,
-    cancel_url: `${params.promotionsPath}?canceled=true`,
-  });
-}
-
-export async function createBillingPortalSession(): Promise<
-  ActionResult<{ url: string }>
-> {
-  const disabled = supabaseDisabled<{ url: string }>();
-  if (disabled) return disabled;
-
-  try {
-    const session = await getSession();
-    if (!session.businessAccountId) {
-      return failure("Business account required");
-    }
-
-    const customerId = await getOrCreateStripeCustomer({
+    return startNetopiaCheckout({
       businessAccountId: session.businessAccountId,
-      email: session.email,
+      email: session.email ?? "",
+      locale: session.preferredLocale ?? "en",
+      amountCents: SUBSCRIPTION_PRICE.amount,
+      productType: PREMIUM_PRODUCT,
+      description: `${SUBSCRIPTION_PRICE.label} (one month)`,
+      successQuery: "subscription=success",
+      metadata: {
+        business_account_id: session.businessAccountId,
+        product: PREMIUM_PRODUCT,
+        accepted_terms: "true",
+        terms_accepted_at: acceptedAt,
+      },
     });
-
-    const appUrl = await getPublicAppUrl();
-    const locale = session.preferredLocale ?? "en";
-    const promotionsPath = `${appUrl}/${locale}/business/promotions`;
-
-    const portal = await getStripe().billingPortal.sessions.create({
-      customer: customerId,
-      return_url: promotionsPath,
-    });
-
-    if (!portal.url) return failure("Failed to open billing portal");
-    return success({ url: portal.url });
-  } catch (e) {
-    return failure(explainStripeError(e, "Failed to open billing portal"));
+  } catch (error) {
+    return failure(
+      error instanceof Error ? error.message : "Failed to create subscription checkout"
+    );
   }
 }
 
@@ -413,9 +345,7 @@ export async function useSubscriptionQuota(
         : session.businessAccountId);
 
     if (type === "feed_post") {
-      return failure(
-        "What Did You Miss slots are used when you submit a post"
-      );
+      return failure("What Did You Miss slots are used when you submit a post");
     }
 
     if (TARGET_REQUIRED_TYPES.includes(type) && !resolvedTargetId) {
@@ -432,13 +362,11 @@ export async function useSubscriptionQuota(
     }
 
     const sub = await getActiveSubscription(session.businessAccountId);
-
     if (!sub) return failure("No active subscription");
 
     const mapping = QUOTA_MAP[type];
     const quota = sub[mapping.quota] as number;
     const used = sub[mapping.used] as number;
-
     if (used >= quota) return failure("Subscription quota exceeded");
 
     const updatePayload =
@@ -464,9 +392,9 @@ export async function useSubscriptionQuota(
     });
 
     return success(undefined);
-  } catch (e) {
+  } catch (error) {
     return failure(
-      e instanceof Error ? e.message : "Failed to use subscription quota"
+      error instanceof Error ? error.message : "Failed to use subscription quota"
     );
   }
 }
@@ -523,73 +451,9 @@ export async function purchasePromotion(
     });
     if (!checkout.success) return checkout;
     return success({ url: checkout.data.url });
-  } catch (e) {
+  } catch (error) {
     return failure(
-      e instanceof Error ? e.message : "Failed to purchase promotion"
+      error instanceof Error ? error.message : "Failed to purchase promotion"
     );
-  }
-}
-
-export async function cancelSubscription(
-  businessAccountId?: string
-): Promise<ActionResult> {
-  const disabled = supabaseDisabled();
-  if (disabled) return disabled;
-
-  try {
-    const session = await getSession();
-    const isAdmin = session.role === "admin";
-    const targetId = isAdmin
-      ? businessAccountId
-      : session.businessAccountId;
-
-    if (!targetId) {
-      return failure("Business account required");
-    }
-
-    if (!isAdmin && session.businessAccountId !== targetId) {
-      return failure("Not authorized");
-    }
-
-    if (isAdmin && !businessAccountId) {
-      return failure("Business account required");
-    }
-
-    const admin = createAdminClient();
-    const { data: sub, error } = await admin
-      .from("subscriptions")
-      .select("id, stripe_subscription_id, status, cancel_at_period_end, current_period_end, billing_type")
-      .eq("business_account_id", targetId)
-      .maybeSingle();
-
-    if (error) return failure(error.message);
-    if (!sub) return failure("No active subscription");
-    if (!isPremiumEntitled(sub) && sub.status !== "unpaid") {
-      return failure("No active subscription");
-    }
-    if (sub.billing_type === "one_time" || !sub.stripe_subscription_id) {
-      return failure("This Premium period does not auto-renew");
-    }
-    if (sub.cancel_at_period_end) {
-      return failure("Subscription is already set to cancel");
-    }
-
-    const stripe = getStripe();
-    await stripe.subscriptions.update(sub.stripe_subscription_id, {
-      cancel_at_period_end: true,
-    });
-
-    const { error: updateError } = await admin
-      .from("subscriptions")
-      .update({
-        cancel_at_period_end: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", sub.id);
-
-    if (updateError) return failure(updateError.message);
-    return success(undefined);
-  } catch (e) {
-    return failure(explainStripeError(e, "Failed to cancel subscription"));
   }
 }

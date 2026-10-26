@@ -4,12 +4,10 @@ import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { updateBusinessBilling } from "@/lib/actions/business";
-import { cancelSubscription } from "@/lib/actions/payments";
 import { AdminBadge } from "@/components/admin/ui/admin-badge";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { ActionFeedback } from "@/components/admin/ui/action-feedback";
-import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import type { AdminBusinessDetails } from "@/lib/queries/business";
 import type { BusinessBillingInfo } from "@/types";
 import { SUBSCRIPTION_PRICE } from "@/lib/stripe/products";
@@ -37,7 +35,6 @@ export function AdminBusinessDetailsPage({ details }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [billing, setBilling] = useState(details.billing);
-  const [cancelOpen, setCancelOpen] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     message: string;
@@ -52,22 +49,6 @@ export function AdminBusinessDetailsPage({ details }: Props) {
       const result = await updateBusinessBilling(details.id, billing);
       if (result.success) {
         setFeedback({ type: "success", message: t("billingSaved") });
-        router.refresh();
-      } else {
-        setFeedback({ type: "error", message: result.error });
-      }
-    });
-  };
-
-  const handleCancel = () => {
-    startTransition(async () => {
-      const result = await cancelSubscription(details.id);
-      setCancelOpen(false);
-      if (result.success) {
-        setFeedback({
-          type: "success",
-          message: t("cancelSuccess"),
-        });
         router.refresh();
       } else {
         setFeedback({ type: "error", message: result.error });
@@ -231,23 +212,12 @@ export function AdminBusinessDetailsPage({ details }: Props) {
                 </dd>
               </div>
             </dl>
-            {!sub.canCancelRenewal ? (
-              sub.entitled &&
-              (sub.cancelAtPeriodEnd || sub.billingType === "one_time") ? (
-                <p className="text-xs text-muted-foreground">
-                  {t("alreadyCanceled", { date: sub.renewsAt })}
-                </p>
-              ) : null
-            ) : (
-              <AdminButton
-                size="md"
-                variant="danger"
-                disabled={pending}
-                onClick={() => setCancelOpen(true)}
-              >
-                {t("cancelSubscription")}
-              </AdminButton>
-            )}
+            {sub.entitled &&
+            (sub.cancelAtPeriodEnd || sub.billingType === "one_time") ? (
+              <p className="text-xs text-muted-foreground">
+                {t("alreadyCanceled", { date: sub.renewsAt })}
+              </p>
+            ) : null}
           </>
         )}
       </AdminCard>
@@ -291,17 +261,6 @@ export function AdminBusinessDetailsPage({ details }: Props) {
           </ul>
         )}
       </AdminCard>
-
-      <ConfirmDialog
-        open={cancelOpen}
-        title={t("cancelSubscription")}
-        description={t("cancelDialogDescription", { name: details.name })}
-        confirmLabel={t("cancelRenewal")}
-        confirmVariant="danger"
-        onClose={() => setCancelOpen(false)}
-        pending={pending}
-        onConfirm={handleCancel}
-      />
     </div>
   );
 }

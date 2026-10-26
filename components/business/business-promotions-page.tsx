@@ -4,12 +4,11 @@ import { Link } from "@/i18n/navigation";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { PaymentMarks } from "@/components/legal/payment-marks";
 import { PendingButton } from "@/components/ui/pending-button";
 import {
-  createBillingPortalSession,
   createSubscriptionCheckout,
   purchasePromotion,
-  cancelSubscription,
 } from "@/lib/actions/payments";
 import {
   PROMOTION_PRICES,
@@ -35,6 +34,7 @@ type Props = {
   initialTarget?: string;
   hasBusinessAccount: boolean;
   purchasesEnabled: boolean;
+  checkoutStatus?: "paid" | "failed" | "pending" | null;
 };
 
 const ONE_TIME_PLANS: PromotionType[] = [
@@ -106,7 +106,7 @@ function consumeLeavingForCheckout(): boolean {
   }
 }
 
-function goToStripeCheckout(url: string) {
+function goToCheckout(url: string) {
   markLeavingForCheckout();
   window.location.href = url;
 }
@@ -120,6 +120,7 @@ export function BusinessPromotionsPage({
   initialTarget,
   hasBusinessAccount,
   purchasesEnabled,
+  checkoutStatus = null,
 }: Props) {
   const t = useTranslations("business");
   const tPremium = useTranslations("premium");
@@ -130,7 +131,6 @@ export function BusinessPromotionsPage({
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [autoRenew, setAutoRenew] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerType, setPickerType] = useState<PromotionType | null>(
@@ -207,16 +207,32 @@ export function BusinessPromotionsPage({
   };
 
   const checkoutFeedback = (() => {
+    const pack = searchParams.get("pack") === "feed_post";
+    const subscriptionSuccess = searchParams.get("subscription") === "success";
+    if (searchParams.get("order")) {
+      if (checkoutStatus === "paid") {
+        if (subscriptionSuccess) {
+          return { type: "success" as const, message: tPremium("activated") };
+        }
+        return {
+          type: "success" as const,
+          message: pack ? t("packPaymentSuccess") : t("paymentSuccess"),
+        };
+      }
+      if (checkoutStatus === "pending") {
+        return { type: "success" as const, message: t("paymentProcessing") };
+      }
+      if (checkoutStatus === "failed" || searchParams.get("canceled") === "true") {
+        return { type: "error" as const, message: t("checkoutCanceled") };
+      }
+    }
     if (searchParams.get("success") === "true") {
       return {
         type: "success" as const,
-        message:
-          searchParams.get("pack") === "feed_post"
-            ? t("packPaymentSuccess")
-            : t("paymentSuccess"),
+        message: pack ? t("packPaymentSuccess") : t("paymentSuccess"),
       };
     }
-    if (searchParams.get("subscription") === "success") {
+    if (subscriptionSuccess) {
       return { type: "success" as const, message: tPremium("activated") };
     }
     if (searchParams.get("canceled") === "true") {
@@ -265,7 +281,7 @@ export function BusinessPromotionsPage({
       }
 
       if (result.data.url) {
-        goToStripeCheckout(result.data.url);
+        goToCheckout(result.data.url);
         return;
       }
 
@@ -302,7 +318,6 @@ export function BusinessPromotionsPage({
     setPendingAction("subscribe");
     try {
       const result = await createSubscriptionCheckout({
-        autoRenew,
         acceptedTerms: true,
       });
       if (!result.success) {
@@ -310,50 +325,11 @@ export function BusinessPromotionsPage({
         setPendingAction(null);
         return;
       }
-      goToStripeCheckout(result.data.url);
+      goToCheckout(result.data.url);
     } catch (e) {
       setError(
         e instanceof Error ? e.message : t("subscribeFailed")
       );
-      setPendingAction(null);
-    }
-  };
-
-  const handleManageBilling = async () => {
-    setError(null);
-    setPendingAction("billing");
-    try {
-      const result = await createBillingPortalSession();
-      if (!result.success) {
-        setError(result.error);
-        setPendingAction(null);
-        return;
-      }
-      window.location.href = result.data.url;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t("billingFailed"));
-      setPendingAction(null);
-    }
-  };
-
-  const handleCancelSubscription = async () => {
-    if (!window.confirm(tPremium("cancelConfirm"))) {
-      return;
-    }
-    setError(null);
-    setPendingAction("cancel");
-    try {
-      const result = await cancelSubscription();
-      if (!result.success) {
-        setError(result.error);
-        setPendingAction(null);
-        return;
-      }
-      setSuccessMessage(tPremium("canceledSuccess"));
-      setPendingAction(null);
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t("cancelFailed"));
       setPendingAction(null);
     }
   };
@@ -501,40 +477,6 @@ export function BusinessPromotionsPage({
                 {tPremium("benefitsPaused")}
               </p>
             )}
-            <div className="mt-4 flex flex-wrap gap-3">
-              {subscription.paymentFailed || subscription.canManageBilling ? (
-                <PendingButton
-                  type="button"
-                  onClick={handleManageBilling}
-                  pending={isPending("billing")}
-                  pendingLabel={tPremium("openingBilling")}
-                  disabled={!purchasesEnabled}
-                  className="rounded-full bg-firefly px-4 py-2 text-sm font-medium text-primary-foreground"
-                >
-                  {subscription.paymentFailed
-                    ? tPremium("updatePayment")
-                    : tPremium("manageBilling")}
-                </PendingButton>
-              ) : null}
-              {subscription.canCancelRenewal ? (
-                <PendingButton
-                  type="button"
-                  onClick={handleCancelSubscription}
-                  pending={isPending("cancel")}
-                  pendingLabel={tPremium("canceling")}
-                  disabled={!purchasesEnabled}
-                  className="text-sm text-destructive/80 underline-offset-2 hover:underline"
-                >
-                  {tPremium("cancelRenewal")}
-                </PendingButton>
-              ) : subscription.entitled &&
-                (subscription.cancelAtPeriodEnd ||
-                  subscription.billingType === "one_time") ? (
-                <p className="text-sm text-foreground/60">
-                  {tPremium("canceledNotice", { date: subscription.renewsAt })}
-                </p>
-              ) : null}
-            </div>
           </div>
         ) : null}
 
@@ -642,35 +584,21 @@ export function BusinessPromotionsPage({
                 {subscription.paymentFailed ? tPremium("paymentFailedLabel") : tPremium("subscribed")}
               </PendingButton>
             ) : (
-              <>
-                <label className="mt-4 flex items-start gap-2 text-sm text-foreground/80">
-                  <input
-                    type="checkbox"
-                    checked={autoRenew}
-                    onChange={(event) => setAutoRenew(event.target.checked)}
-                    className="mt-0.5 accent-firefly"
-                  />
-                  <span>{tPremium("autoRenew")}</span>
-                </label>
-                {autoRenew ? (
-                  <p className="mt-2 text-xs text-foreground/55">
-                    {tPremium("autoRenewDetails")}
-                  </p>
-                ) : null}
-                <PendingButton
-                  type="button"
-                  pending={isPending("subscribe")}
-                  pendingLabel={tPremium("redirecting")}
-                  disabled={!canPurchase}
-                  onClick={handleSubscribe}
-                  className="mt-4 w-full rounded-full border border-firefly/30 py-2 text-sm text-firefly hover:bg-firefly/10"
-                >
-                  {tPremium("continueToCheckout")}
-                </PendingButton>
-              </>
+              <PendingButton
+                type="button"
+                pending={isPending("subscribe")}
+                pendingLabel={tPremium("redirecting")}
+                disabled={!canPurchase}
+                onClick={handleSubscribe}
+                className="mt-4 w-full rounded-full border border-firefly/30 py-2 text-sm text-firefly hover:bg-firefly/10"
+              >
+                {tPremium("continueToCheckout")}
+              </PendingButton>
             )}
           </div>
         </div>
+
+        <PaymentMarks className="mt-6 inline-block" />
 
         <label className="mt-6 flex items-start gap-2 text-sm text-foreground/80">
           <input
