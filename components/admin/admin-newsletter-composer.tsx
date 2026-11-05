@@ -2,12 +2,15 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { FileText, Loader2, X } from "lucide-react";
+import { FileText, Loader2, Users, X } from "lucide-react";
 import { sendNewsletter } from "@/lib/actions/admin";
+import type { NewsletterSubscriber } from "@/lib/queries/users";
+import { NewsletterRecipientsDialog } from "@/components/admin/newsletter-recipients-dialog";
 import { getUploadUrl } from "@/lib/actions/business";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { ImageUploader } from "@/components/events/image-uploader";
+import { NewsletterMessageEditor } from "@/components/admin/newsletter-message-editor";
+import { isNewsletterMessageEmpty } from "@/lib/newsletter/message-html";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { ActionFeedback } from "@/components/admin/ui/action-feedback";
@@ -22,7 +25,7 @@ type ArchiveItem = {
 };
 
 type Props = {
-  subscriberCount: number;
+  subscribers: NewsletterSubscriber[];
   archive: ArchiveItem[];
   isMockMode?: boolean;
 };
@@ -46,7 +49,7 @@ async function uploadNewsletterFile(file: File): Promise<string> {
 }
 
 export function AdminNewsletterComposer({
-  subscriberCount,
+  subscribers,
   archive,
   isMockMode,
 }: Props) {
@@ -54,6 +57,10 @@ export function AdminNewsletterComposer({
   const [subject, setSubject] = useState("");
   const [htmlContent, setHtmlContent] = useState("");
   const [pdfUrls, setPdfUrls] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () => new Set(subscribers.map((subscriber) => subscriber.id))
+  );
+  const [recipientsOpen, setRecipientsOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -62,14 +69,6 @@ export function AdminNewsletterComposer({
     message: string;
   } | null>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
-
-  const insertImage = (url: string | null) => {
-    if (!url) return;
-    setHtmlContent(
-      (current) =>
-        `${current}${current ? "\n" : ""}<p><img src="${url}" alt="" style="max-width:100%;height:auto;" /></p>\n`
-    );
-  };
 
   const handlePdfFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -110,9 +109,26 @@ export function AdminNewsletterComposer({
     }
   };
 
+  const toggleRecipient = (id: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const handleSend = () => {
+    if (selectedIds.size === 0) {
+      setConfirmOpen(false);
+      setFeedback({ type: "error", message: t("errorNoRecipients") });
+      return;
+    }
+
     startTransition(async () => {
-      const result = await sendNewsletter(subject, htmlContent, pdfUrls);
+      const result = await sendNewsletter(subject, htmlContent, pdfUrls, [
+        ...selectedIds,
+      ]);
       setConfirmOpen(false);
       if (result.success) {
         setFeedback({
@@ -122,6 +138,7 @@ export function AdminNewsletterComposer({
         setSubject("");
         setHtmlContent("");
         setPdfUrls([]);
+        setSelectedIds(new Set(subscribers.map((subscriber) => subscriber.id)));
       } else {
         setFeedback({ type: "error", message: result.error });
       }
@@ -134,7 +151,7 @@ export function AdminNewsletterComposer({
         {t("newsletters")}
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        {t("newsletterSubtitle", { count: subscriberCount })}
+        {t("newsletterSubtitle", { count: subscribers.length })}
       </p>
 
       <AdminCard className="mt-8 space-y-4 p-6">
@@ -149,39 +166,23 @@ export function AdminNewsletterComposer({
             placeholder={t("subjectPlaceholder")}
             required
           />
+          <AdminButton
+            variant="secondary"
+            className="mt-2"
+            onClick={() => setRecipientsOpen(true)}
+          >
+            <Users className="h-3.5 w-3.5" />
+            {t("sendTo", { count: selectedIds.size })}
+          </AdminButton>
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
             {t("htmlContent")}
           </label>
-          <textarea
-            className="min-h-[200px] w-full resize-y rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm outline-none focus:ring-1 focus:ring-foreground/30"
-            value={htmlContent}
-            onChange={(e) => setHtmlContent(e.target.value)}
-            placeholder={t("htmlPlaceholder")}
-            required
-          />
+          <NewsletterMessageEditor value={htmlContent} onChange={setHtmlContent} />
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div>
-            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-              {t("insertImage")}
-            </p>
-            <ImageUploader
-              bucket="newsletter-media"
-              value={null}
-              onChange={(url) => {
-                if (url) insertImage(url);
-              }}
-              label=""
-            />
-            <p className="mt-1 text-xs text-muted-foreground">
-              {t("insertImageHint")}
-            </p>
-          </div>
-
-          <div>
+        <div>
             <p className="mb-1.5 text-xs font-medium text-muted-foreground">
               {t("attachPdf")}
             </p>
@@ -243,7 +244,6 @@ export function AdminNewsletterComposer({
                 ))}
               </ul>
             ) : null}
-          </div>
         </div>
 
         {feedback ? (
@@ -251,7 +251,12 @@ export function AdminNewsletterComposer({
         ) : null}
         <AdminButton
           size="md"
-          disabled={pending || !subject || !htmlContent}
+          disabled={
+            pending ||
+            !subject ||
+            isNewsletterMessageEmpty(htmlContent) ||
+            selectedIds.size === 0
+          }
           onClick={() => setConfirmOpen(true)}
         >
           {t("sendNewsletter")}
@@ -263,7 +268,7 @@ export function AdminNewsletterComposer({
         title={t("sendNewsletter")}
         description={t("confirmSendDescription", {
           subject,
-          count: subscriberCount,
+          count: selectedIds.size,
           pdfHint: pdfUrls.length
             ? t("confirmPdfHint", { count: pdfUrls.length })
             : "",
@@ -273,6 +278,18 @@ export function AdminNewsletterComposer({
         onClose={() => setConfirmOpen(false)}
         pending={pending}
         onConfirm={handleSend}
+      />
+
+      <NewsletterRecipientsDialog
+        open={recipientsOpen}
+        subscribers={subscribers}
+        selectedIds={selectedIds}
+        onToggle={toggleRecipient}
+        onSelectAll={() =>
+          setSelectedIds(new Set(subscribers.map((subscriber) => subscriber.id)))
+        }
+        onDeselectAll={() => setSelectedIds(new Set())}
+        onClose={() => setRecipientsOpen(false)}
       />
 
       <section className="mt-10">
