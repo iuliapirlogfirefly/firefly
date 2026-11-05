@@ -1,6 +1,6 @@
 import { AdminNewsletterComposer } from "@/components/admin/admin-newsletter-composer";
 import { getMockNewsletters } from "@/lib/mocks/data";
-import { getNewsletterSubscriberCount } from "@/lib/queries/users";
+import { getNewsletterSubscribers } from "@/lib/queries/users";
 import { shouldUseMockData } from "@/lib/supabase/config";
 import { setRequestLocale } from "next-intl/server";
 
@@ -12,14 +12,14 @@ export default async function AdminNewslettersPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [subscriberCount, archive] = await Promise.all([
-    getNewsletterSubscriberCount(),
+  const [subscribers, archive] = await Promise.all([
+    getNewsletterSubscribers(),
     Promise.resolve(getMockNewsletters()),
   ]);
 
   return (
     <AdminNewsletterComposer
-      subscriberCount={subscriberCount}
+      subscribers={subscribers}
       archive={archive}
       isMockMode={shouldUseMockData()}
     />

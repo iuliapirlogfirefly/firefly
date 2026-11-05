@@ -13,6 +13,7 @@ import {
   sendBusinessRejectedEmail,
   sendEmail,
 } from "@/lib/notifications/email";
+import { sanitizeNewsletterHtml } from "@/lib/newsletter/message-html";
 import {
   buildNewsletterUnsubscribeUrl,
   wrapNewsletterHtml,
@@ -476,7 +477,8 @@ export async function deleteFeedPost(postId: string): Promise<ActionResult> {
 export async function sendNewsletter(
   subject: string,
   htmlContent: string,
-  pdfUrls: string[] = []
+  pdfUrls: string[] = [],
+  recipientIds: string[] = []
 ): Promise<ActionResult<{ sent: number }>> {
   const disabled = supabaseDisabled<{ sent: number }>();
   if (disabled) return disabled;
@@ -489,6 +491,16 @@ export async function sendNewsletter(
       return failure("Maximum 3 PDF attachments allowed");
     }
 
+    const allowedIds = new Set(
+      recipientIds.filter((id) => typeof id === "string" && id.length > 0)
+    );
+    if (allowedIds.size === 0) {
+      return failure("Select at least one recipient");
+    }
+
+    const messageHtml = sanitizeNewsletterHtml(htmlContent);
+    if (!messageHtml) return failure("Write a message before sending");
+
     const supabase = await createClient();
     const admin = createAdminClient();
     const { data: subscribers, error } = await supabase
@@ -497,6 +509,10 @@ export async function sendNewsletter(
       .eq("newsletter_opt_in", true);
 
     if (error) return failure(error.message);
+
+    const targets = (subscribers ?? []).filter((subscriber) =>
+      allowedIds.has(subscriber.id)
+    );
 
     const attachments = pdfUrls.map((url, index) => {
       const filename =
@@ -509,7 +525,7 @@ export async function sendNewsletter(
     });
 
     let sent = 0;
-    for (const subscriber of subscribers ?? []) {
+    for (const subscriber of targets) {
       const { data: authUser } = await admin.auth.admin.getUserById(
         subscriber.id
       );
@@ -526,7 +542,7 @@ export async function sendNewsletter(
       await sendEmail({
         to: email,
         subject,
-        html: wrapNewsletterHtml(htmlContent, unsubscribeUrl, locale),
+        html: wrapNewsletterHtml(messageHtml, unsubscribeUrl, locale),
         locale,
         headers: {
           "List-Unsubscribe": `<${unsubscribeUrl}>`,

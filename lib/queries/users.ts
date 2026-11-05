@@ -206,6 +206,51 @@ export async function getPendingBusinessCount(): Promise<number> {
   return count ?? 0;
 }
 
+export type NewsletterSubscriber = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+export async function getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
+  const { shouldUseMockData, isSupabaseConfigured } = await import(
+    "@/lib/supabase/config"
+  );
+  if (shouldUseMockData()) {
+    const { getMockAdminUsers } = await import("@/lib/mocks/data");
+    return getMockAdminUsers().map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    }));
+  }
+
+  if (!isSupabaseConfigured()) return [];
+
+  const { createClient } = await import("@/lib/supabase/server");
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, display_name")
+    .eq("newsletter_opt_in", true);
+
+  if (error) throw error;
+
+  const rows = data ?? [];
+  const emails = await emailsByUserId(rows.map((row) => row.id));
+
+  return rows
+    .map((row) => {
+      const email = emails.get(row.id) ?? "—";
+      return {
+        id: row.id,
+        name: row.display_name?.trim() || email,
+        email,
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export async function getNewsletterSubscriberCount(): Promise<number> {
   const { shouldUseMockData, isSupabaseConfigured } = await import(
     "@/lib/supabase/config"
