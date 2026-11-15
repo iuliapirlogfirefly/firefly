@@ -4,13 +4,15 @@ import { useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { FileText, Loader2, Users, X } from "lucide-react";
 import { sendNewsletter } from "@/lib/actions/admin";
-import type { NewsletterSubscriber } from "@/lib/queries/users";
+import type {
+  NewsletterAudience,
+  NewsletterSubscriber,
+} from "@/lib/queries/users";
 import { NewsletterRecipientsDialog } from "@/components/admin/newsletter-recipients-dialog";
 import { getUploadUrl } from "@/lib/actions/business";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { NewsletterMessageEditor } from "@/components/admin/newsletter-message-editor";
-import { isNewsletterMessageEmpty } from "@/lib/newsletter/message-html";
+import { ImageUploader } from "@/components/events/image-uploader";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { ActionFeedback } from "@/components/admin/ui/action-feedback";
@@ -48,6 +50,15 @@ async function uploadNewsletterFile(file: File): Promise<string> {
   return data.publicUrl;
 }
 
+function idsForAudience(
+  subscribers: NewsletterSubscriber[],
+  audience: NewsletterAudience
+) {
+  return subscribers
+    .filter((subscriber) => subscriber.audience === audience)
+    .map((subscriber) => subscriber.id);
+}
+
 export function AdminNewsletterComposer({
   subscribers,
   archive,
@@ -69,6 +80,21 @@ export function AdminNewsletterComposer({
     message: string;
   } | null>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedBusinesses = idsForAudience(subscribers, "business").filter((id) =>
+    selectedIds.has(id)
+  ).length;
+  const selectedUsers = idsForAudience(subscribers, "user").filter((id) =>
+    selectedIds.has(id)
+  ).length;
+
+  const insertImage = (url: string | null) => {
+    if (!url) return;
+    setHtmlContent(
+      (current) =>
+        `${current}${current ? "\n" : ""}<p><img src="${url}" alt="" style="max-width:100%;height:auto;" /></p>\n`
+    );
+  };
 
   const handlePdfFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -114,6 +140,18 @@ export function AdminNewsletterComposer({
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  };
+
+  const setAudience = (audience: NewsletterAudience, selected: boolean) => {
+    const ids = idsForAudience(subscribers, audience);
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      for (const id of ids) {
+        if (selected) next.add(id);
+        else next.delete(id);
+      }
       return next;
     });
   };
@@ -174,15 +212,45 @@ export function AdminNewsletterComposer({
             <Users className="h-3.5 w-3.5" />
             {t("sendTo", { count: selectedIds.size })}
           </AdminButton>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t("recipientBreakdown", {
+              businesses: selectedBusinesses,
+              users: selectedUsers,
+            })}
+          </p>
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
             {t("htmlContent")}
           </label>
-          <NewsletterMessageEditor value={htmlContent} onChange={setHtmlContent} />
+          <textarea
+            className="min-h-[200px] w-full resize-y rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm outline-none focus:ring-1 focus:ring-foreground/30"
+            value={htmlContent}
+            onChange={(e) => setHtmlContent(e.target.value)}
+            placeholder={t("htmlPlaceholder")}
+            required
+          />
         </div>
 
-        <div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+              {t("insertImage")}
+            </p>
+            <ImageUploader
+              bucket="newsletter-media"
+              value={null}
+              onChange={(url) => {
+                if (url) insertImage(url);
+              }}
+              label=""
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("insertImageHint")}
+            </p>
+          </div>
+
+          <div>
             <p className="mb-1.5 text-xs font-medium text-muted-foreground">
               {t("attachPdf")}
             </p>
@@ -244,6 +312,7 @@ export function AdminNewsletterComposer({
                 ))}
               </ul>
             ) : null}
+          </div>
         </div>
 
         {feedback ? (
@@ -253,8 +322,8 @@ export function AdminNewsletterComposer({
           size="md"
           disabled={
             pending ||
-            !subject ||
-            isNewsletterMessageEmpty(htmlContent) ||
+            !subject.trim() ||
+            !htmlContent.trim() ||
             selectedIds.size === 0
           }
           onClick={() => setConfirmOpen(true)}
@@ -289,6 +358,7 @@ export function AdminNewsletterComposer({
           setSelectedIds(new Set(subscribers.map((subscriber) => subscriber.id)))
         }
         onDeselectAll={() => setSelectedIds(new Set())}
+        onSetAudience={setAudience}
         onClose={() => setRecipientsOpen(false)}
       />
 

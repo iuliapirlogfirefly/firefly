@@ -13,7 +13,6 @@ import {
   sendBusinessRejectedEmail,
   sendEmail,
 } from "@/lib/notifications/email";
-import { sanitizeNewsletterHtml } from "@/lib/newsletter/message-html";
 import {
   buildNewsletterUnsubscribeUrl,
   wrapNewsletterHtml,
@@ -498,8 +497,8 @@ export async function sendNewsletter(
       return failure("Select at least one recipient");
     }
 
-    const messageHtml = sanitizeNewsletterHtml(htmlContent);
-    if (!messageHtml) return failure("Write a message before sending");
+    const messageHtml = htmlContent.trim();
+    if (!messageHtml) return failure("Write the newsletter before sending");
 
     const supabase = await createClient();
     const admin = createAdminClient();

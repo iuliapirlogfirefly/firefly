@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { AdminButton } from "@/components/admin/ui/admin-button";
-import type { NewsletterSubscriber } from "@/lib/queries/users";
+import type {
+  NewsletterAudience,
+  NewsletterSubscriber,
+} from "@/lib/queries/users";
 
 type Props = {
   open: boolean;
@@ -12,8 +15,45 @@ type Props = {
   onToggle: (id: string) => void;
   onSelectAll: () => void;
   onDeselectAll: () => void;
+  onSetAudience: (audience: NewsletterAudience, selected: boolean) => void;
   onClose: () => void;
 };
+
+const AUDIENCES: NewsletterAudience[] = ["business", "user"];
+
+function GroupCheckbox({
+  checked,
+  indeterminate,
+  onChange,
+  label,
+  countLabel,
+}: {
+  checked: boolean;
+  indeterminate: boolean;
+  onChange: () => void;
+  label: string;
+  countLabel: string;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = indeterminate;
+  }, [indeterminate]);
+
+  return (
+    <label className="flex cursor-pointer items-center gap-3 px-2 py-2">
+      <input
+        ref={ref}
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="h-4 w-4 rounded border-border accent-firefly"
+      />
+      <span className="text-sm font-medium">{label}</span>
+      <span className="text-xs text-muted-foreground">{countLabel}</span>
+    </label>
+  );
+}
 
 export function NewsletterRecipientsDialog({
   open,
@@ -22,6 +62,7 @@ export function NewsletterRecipientsDialog({
   onToggle,
   onSelectAll,
   onDeselectAll,
+  onSetAudience,
   onClose,
 }: Props) {
   const t = useTranslations("admin");
@@ -41,11 +82,25 @@ export function NewsletterRecipientsDialog({
   }, [open]);
 
   const query = search.trim().toLowerCase();
-  const visible = query
-    ? subscribers.filter((subscriber) =>
-        `${subscriber.name} ${subscriber.email}`.toLowerCase().includes(query)
-      )
-    : subscribers;
+  const matches = (subscriber: NewsletterSubscriber) =>
+    !query ||
+    `${subscriber.name} ${subscriber.email}`.toLowerCase().includes(query);
+
+  const groups = AUDIENCES.map((audience) => {
+    const members = subscribers.filter(
+      (subscriber) => subscriber.audience === audience
+    );
+    return {
+      audience,
+      members,
+      visible: members.filter(matches),
+    };
+  }).filter((group) => group.visible.length > 0);
+
+  const labels: Record<NewsletterAudience, string> = {
+    business: t("businesses"),
+    user: t("users"),
+  };
 
   return (
     <dialog
@@ -74,38 +129,61 @@ export function NewsletterRecipientsDialog({
           </AdminButton>
         </div>
 
-        <ul className="mt-4 max-h-[50vh] space-y-1 overflow-y-auto">
+        <div className="mt-4 max-h-[50vh] space-y-4 overflow-y-auto">
           {subscribers.length === 0 ? (
-            <li className="px-1 py-3 text-sm text-muted-foreground">
+            <p className="px-1 py-3 text-sm text-muted-foreground">
               {t("noSubscribers")}
-            </li>
-          ) : visible.length === 0 ? (
-            <li className="px-1 py-3 text-sm text-muted-foreground">
+            </p>
+          ) : groups.length === 0 ? (
+            <p className="px-1 py-3 text-sm text-muted-foreground">
               {t("noRecipientsMatch")}
-            </li>
+            </p>
           ) : (
-            visible.map((subscriber) => (
-              <li key={subscriber.id}>
-                <label className="flex cursor-pointer items-start gap-3 rounded-lg px-2 py-2 hover:bg-surface-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(subscriber.id)}
-                    onChange={() => onToggle(subscriber.id)}
-                    className="mt-0.5 h-4 w-4 rounded border-border accent-firefly"
+            groups.map((group) => {
+              const selectedCount = group.members.filter((subscriber) =>
+                selectedIds.has(subscriber.id)
+              ).length;
+              const allSelected =
+                group.members.length > 0 && selectedCount === group.members.length;
+
+              return (
+                <section key={group.audience}>
+                  <GroupCheckbox
+                    checked={allSelected}
+                    indeterminate={selectedCount > 0 && !allSelected}
+                    onChange={() => onSetAudience(group.audience, !allSelected)}
+                    label={labels[group.audience]}
+                    countLabel={`${selectedCount}/${group.members.length}`}
                   />
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm">{subscriber.name}</span>
-                    {subscriber.name !== subscriber.email ? (
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {subscriber.email}
-                      </span>
-                    ) : null}
-                  </span>
-                </label>
-              </li>
-            ))
+                  <ul className="space-y-1">
+                    {group.visible.map((subscriber) => (
+                      <li key={subscriber.id}>
+                        <label className="flex cursor-pointer items-start gap-3 rounded-lg px-2 py-2 pl-9 hover:bg-surface-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(subscriber.id)}
+                            onChange={() => onToggle(subscriber.id)}
+                            className="mt-0.5 h-4 w-4 rounded border-border accent-firefly"
+                          />
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm">
+                              {subscriber.name}
+                            </span>
+                            {subscriber.name !== subscriber.email ? (
+                              <span className="block truncate text-xs text-muted-foreground">
+                                {subscriber.email}
+                              </span>
+                            ) : null}
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              );
+            })
           )}
-        </ul>
+        </div>
 
         {selectedIds.size === 0 ? (
           <p className="mt-3 text-xs text-destructive">{t("errorNoRecipients")}</p>

@@ -206,11 +206,18 @@ export async function getPendingBusinessCount(): Promise<number> {
   return count ?? 0;
 }
 
+export type NewsletterAudience = "business" | "user";
+
 export type NewsletterSubscriber = {
   id: string;
   name: string;
   email: string;
+  audience: NewsletterAudience;
 };
+
+function newsletterAudience(role: string): NewsletterAudience {
+  return isBusinessRole(role) ? "business" : "user";
+}
 
 export async function getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
   const { shouldUseMockData, isSupabaseConfigured } = await import(
@@ -218,11 +225,14 @@ export async function getNewsletterSubscribers(): Promise<NewsletterSubscriber[]
   );
   if (shouldUseMockData()) {
     const { getMockAdminUsers } = await import("@/lib/mocks/data");
-    return getMockAdminUsers().map((user) => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-    }));
+    return getMockAdminUsers()
+      .map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        audience: newsletterAudience(user.role),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   if (!isSupabaseConfigured()) return [];
@@ -231,7 +241,7 @@ export async function getNewsletterSubscribers(): Promise<NewsletterSubscriber[]
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name")
+    .select("id, display_name, role")
     .eq("newsletter_opt_in", true);
 
   if (error) throw error;
@@ -246,6 +256,7 @@ export async function getNewsletterSubscribers(): Promise<NewsletterSubscriber[]
         id: row.id,
         name: row.display_name?.trim() || email,
         email,
+        audience: newsletterAudience(String(row.role ?? "user")),
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
